@@ -1,26 +1,52 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'package:flutter/material.dart';
 
+enum OnlinePlayerLevel { beginner, intermediate, advanced }
+
+extension OnlinePlayerLevelDetails on OnlinePlayerLevel {
+  String get label => switch (this) {
+    OnlinePlayerLevel.beginner => 'Beginner',
+    OnlinePlayerLevel.intermediate => 'Intermediate',
+    OnlinePlayerLevel.advanced => 'Advanced',
+  };
+
+  String get description => switch (this) {
+    OnlinePlayerLevel.beginner => 'Learning the game',
+    OnlinePlayerLevel.intermediate => 'Comfortable with tactics',
+    OnlinePlayerLevel.advanced => 'Experienced competitive player',
+  };
+}
+
+OnlinePlayerLevel onlinePlayerLevel(String? value) =>
+    OnlinePlayerLevel.values
+        .where((level) => level.name == value)
+        .firstOrNull ??
+    OnlinePlayerLevel.intermediate;
+
 class OnlinePlayerProfile {
   const OnlinePlayerProfile({
     required this.name,
     required this.avatarId,
+    this.level = OnlinePlayerLevel.intermediate,
     this.playerToken,
   });
 
   final String name;
   final String avatarId;
+  final OnlinePlayerLevel level;
   final String? playerToken;
 
   OnlinePlayerProfile copyWith({String? playerToken}) => OnlinePlayerProfile(
     name: name,
     avatarId: avatarId,
+    level: level,
     playerToken: playerToken ?? this.playerToken,
   );
 
   Map<String, Object?> toJson() => {
     'name': name,
     'avatarId': avatarId,
+    'level': level.name,
     'playerToken': playerToken,
   };
 
@@ -28,6 +54,7 @@ class OnlinePlayerProfile {
       OnlinePlayerProfile(
         name: json['name'] as String,
         avatarId: json['avatarId'] as String,
+        level: onlinePlayerLevel(json['level'] as String?),
         playerToken: json['playerToken'] as String?,
       );
 }
@@ -59,6 +86,7 @@ class OnlineLeaderboardEntry {
   const OnlineLeaderboardEntry({
     required this.name,
     required this.avatarId,
+    this.level = OnlinePlayerLevel.intermediate,
     required this.points,
     required this.wins,
     required this.draws,
@@ -69,6 +97,7 @@ class OnlineLeaderboardEntry {
       OnlineLeaderboardEntry(
         name: json['name'] as String,
         avatarId: json['avatarId'] as String,
+        level: onlinePlayerLevel(json['level'] as String?),
         points: json['points'] as int,
         wins: json['wins'] as int,
         draws: json['draws'] as int,
@@ -77,6 +106,7 @@ class OnlineLeaderboardEntry {
 
   final String name;
   final String avatarId;
+  final OnlinePlayerLevel level;
   final int points;
   final int wins;
   final int draws;
@@ -88,6 +118,7 @@ class OnlinePlayerSearchResult {
     required this.name,
     required this.avatarId,
     required this.online,
+    this.level = OnlinePlayerLevel.intermediate,
   });
 
   factory OnlinePlayerSearchResult.fromJson(Map<String, dynamic> json) =>
@@ -95,15 +126,18 @@ class OnlinePlayerSearchResult {
         name: json['name'] as String,
         avatarId: json['avatarId'] as String,
         online: json['online'] as bool,
+        level: onlinePlayerLevel(json['level'] as String?),
       );
 
   final String name;
   final String avatarId;
   final bool online;
+  final OnlinePlayerLevel level;
 }
 
 class OnlinePointRecord {
   const OnlinePointRecord({
+    required this.recordId,
     required this.gameId,
     required this.opponentName,
     required this.opponentAvatarId,
@@ -114,6 +148,9 @@ class OnlinePointRecord {
 
   factory OnlinePointRecord.fromJson(Map<String, dynamic> json) =>
       OnlinePointRecord(
+        recordId:
+            json['recordId'] as String? ??
+            '${json['gameId']}-${json['completedAt']}',
         gameId: json['gameId'] as String,
         opponentName: json['opponentName'] as String,
         opponentAvatarId: json['opponentAvatarId'] as String,
@@ -125,6 +162,7 @@ class OnlinePointRecord {
       );
 
   final String gameId;
+  final String recordId;
   final String opponentName;
   final String opponentAvatarId;
   final String result;

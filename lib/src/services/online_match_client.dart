@@ -94,7 +94,11 @@ class OnlineMatchClient extends ChangeNotifier {
     _notify();
   }
 
-  void updateProfile({required String name, required String avatarId}) {
+  void updateProfile({
+    required String name,
+    required String avatarId,
+    required OnlinePlayerLevel level,
+  }) {
     if (!connected || _profile == null) return;
     _profileUpdateCommandId = _newId();
     _send({
@@ -102,6 +106,7 @@ class OnlineMatchClient extends ChangeNotifier {
       'commandId': _profileUpdateCommandId,
       'name': name,
       'avatarId': avatarId,
+      'level': level.name,
     });
   }
 
@@ -280,6 +285,19 @@ class OnlineMatchClient extends ChangeNotifier {
     if (connected) _send(const {'type': 'points_history'});
   }
 
+  void deleteHistory(OnlinePointRecord record) {
+    if (!connected) return;
+    pointHistory = List.unmodifiable(
+      pointHistory.where((item) => item.recordId != record.recordId),
+    );
+    _send({
+      'type': 'delete_history',
+      'commandId': _newId(),
+      'recordId': record.recordId,
+    });
+    _notify();
+  }
+
   void findPlayer(String avatarId) {
     if (!connected) return;
     playerSearchResult = null;
@@ -290,6 +308,19 @@ class OnlineMatchClient extends ChangeNotifier {
 
   void loadInvitations() {
     if (connected) _send(const {'type': 'list_invites'});
+  }
+
+  void deleteInvitation(String inviteId) {
+    if (!connected) return;
+    invitations = List.unmodifiable(
+      invitations.where((item) => item.inviteId != inviteId),
+    );
+    _send({
+      'type': 'delete_invite',
+      'commandId': _newId(),
+      'inviteId': inviteId,
+    });
+    _notify();
   }
 
   void loadActiveGames() {
@@ -384,6 +415,7 @@ class OnlineMatchClient extends ChangeNotifier {
             'commandId': _profileCommandId,
             'name': _profile!.name,
             'avatarId': _profile!.avatarId,
+            'level': _profile!.level.name,
             if (_profile!.playerToken != null)
               'playerToken': _profile!.playerToken,
           });
@@ -398,6 +430,7 @@ class OnlineMatchClient extends ChangeNotifier {
         _profile = OnlinePlayerProfile(
           name: frame['name'] as String,
           avatarId: frame['avatarId'] as String,
+          level: onlinePlayerLevel(frame['level'] as String?),
           playerToken: frame['playerToken'] as String,
         );
         _profileCommandId = null;
@@ -424,6 +457,7 @@ class OnlineMatchClient extends ChangeNotifier {
         _profile = OnlinePlayerProfile(
           name: frame['name'] as String,
           avatarId: frame['avatarId'] as String,
+          level: onlinePlayerLevel(frame['level'] as String?),
           playerToken: frame['playerToken'] as String,
         );
         _profileUpdateCommandId = null;
@@ -443,6 +477,10 @@ class OnlineMatchClient extends ChangeNotifier {
               (item as Map).cast<String, dynamic>(),
             ),
           ),
+        );
+      } else if (type == 'history_deleted') {
+        pointHistory = List.unmodifiable(
+          pointHistory.where((item) => item.recordId != frame['recordId']),
         );
       } else if (type == 'player_found') {
         final player = frame['player'] as Map?;
@@ -471,6 +509,10 @@ class OnlineMatchClient extends ChangeNotifier {
               (item as Map).cast<String, dynamic>(),
             ),
           ),
+        );
+      } else if (type == 'invite_deleted') {
+        invitations = List.unmodifiable(
+          invitations.where((item) => item.inviteId != frame['inviteId']),
         );
       } else if (type == 'invite_updated') {
         final invitation = OnlineInvitation.fromJson(

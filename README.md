@@ -1,4 +1,4 @@
-# Battle Chess Arena · 0.6.0
+# Battle Chess Arena · 0.7.0
 
 An Android/iOS Flutter chess game with optional, short, skippable capture battles.
 Original project code and visual assets are **GPL-3.0-or-later**; dependencies
@@ -18,11 +18,14 @@ See [validation results](docs/MILESTONE_4_VALIDATION.md).
   Appearance choices apply to the current match on this device; they do not alter
   legal moves, player seats, or your opponent's appearance settings.
 - Standard legal moves, castling, en passant, promotion choice, SAN history.
-- A simplified online lobby with quick matchmaking, exact Avatar ID search,
-  server-listed active games, and one-tap game resume.
+- A simplified online lobby with level-aware quick matchmaking, exact Avatar ID
+  search, server-listed active games, and one-tap game resume. Players choose
+  Beginner, Intermediate, or Advanced; Quick Game prefers that level and widens
+  the search after 15 seconds.
 - Unique, editable Avatar IDs with eight themed character portraits, multiple open opponents, a
-  ranked leaderboard, and a per-match points breakdown. Wins award three points
-  and draws award one.
+  ranked leaderboard, and completed-game history cards marked Won, Lost, or Draw.
+  History cards and invitations can be deleted without changing earned points or
+  win/draw/loss totals. Wins award three points and draws award one.
 - Favourite opponents with online/offline presence, immediate invitations,
   exact date-and-time scheduling, alternating counter-proposals, acceptance
   status, and persistent in-app reminders.
@@ -33,6 +36,8 @@ See [validation results](docs/MILESTONE_4_VALIDATION.md).
 - Copy Game ID for sharing; seat tokens remain private and in memory.
 - Manga Vanguard pawn artwork for committed captures; symbolic fallback elsewhere.
 - Optional, fast, reduced-motion and skippable online capture presentation.
+- Result presentation for local and online games, with full-screen ambient victory
+  graphics and a short original applause effect that follows the mute setting.
 
 ## Development setup
 

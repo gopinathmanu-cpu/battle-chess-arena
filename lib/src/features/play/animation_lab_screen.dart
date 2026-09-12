@@ -287,10 +287,14 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     _resultShown = true;
     await LastGameStorage.clear();
     if (!mounted) return;
-    unawaited(MusicScope.of(context)?.playEffect(CinematicSound.finalStrike));
     final winner = _game.position.turn.opposite;
     final versusComputer = widget.mode == PlayerMode.computer;
     final userWon = !versusComputer || winner == Side.white;
+    unawaited(
+      MusicScope.of(context)?.playEffect(
+        userWon ? CinematicSound.victoryApplause : CinematicSound.finalStrike,
+      ),
+    );
     final message = analyzeUserGame(
       sanMoves: _game.sanMoves,
       uciMoves: _game.uciMoves,

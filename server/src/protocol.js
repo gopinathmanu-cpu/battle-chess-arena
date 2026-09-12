@@ -5,15 +5,17 @@ const actions = ["move", "resign", "offer_draw", "respond_draw", "rematch"];
 export const isAction = (type) => actions.includes(type);
 const fields = {
   ping: [],
-  register_player: ["commandId", "name", "avatarId", "playerToken"],
-  update_player: ["commandId", "name", "avatarId"],
+  register_player: ["commandId", "name", "avatarId", "level", "playerToken"],
+  update_player: ["commandId", "name", "avatarId", "level"],
   leaderboard: [],
   points_history: [],
+  delete_history: ["commandId", "recordId"],
   find_player: ["query"],
   list_games: [],
   presence: ["names"],
   send_invite: ["commandId", "opponentName", "scheduledAt", "timed", "baseMs"],
   list_invites: [],
+  delete_invite: ["commandId", "inviteId"],
   respond_invite: ["commandId", "inviteId", "accept"],
   propose_invite_time: ["commandId", "inviteId", "scheduledAt", "timed", "baseMs"],
   create_game: ["commandId", "baseMs", "incrementMs"],
@@ -84,6 +86,10 @@ export function validateMessage(message) {
         "moon",
       ].includes(message.avatarId),
     );
+    require(
+      message.level === undefined ||
+        ["beginner", "intermediate", "advanced"].includes(message.level),
+    );
     if (message.type === "register_player") {
       require(
         message.playerToken === undefined || identifier(message.playerToken),
@@ -124,6 +130,8 @@ export function validateMessage(message) {
     require(identifier(message.inviteId));
     require(typeof message.accept === "boolean");
   }
+  if (message.type === "delete_invite") require(identifier(message.inviteId));
+  if (message.type === "delete_history") require(identifier(message.recordId));
   if (message.type === "propose_invite_time") {
     require(identifier(message.inviteId));
     require(integer(message.scheduledAt));

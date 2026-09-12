@@ -167,6 +167,13 @@ test("promotion choice is committed and malformed protocol fields are rejected",
     { type: "__proto__" },
     { type: "sync", gameId: 5 },
     {
+      type: "register_player",
+      commandId: "x",
+      name: "Level Hero",
+      avatarId: "crown",
+      level: "expert",
+    },
+    {
       type: "move",
       commandId: "x",
       gameId: "y",

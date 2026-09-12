@@ -298,6 +298,7 @@ export class Match {
       ? {
           name: player.name,
           avatarId: player.avatarId,
+          level: player.level ?? "intermediate",
           points: player.points ?? 0,
         }
       : null;

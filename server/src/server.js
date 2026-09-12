@@ -72,6 +72,7 @@ export function createMatchServer({
   };
   const publishInvite = (invite) => {
     for (const player of [invite.sender, invite.recipient]) {
+      if (invite.hiddenFor?.has(player.id)) continue;
       sendToPlayer(player.id, "invite_updated", () => ({
         invite: publicInvite(invite, player.id),
       }));
@@ -145,6 +146,7 @@ export function createMatchServer({
     }
     const completedAt = Date.now();
     white.pointHistory.push({
+      recordId: randomUUID(),
       gameId: game.id,
       opponentName: black.name,
       opponentAvatarId: black.avatarId,
@@ -153,6 +155,7 @@ export function createMatchServer({
       completedAt,
     });
     black.pointHistory.push({
+      recordId: randomUUID(),
       gameId: game.id,
       opponentName: white.name,
       opponentAvatarId: white.avatarId,
@@ -229,6 +232,7 @@ export function createMatchServer({
             token: message.playerToken ?? randomUUID(),
             name: message.name.trim().replace(/\s+/g, " "),
             avatarId: message.avatarId,
+            level: message.level ?? "intermediate",
             points: 0,
             wins: 0,
             draws: 0,
@@ -239,6 +243,7 @@ export function createMatchServer({
           profile.sockets ??= new Set();
           profile.pointHistory ??= [];
           profile.avatarId = message.avatarId;
+          profile.level = message.level ?? profile.level ?? "intermediate";
           profile.sockets.add(socket);
           const canonicalKey = profile.name
             .trim()
@@ -250,6 +255,7 @@ export function createMatchServer({
             commandId: message.commandId,
             name: profile.name,
             avatarId: profile.avatarId,
+            level: profile.level,
             playerToken: profile.token,
             points: profile.points,
             wins: profile.wins,
@@ -282,11 +288,13 @@ export function createMatchServer({
           profiles.delete(oldKey);
           peer.player.name = message.name.trim().replace(/\s+/g, " ");
           peer.player.avatarId = message.avatarId;
+          peer.player.level = message.level ?? peer.player.level;
           profiles.set(nextKey, peer.player);
           send(socket, "player_updated", {
             commandId: message.commandId,
             name: peer.player.name,
             avatarId: peer.player.avatarId,
+            level: peer.player.level,
             playerToken: peer.player.token,
           });
           return;
@@ -300,9 +308,10 @@ export function createMatchServer({
                 a.name.localeCompare(b.name),
             )
             .slice(0, 50)
-            .map(({ name, avatarId, points, wins, draws, losses }) => ({
+            .map(({ name, avatarId, level, points, wins, draws, losses }) => ({
               name,
               avatarId,
+              level,
               points,
               wins,
               draws,
@@ -314,6 +323,16 @@ export function createMatchServer({
         if (message.type === "points_history") {
           send(socket, "points_history", {
             matches: [...peer.player.pointHistory].reverse(),
+          });
+          return;
+        }
+        if (message.type === "delete_history") {
+          peer.player.pointHistory = peer.player.pointHistory.filter(
+            (record) => record.recordId !== message.recordId,
+          );
+          send(socket, "history_deleted", {
+            commandId: message.commandId,
+            recordId: message.recordId,
           });
           return;
         }
@@ -330,6 +349,7 @@ export function createMatchServer({
                 ? {
                     name: found.name,
                     avatarId: found.avatarId,
+                    level: found.level,
                     online: found.sockets.size > 0,
                   }
                 : null,
@@ -426,6 +446,7 @@ export function createMatchServer({
             timed: message.timed ?? true,
             baseMs: message.baseMs ?? 600_000,
             game: null,
+            hiddenFor: new Set(),
           };
           invites.set(invite.id, invite);
           publishInvite(invite);
@@ -442,9 +463,29 @@ export function createMatchServer({
                 invite.sender.id === peer.player.id ||
                 invite.recipient.id === peer.player.id,
             )
+            .filter((invite) => !invite.hiddenFor?.has(peer.player.id))
             .sort((a, b) => b.createdAt - a.createdAt)
             .map((invite) => publicInvite(invite, peer.player.id));
           send(socket, "invites", { invites: visible });
+          return;
+        }
+        if (message.type === "delete_invite") {
+          const invite = invites.get(message.inviteId);
+          if (
+            !invite ||
+            (invite.sender.id !== peer.player.id &&
+              invite.recipient.id !== peer.player.id)
+          )
+            throw new MatchError(
+              "INVITE_NOT_FOUND",
+              "Invitation is unavailable",
+            );
+          invite.hiddenFor ??= new Set();
+          invite.hiddenFor.add(peer.player.id);
+          send(socket, "invite_deleted", {
+            commandId: message.commandId,
+            inviteId: invite.id,
+          });
           return;
         }
         if (message.type === "respond_invite") {
@@ -570,8 +611,8 @@ export function createMatchServer({
           } else {
             const baseMs = message.baseMs ?? 600_000;
             const incrementMs = message.incrementMs ?? 0;
-            const queueKey = `${baseMs}:${incrementMs}`;
-            const waiting = [...games.values()].find(
+            const queueKey = `${baseMs}:${incrementMs}:${peer.player.level}`;
+            const eligible = [...games.values()].filter(
               (match) =>
                 match.status === "waiting" &&
                 match.baseMs === baseMs &&
@@ -583,10 +624,23 @@ export function createMatchServer({
                     other.isPair(match.players.w.id, peer.player.id),
                 ),
             );
+            const matchTime = now();
+            const waiting =
+              eligible.find(
+                (match) => match.matchmakingLevel === peer.player.level,
+              ) ??
+              eligible.find(
+                (match) =>
+                  matchTime - (match.matchmakingStartedAt ?? matchTime) >=
+                  15_000,
+              );
             if (waiting) {
               game = waiting;
-              if (matchmaking.get(queueKey) === game.id)
-                matchmaking.delete(queueKey);
+              for (const [key, gameId] of matchmaking) {
+                if (gameId === game.id) matchmaking.delete(key);
+              }
+              game.matchmakingLevel = null;
+              game.matchmakingStartedAt = null;
               peer.token = game.joinBlack(now(), peer.player);
               peer.gameId = game.id;
             } else {
@@ -602,6 +656,8 @@ export function createMatchServer({
                 whitePlayer: peer.player,
               });
               games.set(game.id, game);
+              game.matchmakingLevel = peer.player.level;
+              game.matchmakingStartedAt = matchTime;
               matchmaking.set(queueKey, game.id);
               peer.gameId = game.id;
               peer.token = game.whiteToken;

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0 · 2026-09-12
+
+- Add Beginner, Intermediate, and Advanced levels to online avatar profiles,
+  profile editing, opponent search, game details, and the leaderboard.
+- Prefer the same player level during Quick Game matchmaking, then expand to
+  other levels after 15 seconds so a sparse lobby can still form a match.
+- Present completed games as Won, Lost, or Draw history cards and allow players
+  to delete individual history entries without changing points or W/D/L totals.
+- Allow either player to remove an invitation from their own list without
+  cancelling an accepted game or removing the other player's copy.
+- Extend end-of-game presentation to every online result. Add restrained
+  full-screen victory colour and confetti, a stronger trophy treatment, and an
+  original synthesized applause effect governed by the global mute control.
+
 ## 0.6.0 · 2026-09-12
 
 - Simplify Play Online around Quick Game, exact Avatar ID search, active games,

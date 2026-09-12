@@ -26,6 +26,10 @@ void main() {
       expect(find.text('Create your online Avatar ID'), findsOneWidget);
       expect(find.byKey(const ValueKey('avatar-name-field')), findsOneWidget);
       expect(find.byType(ChoiceChip), findsNWidgets(8));
+      expect(
+        find.byKey(const ValueKey('player-level-selector')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -331,6 +335,101 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Cancel search'));
     expect(channel.sent.last['type'], 'cancel_matchmaking');
+    await tester.pumpWidget(const SizedBox());
+    client.dispose();
+  });
+
+  testWidgets('lobby deletes invitation and completed history cards', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final channel = FakeChannel();
+    final client = OnlineMatchClient(channelFactory: (_) => channel);
+    await client.connect(Uri.parse('ws://localhost:8080'));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OnlineLobbyScreen(client: client, pack: piecePacks.first),
+      ),
+    );
+    channel.receive({
+      'type': 'invites',
+      'invites': [
+        {
+          'inviteId': 'delete-me',
+          'sender': {'name': 'Moon Mage', 'avatarId': 'moon'},
+          'recipient': {'name': 'Nova Knight', 'avatarId': 'mage'},
+          'createdAt': 1,
+          'status': 'declined',
+        },
+      ],
+    });
+    channel.receive({
+      'type': 'points_history',
+      'matches': [
+        {
+          'recordId': 'history-one',
+          'gameId': 'finished-one',
+          'opponentName': 'Moon Mage',
+          'opponentAvatarId': 'moon',
+          'result': 'win',
+          'points': 3,
+          'completedAt': 1000,
+        },
+      ],
+    });
+    await tester.pump();
+
+    final deleteInvite = find.byKey(const ValueKey('delete-invite-delete-me'));
+    await tester.ensureVisible(deleteInvite);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(deleteInvite);
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pump();
+    expect(channel.sent.any((frame) => frame['type'] == 'delete_invite'), true);
+
+    final historyButton = find.text('Game history');
+    await tester.ensureVisible(historyButton);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(historyButton);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('WON ·'), findsOneWidget);
+    final deleteHistory = find.byKey(
+      const ValueKey('delete-history-history-one'),
+    );
+    await tester.ensureVisible(deleteHistory);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(deleteHistory);
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pump();
+    expect(
+      channel.sent.any((frame) => frame['type'] == 'delete_history'),
+      true,
+    );
+    await tester.pumpWidget(const SizedBox());
+    client.dispose();
+  });
+
+  testWidgets('online victory shows the celebratory result atmosphere', (
+    tester,
+  ) async {
+    final channel = FakeChannel();
+    final client = await showGame(tester, channel);
+    channel.receive({
+      'type': 'game_state',
+      'state': stateJson(
+        sequence: 2,
+        status: 'complete',
+        result: {'reason': 'checkmate', 'winner': 'w'},
+      ),
+    });
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.byKey(const ValueKey('result-atmosphere')), findsOneWidget);
+    expect(find.text('CHECKMATE'), findsOneWidget);
+    expect(find.text('You Win!'), findsOneWidget);
+    expect(find.text('Review Board'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     client.dispose();
   });

@@ -39,6 +39,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   final _avatarName = TextEditingController();
   final _opponentSearch = TextEditingController();
   var _avatarId = onlineAvatarChoices.first.id;
+  var _playerLevel = OnlinePlayerLevel.intermediate;
   var _timeControl = _controls.last;
   var _history = <OnlineGameRecord>[];
   var _favorites = <OnlineFavorite>[];
@@ -83,8 +84,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       _client.setProfile(profile);
       _avatarName.text = profile.name;
       _avatarId = profile.avatarId;
+      _playerLevel = profile.level;
       _savedProfileKey =
-          '${profile.name}|${profile.avatarId}|${profile.playerToken}';
+          '${profile.name}|${profile.avatarId}|${profile.level.name}|${profile.playerToken}';
       _profileReady = true;
     }
     setState(() => _loading = false);
@@ -106,7 +108,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final profile = _client.profile;
     final profileKey = profile == null
         ? null
-        : '${profile.name}|${profile.avatarId}|${profile.playerToken}';
+        : '${profile.name}|${profile.avatarId}|${profile.level.name}|${profile.playerToken}';
     if (profile?.playerToken != null && profileKey != _savedProfileKey) {
       _savedProfileKey = profileKey;
       unawaited(OnlineGameHistory.saveProfile(profile!));
@@ -215,6 +217,62 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     await OnlineGameHistory.saveReminders(_reminders);
   }
 
+  Future<void> _deleteInvitation(OnlineInvitation invitation) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete invitation?'),
+        content: const Text(
+          'This removes the invitation from your list only. Any accepted game and the other player’s copy remain available.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _client.deleteInvitation(invitation.inviteId);
+    _reminders.remove(invitation.inviteId);
+    await OnlineGameHistory.saveReminders(_reminders);
+  }
+
+  Future<void> _deleteHistory(
+    OnlinePointRecord record,
+    BuildContext sheetContext,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete game history?'),
+        content: const Text(
+          'The match card will be removed. Your points and win/draw/loss totals will not change.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _client.deleteHistory(record);
+    final history = await OnlineGameHistory.deleteGame(record.gameId);
+    if (mounted) setState(() => _history = history);
+    if (sheetContext.mounted) Navigator.pop(sheetContext);
+  }
+
   Future<void> _saveGame(OnlineGameRecord record) async {
     final history = await OnlineGameHistory.upsert(record);
     if (mounted) setState(() => _history = history);
@@ -230,7 +288,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       );
       return;
     }
-    _client.setProfile(OnlinePlayerProfile(name: name, avatarId: _avatarId));
+    _client.setProfile(
+      OnlinePlayerProfile(name: name, avatarId: _avatarId, level: _playerLevel),
+    );
     setState(() => _profileReady = true);
     await _client.connect(_endpoint);
   }
@@ -414,7 +474,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     if (profile == null) return;
     final controller = TextEditingController(text: profile.name);
     var avatarId = profile.avatarId;
-    final updated = await showDialog<(String, String)>(
+    var level = profile.level;
+    final updated = await showDialog<(String, String, OnlinePlayerLevel)>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -445,6 +506,21 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                       ),
                   ],
                 ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<OnlinePlayerLevel>(
+                  initialValue: level,
+                  decoration: const InputDecoration(labelText: 'Player level'),
+                  items: [
+                    for (final option in OnlinePlayerLevel.values)
+                      DropdownMenuItem(
+                        value: option,
+                        child: Text(option.label),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setDialogState(() => level = value);
+                  },
+                ),
               ],
             ),
           ),
@@ -464,7 +540,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 ).hasMatch(name)) {
                   return;
                 }
-                Navigator.pop(context, (name, avatarId));
+                Navigator.pop(context, (name, avatarId, level));
               },
               child: const Text('Save'),
             ),
@@ -474,7 +550,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     );
     controller.dispose();
     if (updated != null) {
-      _client.updateProfile(name: updated.$1, avatarId: updated.$2);
+      _client.updateProfile(
+        name: updated.$1,
+        avatarId: updated.$2,
+        level: updated.$3,
+      );
     }
   }
 
@@ -568,6 +648,25 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 ),
             ],
           ),
+          const SizedBox(height: 14),
+          DropdownButtonFormField<OnlinePlayerLevel>(
+            key: const ValueKey('player-level-selector'),
+            initialValue: _playerLevel,
+            decoration: const InputDecoration(
+              labelText: 'Player level',
+              prefixIcon: Icon(Icons.equalizer),
+            ),
+            items: [
+              for (final level in OnlinePlayerLevel.values)
+                DropdownMenuItem(
+                  value: level,
+                  child: Text(level.label),
+                ),
+            ],
+            onChanged: (value) {
+              if (value != null) setState(() => _playerLevel = value);
+            },
+          ),
           const SizedBox(height: 18),
           FilledButton.icon(
             key: const ValueKey('enter-arena-button'),
@@ -601,7 +700,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              Text(_client.connectionLabel),
+              Text(
+                '${_client.connectionLabel} · ${profile?.level.label ?? _playerLevel.label}',
+              ),
             ],
           ),
         ),
@@ -631,7 +732,13 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             children: [
               const LinearProgressIndicator(),
               const SizedBox(height: 12),
-              const Text('Finding anyone available…'),
+              Text(
+                'Finding a ${_client.profile?.level.label.toLowerCase() ?? 'similar-level'} opponent…',
+              ),
+              const Text(
+                'Search expands to other levels after 15 seconds.',
+                textAlign: TextAlign.center,
+              ),
               TextButton(
                 onPressed: _client.busy ? null : _client.cancelMatchmaking,
                 child: const Text('Cancel search'),
@@ -651,7 +758,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               'Quick Game',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
-            const Text('Play with anyone available.'),
+            Text(
+              'Matches your ${_client.profile?.level.label ?? 'player'} level first.',
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -726,7 +835,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             contentPadding: EdgeInsets.zero,
             leading: OnlineAvatarImage(avatarId: result.avatarId),
             title: Text(result.name),
-            subtitle: Text(result.online ? 'Online' : 'Offline'),
+            subtitle: Text(
+              '${result.level.label} · ${result.online ? 'Online' : 'Offline'}',
+            ),
             trailing: PopupMenuButton<String>(
               tooltip: 'Opponent actions',
               onSelected: (action) {
@@ -891,10 +1002,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         leading: OnlineAvatarImage(avatarId: opponentAvatar),
         title: Text(opponentName),
         subtitle: Text(status),
-        trailing: acceptedGame
-            ? const Icon(Icons.play_arrow)
-            : canRespond
-            ? PopupMenuButton<String>(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (acceptedGame) const Icon(Icons.play_arrow),
+            if (canRespond)
+              PopupMenuButton<String>(
                 tooltip: 'Respond to invitation',
                 onSelected: (action) {
                   if (action == 'accept') {
@@ -914,9 +1027,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   PopupMenuItem(value: 'decline', child: Text('Decline')),
                 ],
               )
-            : invitation.scheduledAt != null &&
-                  ['pending', 'accepted'].contains(invitation.status)
-            ? IconButton(
+            else if (invitation.scheduledAt != null &&
+                ['pending', 'accepted'].contains(invitation.status))
+              IconButton(
                 tooltip: 'Scheduled-game reminder',
                 onPressed: () => _toggleReminder(invitation.inviteId),
                 icon: Icon(
@@ -924,8 +1037,15 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                       ? Icons.notifications_active
                       : Icons.notifications_none,
                 ),
-              )
-            : null,
+              ),
+            IconButton(
+              key: ValueKey('delete-invite-${invitation.inviteId}'),
+              tooltip: 'Delete invitation',
+              onPressed: () => _deleteInvitation(invitation),
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -960,7 +1080,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               children: [
                 OutlinedButton(
                   onPressed: _showPointsBreakdown,
-                  child: const Text('Points breakdown'),
+                  child: const Text('Game history'),
                 ),
                 FilledButton.tonal(
                   onPressed: _showLeaderboard,
@@ -1000,7 +1120,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                       leading: OnlineAvatarImage(avatarId: entry.avatarId),
                       title: Text('${index + 1}. ${entry.name}'),
                       subtitle: Text(
-                        '${entry.wins}W  ${entry.draws}D  ${entry.losses}L',
+                        '${entry.level.label} · ${entry.wins}W  ${entry.draws}D  ${entry.losses}L',
                       ),
                       trailing: Text(
                         '${entry.points} pts',
@@ -1029,8 +1149,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             children: [
               const ListTile(
                 title: Text(
-                  'Points breakdown',
+                  'Game history',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text(
+                  'Deleting a match card does not change points or totals.',
                 ),
               ),
               if (_client.pointHistory.isEmpty)
@@ -1044,17 +1167,31 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   child: ListView(
                     children: [
                       for (final match in _client.pointHistory)
-                        ListTile(
-                          leading: OnlineAvatarImage(
-                            avatarId: match.opponentAvatarId,
-                          ),
-                          title: Text(match.opponentName),
-                          subtitle: Text(
-                            '${match.result.toUpperCase()} · ${_formatSchedule(match.completedAt)}',
-                          ),
-                          trailing: Text(
-                            '+${match.points}',
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                        Card(
+                          key: ValueKey('history-${match.recordId}'),
+                          child: ListTile(
+                            leading: OnlineAvatarImage(
+                              avatarId: match.opponentAvatarId,
+                            ),
+                            title: Text(match.opponentName),
+                            subtitle: Text(
+                              '${_historyStatus(match.result)} · ${_formatSchedule(match.completedAt)}',
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Chip(label: Text('+${match.points} pts')),
+                                IconButton(
+                                  key: ValueKey(
+                                    'delete-history-${match.recordId}',
+                                  ),
+                                  tooltip: 'Delete game history',
+                                  onPressed: () =>
+                                      _deleteHistory(match, context),
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                     ],
@@ -1073,6 +1210,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final hour = local.hour.toString().padLeft(2, '0');
     return '${local.day}/${local.month}/${local.year} $hour:$minute';
   }
+
+  String _historyStatus(String result) => switch (result) {
+    'win' => 'WON',
+    'loss' => 'LOST',
+    _ => 'DRAW',
+  };
 }
 
 class _OnlineTimeControl {

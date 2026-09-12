@@ -113,7 +113,12 @@ void main() {
     music.toggleMuted();
     await music.settled;
     await music.playEffect(CinematicSound.finalStrike);
-    expect(output.effects, [CinematicSound.attack, CinematicSound.finalStrike]);
+    await music.playEffect(CinematicSound.victoryApplause);
+    expect(output.effects, [
+      CinematicSound.attack,
+      CinematicSound.finalStrike,
+      CinematicSound.victoryApplause,
+    ]);
     music.dispose();
   });
 }

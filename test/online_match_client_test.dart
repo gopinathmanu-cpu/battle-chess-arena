@@ -13,7 +13,11 @@ void main() {
     final channel = FakeChannel();
     final client = OnlineMatchClient(
       channelFactory: (_) => channel,
-      profile: const OnlinePlayerProfile(name: 'Nova Knight', avatarId: 'mage'),
+      profile: const OnlinePlayerProfile(
+        name: 'Nova Knight',
+        avatarId: 'mage',
+        level: OnlinePlayerLevel.advanced,
+      ),
     );
     addTearDown(client.dispose);
     await client.connect(Uri.parse('wss://arena.example'));
@@ -23,28 +27,37 @@ void main() {
     final registration = channel.sent.single;
     expect(registration['type'], 'register_player');
     expect(registration['name'], 'Nova Knight');
+    expect(registration['level'], 'advanced');
     channel.receive({
       'type': 'player_registered',
       'commandId': registration['commandId'],
       'name': 'Nova Knight',
       'avatarId': 'mage',
+      'level': 'advanced',
       'playerToken': 'player-secret',
     });
     await flush();
     expect(client.connected, isTrue);
     expect(client.profile!.playerToken, 'player-secret');
-    client.updateProfile(name: 'Nova Knight', avatarId: 'robot');
+    client.updateProfile(
+      name: 'Nova Knight',
+      avatarId: 'robot',
+      level: OnlinePlayerLevel.beginner,
+    );
     final update = channel.sent.last;
     expect(update['type'], 'update_player');
+    expect(update['level'], 'beginner');
     channel.receive({
       'type': 'player_updated',
       'commandId': update['commandId'],
       'name': 'Nova Knight',
       'avatarId': 'robot',
+      'level': 'beginner',
       'playerToken': 'player-secret',
     });
     await flush();
     expect(client.profile!.avatarId, 'robot');
+    expect(client.profile!.level, OnlinePlayerLevel.beginner);
     expect(
       channel.sent.skip(1).map((frame) => frame['type']),
       containsAll([
@@ -58,12 +71,18 @@ void main() {
     expect(channel.sent.last, {'type': 'find_player', 'query': 'Moon Mage'});
     channel.receive({
       'type': 'player_found',
-      'player': {'name': 'Moon Mage', 'avatarId': 'moon', 'online': true},
+      'player': {
+        'name': 'Moon Mage',
+        'avatarId': 'moon',
+        'level': 'intermediate',
+        'online': true,
+      },
     });
     channel.receive({
       'type': 'points_history',
       'matches': [
         {
+          'recordId': 'record-one',
           'gameId': 'finished-one',
           'opponentName': 'Moon Mage',
           'opponentAvatarId': 'moon',
@@ -111,6 +130,13 @@ void main() {
     expect(client.playerSearchResult!.name, 'Moon Mage');
     expect(client.pointHistory.single.points, 3);
     expect(client.activeGames.single.gameId, 'active-one');
+    client.deleteHistory(client.pointHistory.single);
+    expect(channel.sent.last['type'], 'delete_history');
+    expect(channel.sent.last['recordId'], 'record-one');
+    expect(client.pointHistory, isEmpty);
+    client.deleteInvitation('invite-one');
+    expect(channel.sent.last['type'], 'delete_invite');
+    expect(client.invitations, isEmpty);
     client.proposeInvitationTime(
       'invite-one',
       DateTime.fromMillisecondsSinceEpoch(5000),

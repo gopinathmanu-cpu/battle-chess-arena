@@ -4,7 +4,13 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import '../domain/piece_pack.dart';
 
-enum CinematicSound { attack, lightImpact, heavyImpact, finalStrike }
+enum CinematicSound {
+  attack,
+  lightImpact,
+  heavyImpact,
+  finalStrike,
+  victoryApplause,
+}
 
 abstract class MusicOutput {
   Future<void> play(PiecePackId theme);

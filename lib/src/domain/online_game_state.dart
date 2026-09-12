@@ -92,7 +92,11 @@ class OnlineGameState {
 }
 
 class OnlinePlayerSummary {
-  const OnlinePlayerSummary({required this.name, required this.avatarId});
+  const OnlinePlayerSummary({
+    required this.name,
+    required this.avatarId,
+    this.level = 'intermediate',
+  });
 
   factory OnlinePlayerSummary.fromJson(
     Map<String, dynamic>? json, {
@@ -100,8 +104,10 @@ class OnlinePlayerSummary {
   }) => OnlinePlayerSummary(
     name: json?['name'] as String? ?? fallbackName,
     avatarId: json?['avatarId'] as String? ?? 'crown',
+    level: json?['level'] as String? ?? 'intermediate',
   );
 
   final String name;
   final String avatarId;
+  final String level;
 }

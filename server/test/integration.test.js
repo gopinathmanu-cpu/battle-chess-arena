@@ -49,6 +49,7 @@ async function client(url, savedProfile = null) {
     commandId: `profile-${playerCounter}-${Date.now()}`,
     name: profile.name,
     avatarId: profile.avatarId,
+    level: profile.level ?? "intermediate",
     ...(profile.playerToken ? { playerToken: profile.playerToken } : {}),
   });
   const registered = await api.next(
@@ -57,6 +58,7 @@ async function client(url, savedProfile = null) {
   api.profile = {
     name: registered.name,
     avatarId: registered.avatarId,
+    level: registered.level,
     playerToken: registered.playerToken,
   };
   return api;
@@ -283,6 +285,94 @@ test("quick match pairs equal time controls and supports cancellation", async (t
   assert.equal(app.games.has(reserved.gameId), false);
 });
 
+test("quick match prefers equal player levels then widens after waiting", async (t) => {
+  let clock = 0;
+  const app = createMatchServer({
+    port: 0,
+    host: "127.0.0.1",
+    tickMs: 60_000,
+    now: () => clock,
+  });
+  t.after(() => app.close());
+  await once(app.server, "listening");
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const beginner = await client(url, {
+    name: "Level Beginner One",
+    avatarId: "knight",
+    level: "beginner",
+  });
+  const advanced = await client(url, {
+    name: "Level Advanced One",
+    avatarId: "mage",
+    level: "advanced",
+  });
+  const beginnerTwo = await client(url, {
+    name: "Level Beginner Two",
+    avatarId: "sun",
+    level: "beginner",
+  });
+  beginner.send({
+    type: "quick_match",
+    commandId: "level-beginner-one",
+    baseMs: 300_000,
+    incrementMs: 0,
+  });
+  const beginnerWaiting = await beginner.next(
+    (frame) => frame.type === "matchmaking_waiting",
+  );
+  advanced.send({
+    type: "quick_match",
+    commandId: "level-advanced-one",
+    baseMs: 300_000,
+    incrementMs: 0,
+  });
+  const advancedWaiting = await advanced.next(
+    (frame) => frame.type === "matchmaking_waiting",
+  );
+  assert.notEqual(beginnerWaiting.gameId, advancedWaiting.gameId);
+  beginnerTwo.send({
+    type: "quick_match",
+    commandId: "level-beginner-two",
+    baseMs: 300_000,
+    incrementMs: 0,
+  });
+  const sameLevel = await beginnerTwo.next(
+    (frame) => frame.type === "match_found",
+  );
+  assert.equal(sameLevel.gameId, beginnerWaiting.gameId);
+
+  const waitingIntermediate = await client(url, {
+    name: "Level Intermediate",
+    avatarId: "robot",
+    level: "intermediate",
+  });
+  waitingIntermediate.send({
+    type: "quick_match",
+    commandId: "level-intermediate",
+    baseMs: 600_000,
+    incrementMs: 0,
+  });
+  const aged = await waitingIntermediate.next(
+    (frame) => frame.type === "matchmaking_waiting",
+  );
+  clock = 15_001;
+  const wideningBeginner = await client(url, {
+    name: "Widen Beginner",
+    avatarId: "dragon",
+    level: "beginner",
+  });
+  wideningBeginner.send({
+    type: "quick_match",
+    commandId: "level-widened",
+    baseMs: 600_000,
+    incrementMs: 0,
+  });
+  const widened = await wideningBeginner.next(
+    (frame) => frame.type === "match_found",
+  );
+  assert.equal(widened.gameId, aged.gameId);
+});
+
 test("unique profiles, one open game per opponent, multiple opponents and leaderboard", async (t) => {
   const app = createMatchServer({ port: 0, host: "127.0.0.1", tickMs: 60_000 });
   t.after(() => app.close());
@@ -296,6 +386,7 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
   assert.deepEqual(found.player, {
     name: "Arena Bob",
     avatarId: "robot",
+    level: "intermediate",
     online: true,
   });
   bob.send({
@@ -398,6 +489,24 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
   assert.equal(points.matches[0].opponentName, "Arena Alice");
   assert.equal(points.matches[0].result, "win");
   assert.equal(points.matches[0].points, 3);
+  const retainedPoints = leaders.leaders[0].points;
+  bob.send({
+    type: "delete_history",
+    commandId: "delete-history",
+    recordId: points.matches[0].recordId,
+  });
+  await bob.next((frame) => frame.type === "history_deleted");
+  bob.send({ type: "points_history" });
+  assert.equal(
+    (await bob.next((frame) => frame.type === "points_history")).matches.length,
+    0,
+  );
+  bob.send({ type: "leaderboard" });
+  assert.equal(
+    (await bob.next((frame) => frame.type === "leaderboard")).leaders[0]
+      .points,
+    retainedPoints,
+  );
   bob.send({
     type: "update_player",
     commandId: "rename-avatar",
@@ -458,6 +567,28 @@ test("favourite presence and immediate or scheduled invitations", async (t) => {
   assert.notEqual(
     bobGame.invite.game.seatToken,
     aliceGame.invite.game.seatToken,
+  );
+  bob.send({
+    type: "delete_invite",
+    commandId: "delete-invite",
+    inviteId: received.invite.inviteId,
+  });
+  await bob.next((frame) => frame.type === "invite_deleted");
+  bob.send({ type: "list_invites" });
+  const bobInvites = await bob.next((frame) => frame.type === "invites");
+  assert.equal(
+    bobInvites.invites.some(
+      (invite) => invite.inviteId === received.invite.inviteId,
+    ),
+    false,
+  );
+  alice.send({ type: "list_invites" });
+  const aliceInvites = await alice.next((frame) => frame.type === "invites");
+  assert.equal(
+    aliceInvites.invites.some(
+      (invite) => invite.inviteId === received.invite.inviteId,
+    ),
+    true,
   );
 
   const future = Date.now() + 180_000;

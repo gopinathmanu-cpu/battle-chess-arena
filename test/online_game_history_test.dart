@@ -11,10 +11,15 @@ void main() {
       const profile = OnlinePlayerProfile(
         name: 'History Hero',
         avatarId: 'dragon',
+        level: OnlinePlayerLevel.beginner,
         playerToken: 'player-token',
       );
       await OnlineGameHistory.saveProfile(profile);
       expect((await OnlineGameHistory.loadProfile())!.name, 'History Hero');
+      expect(
+        (await OnlineGameHistory.loadProfile())!.level,
+        OnlinePlayerLevel.beginner,
+      );
 
       final first = OnlineGameRecord(
         gameId: 'game-one',
@@ -44,6 +49,7 @@ void main() {
       expect(history.single.opponentName, 'Moon Mage');
       expect(history.single.status, 'complete');
       expect(history.single.moveCount, 19);
+      expect(await OnlineGameHistory.deleteGame(first.gameId), isEmpty);
 
       var favorites = await OnlineGameHistory.toggleFavorite(
         const OnlineFavorite(name: 'Moon Mage', avatarId: 'moon'),

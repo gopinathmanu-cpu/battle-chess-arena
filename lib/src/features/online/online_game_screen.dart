@@ -6,11 +6,14 @@ import '../play/board_appearance.dart';
 import 'package:flutter/services.dart';
 
 import '../../domain/game_session.dart';
+import '../../domain/game_result_analysis.dart';
+import '../../domain/online_player_profile.dart';
 import '../../domain/piece_pack.dart';
 import '../../services/theme_music.dart';
 import '../../services/online_match_client.dart';
 import '../play/chess_widgets.dart';
 import '../play/capture_battle_overlay.dart';
+import '../play/checkmate_dialog.dart';
 import 'online_avatar_image.dart';
 
 class OnlineGameScreen extends StatefulWidget {
@@ -44,6 +47,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   bool _fastBattles = false;
   bool _showTopBar = true;
   bool _reduceMotion = false;
+  int? _resultScheduledRound;
+  int? _resultShownRound;
   OnlineMatchClient get _client => widget.client;
   bool get _inputEnabled =>
       _client.canAct &&
@@ -59,6 +64,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     _lastFen = _client.state?.fen;
     _round = _client.state?.round;
     _client.addListener(_refresh);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = _client.state;
+      if (state != null) _scheduleResult(state);
+    });
     _displayTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (mounted) setState(() {});
     });
@@ -112,11 +121,93 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       }
     }
     setState(() {});
+    if (state != null) _scheduleResult(state);
   }
 
   void _finishBattle() {
     _battleTimer?.cancel();
-    if (mounted) setState(() => _battle = null);
+    if (!mounted) return;
+    setState(() => _battle = null);
+    final state = _client.state;
+    if (state != null) _scheduleResult(state);
+  }
+
+  void _scheduleResult(OnlineGameState state) {
+    if (state.status != 'complete' ||
+        _resultShownRound == state.round ||
+        _resultScheduledRound == state.round) {
+      return;
+    }
+    _resultScheduledRound = state.round;
+    final delay = _battle == null
+        ? const Duration(milliseconds: 250)
+        : captureBattleDuration(
+                reduced:
+                    _reduceMotion || MediaQuery.disableAnimationsOf(context),
+                fast: _fastBattles,
+              ) +
+              const Duration(milliseconds: 150);
+    Future.delayed(delay, () {
+      if (!mounted) return;
+      final latest = _client.state;
+      if (latest?.status == 'complete' && latest?.round == state.round) {
+        unawaited(_showOnlineResult(latest!));
+      } else {
+        _resultScheduledRound = null;
+      }
+    });
+  }
+
+  Future<void> _showOnlineResult(OnlineGameState state) async {
+    if (!mounted || _resultShownRound == state.round) return;
+    _resultShownRound = state.round;
+    final draw = state.winner == null;
+    final userWon = state.winner == _client.seat;
+    final outcome = draw
+        ? GameResultOutcome.draw
+        : userWon
+        ? GameResultOutcome.victory
+        : GameResultOutcome.defeat;
+    final heading = switch (state.resultReason) {
+      'checkmate' => 'CHECKMATE',
+      'timeout' => 'TIME',
+      'resignation' => 'RESIGNATION',
+      _ when draw => 'DRAW',
+      _ => 'GAME OVER',
+    };
+    final message = draw
+        ? const GameResultMessage(
+            sentiment: 'A hard-fought draw.',
+            comment:
+                'Both players held their ground. Review the board and prepare for the rematch.',
+          )
+        : userWon
+        ? const GameResultMessage(
+            sentiment: 'Outstanding victory! You conquered the arena.',
+            comment:
+                'You kept control when it mattered and converted the game with confidence.',
+          )
+        : const GameResultMessage(
+            sentiment: 'A brave fight. Your next victory starts here.',
+            comment:
+                'Review the decisive position, regroup, and challenge your opponent again.',
+          );
+    unawaited(
+      MusicScope.of(context)?.playEffect(
+        userWon ? CinematicSound.victoryApplause : CinematicSound.finalStrike,
+      ),
+    );
+    final startNew = await showGameResultDialog(
+      context: context,
+      outcome: outcome,
+      heading: heading,
+      title: draw ? 'Game Drawn' : (userWon ? 'You Win!' : 'You Lost'),
+      message: message,
+    );
+    if (mounted && startNew) {
+      await _client.startAnotherGame();
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   Future<void> _tapSquare(Square square) async {
@@ -306,7 +397,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
             subtitle: Text(
-              'Opponent Avatar ID · ${state.timed ? 'Timed game' : 'No timer'}',
+              '${onlinePlayerLevel(opponent.level).label} · ${state.timed ? 'Timed game' : 'No timer'}',
             ),
           ),
         );

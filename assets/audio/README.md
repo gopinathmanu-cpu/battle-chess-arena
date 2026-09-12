@@ -17,7 +17,7 @@ These are original synthesized approximations, not authentic instrument recordin
 
 ## Cinematic effects
 
-The original `attack.wav`, `lightImpact.wav`, `heavyImpact.wav`, and
-`finalStrike.wav` effects are synthesized from oscillators and deterministic
-noise. They contain no third-party recordings or samples. Regenerate them with
-`python3 tool/generate_cinematic_sounds.py`.
+The original `attack.wav`, `lightImpact.wav`, `heavyImpact.wav`,
+`finalStrike.wav`, and `victoryApplause.wav` effects are synthesized from
+oscillators and deterministic noise. They contain no third-party recordings or
+samples. Regenerate them with `python3 tool/generate_cinematic_sounds.py`.

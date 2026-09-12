@@ -49,9 +49,35 @@ def final_strike():
     return boom + shimmer * .32
 
 
+def victory_applause():
+    duration = 3.4
+    samples = np.zeros(round(duration * RATE))
+    # Many short, filtered-noise handclaps create a compact arena ovation.
+    for clap_time in np.sort(RNG.uniform(.05, 3.15, 82)):
+        length = round(RATE * RNG.uniform(.045, .105))
+        start = round(clap_time * RATE)
+        end = min(len(samples), start + length)
+        t = np.arange(end - start) / RATE
+        noise = RNG.normal(0, 1, len(t))
+        body = noise - np.convolve(noise, np.ones(22) / 22, mode='same')
+        envelope = np.exp(-t * RNG.uniform(28, 42))
+        samples[start:end] += body * envelope * RNG.uniform(.22, .48)
+    t = np.arange(len(samples)) / RATE
+    crowd = RNG.normal(0, 1, len(samples))
+    crowd = np.convolve(crowd, np.ones(150) / 150, mode='same')
+    swell = np.sin(np.pi * np.minimum(t / .7, 1)) * np.exp(-np.maximum(0, t - 2.4) * 1.7)
+    fanfare = (
+        np.sin(2 * np.pi * 392 * t) +
+        .7 * np.sin(2 * np.pi * 523.25 * t) +
+        .45 * np.sin(2 * np.pi * 659.25 * t)
+    ) * np.exp(-t * .75) * .055
+    return samples + crowd * swell * 1.8 + fanfare
+
+
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
     save('attack', attack())
     save('lightImpact', impact(.42, 118, .25))
     save('heavyImpact', impact(.62, 62, .9))
     save('finalStrike', final_strike())
+    save('victoryApplause', victory_applause())
