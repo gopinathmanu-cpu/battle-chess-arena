@@ -24,10 +24,10 @@ flutter build apk --release \
   --dart-define=ONLINE_SERVER_URL=wss://battle-chess-arena-server.onrender.com
 ```
 
-The lobby keeps the endpoint editable, which makes local-server testing possible.
-An app built without `ONLINE_SERVER_URL` defaults to the hosted Render server.
-For an Android emulator connected to the local Node server, enter
-`ws://10.0.2.2:8080`; elsewhere on this Mac, enter `ws://127.0.0.1:8080`.
+The lobby does not display or expose the endpoint. An app built without
+`ONLINE_SERVER_URL` defaults to the hosted Render server. Developers can still
+target a local server at build time: use `ws://10.0.2.2:8080` for an Android
+emulator or `ws://127.0.0.1:8080` elsewhere on this Mac.
 
 ## Free-tier behavior
 
