@@ -6,15 +6,16 @@ export const isAction = (type) => actions.includes(type);
 const fields = {
   ping: [],
   register_player: ["commandId", "name", "avatarId", "playerToken"],
+  update_player: ["commandId", "name", "avatarId"],
   leaderboard: [],
   points_history: [],
   find_player: ["query"],
   list_games: [],
   presence: ["names"],
-  send_invite: ["commandId", "opponentName", "scheduledAt"],
+  send_invite: ["commandId", "opponentName", "scheduledAt", "timed", "baseMs"],
   list_invites: [],
   respond_invite: ["commandId", "inviteId", "accept"],
-  propose_invite_time: ["commandId", "inviteId", "scheduledAt"],
+  propose_invite_time: ["commandId", "inviteId", "scheduledAt", "timed", "baseMs"],
   create_game: ["commandId", "baseMs", "incrementMs"],
   quick_match: ["commandId", "baseMs", "incrementMs"],
   cancel_matchmaking: ["commandId", "gameId"],
@@ -65,7 +66,7 @@ export function validateMessage(message) {
         (integer(message.incrementMs) && message.incrementMs <= 60_000),
     );
   }
-  if (message.type === "register_player") {
+  if (message.type === "register_player" || message.type === "update_player") {
     require(
       typeof message.name === "string" &&
         message.name === message.name.trim() &&
@@ -83,9 +84,11 @@ export function validateMessage(message) {
         "moon",
       ].includes(message.avatarId),
     );
-    require(
-      message.playerToken === undefined || identifier(message.playerToken),
-    );
+    if (message.type === "register_player") {
+      require(
+        message.playerToken === undefined || identifier(message.playerToken),
+      );
+    }
   }
   if (message.type === "presence") {
     require(
@@ -111,6 +114,11 @@ export function validateMessage(message) {
         /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.opponentName),
     );
     require(message.scheduledAt === undefined || integer(message.scheduledAt));
+    require(message.timed === undefined || typeof message.timed === "boolean");
+    require(
+      message.baseMs === undefined ||
+        (integer(message.baseMs, 10_000) && message.baseMs <= 10_800_000),
+    );
   }
   if (message.type === "respond_invite") {
     require(identifier(message.inviteId));
@@ -119,6 +127,11 @@ export function validateMessage(message) {
   if (message.type === "propose_invite_time") {
     require(identifier(message.inviteId));
     require(integer(message.scheduledAt));
+    require(message.timed === undefined || typeof message.timed === "boolean");
+    require(
+      message.baseMs === undefined ||
+        (integer(message.baseMs, 10_000) && message.baseMs <= 10_800_000),
+    );
   }
   if (message.type === "resume_game") require(identifier(message.seatToken));
   if (message.type === "respond_draw")

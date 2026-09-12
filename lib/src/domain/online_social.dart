@@ -11,6 +11,8 @@ class OnlineInvitation {
     required this.status,
     required this.createdAt,
     required this.awaitingResponseFromName,
+    required this.timed,
+    required this.baseMs,
     this.scheduledAt,
     this.game,
   });
@@ -30,6 +32,8 @@ class OnlineInvitation {
       awaitingResponseFromName:
           json['awaitingResponseFromName'] as String? ??
           (json['status'] == 'pending' ? recipient['name'] as String : null),
+      timed: json['timed'] as bool? ?? true,
+      baseMs: json['baseMs'] as int? ?? 600000,
       scheduledAt: json['scheduledAt'] == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(json['scheduledAt'] as int),
@@ -47,6 +51,8 @@ class OnlineInvitation {
   final String status;
   final DateTime createdAt;
   final String? awaitingResponseFromName;
+  final bool timed;
+  final int baseMs;
   final DateTime? scheduledAt;
   final OnlineInviteGame? game;
 

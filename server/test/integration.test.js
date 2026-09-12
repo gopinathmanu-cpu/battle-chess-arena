@@ -298,6 +298,14 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
     avatarId: "robot",
     online: true,
   });
+  bob.send({
+    type: "update_player",
+    commandId: "update-avatar",
+    name: "Arena Bob",
+    avatarId: "sun",
+  });
+  const updated = await bob.next((frame) => frame.type === "player_updated");
+  assert.equal(updated.avatarId, "sun");
 
   const imposter = new WebSocket(url);
   await once(imposter, "open");
@@ -390,6 +398,20 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
   assert.equal(points.matches[0].opponentName, "Arena Alice");
   assert.equal(points.matches[0].result, "win");
   assert.equal(points.matches[0].points, 3);
+  bob.send({
+    type: "update_player",
+    commandId: "rename-avatar",
+    name: "Arena Bobby",
+    avatarId: "sun",
+  });
+  await bob.next(
+    (frame) => frame.type === "player_updated" && frame.name === "Arena Bobby",
+  );
+  const reconnected = await client(url, {
+    ...bob.profile,
+    name: "Arena Bob",
+  });
+  assert.equal(reconnected.profile.name, "Arena Bobby");
 });
 
 test("favourite presence and immediate or scheduled invitations", async (t) => {
@@ -444,24 +466,31 @@ test("favourite presence and immediate or scheduled invitations", async (t) => {
     commandId: "invite-active-opponent-later",
     opponentName: "Invite Bob",
     scheduledAt: future,
+    timed: false,
+    baseMs: 600_000,
   });
   const futureInvite = await bob.next(
     (frame) =>
       frame.type === "invite_updated" && frame.invite.scheduledAt === future,
   );
   assert.equal(futureInvite.invite.awaitingResponseFromName, "Invite Bob");
+  assert.equal(futureInvite.invite.timed, false);
   const counter = future + 60_000;
   bob.send({
     type: "propose_invite_time",
     commandId: "counter-time",
     inviteId: futureInvite.invite.inviteId,
     scheduledAt: counter,
+    timed: true,
+    baseMs: 180_000,
   });
   const countered = await alice.next(
     (frame) =>
       frame.type === "invite_updated" && frame.invite.scheduledAt === counter,
   );
   assert.equal(countered.invite.awaitingResponseFromName, "Invite Alice");
+  assert.equal(countered.invite.timed, true);
+  assert.equal(countered.invite.baseMs, 180_000);
   alice.send({
     type: "respond_invite",
     commandId: "accept-counter",

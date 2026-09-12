@@ -33,6 +33,18 @@ void main() {
     await flush();
     expect(client.connected, isTrue);
     expect(client.profile!.playerToken, 'player-secret');
+    client.updateProfile(name: 'Nova Knight', avatarId: 'robot');
+    final update = channel.sent.last;
+    expect(update['type'], 'update_player');
+    channel.receive({
+      'type': 'player_updated',
+      'commandId': update['commandId'],
+      'name': 'Nova Knight',
+      'avatarId': 'robot',
+      'playerToken': 'player-secret',
+    });
+    await flush();
+    expect(client.profile!.avatarId, 'robot');
     expect(
       channel.sent.skip(1).map((frame) => frame['type']),
       containsAll([

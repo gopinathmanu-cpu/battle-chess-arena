@@ -39,6 +39,16 @@ test("server clock remains authoritative and applies increment", () => {
   assert.equal(state.clocks.b, 60_000);
 });
 
+test("untimed games keep both clocks stopped", () => {
+  const game = new Match({ id: "untimed", baseMs: 60_000, timed: false });
+  game.joinBlack(1_000);
+  let state = game.snapshot(50_000);
+  assert.equal(state.timed, false);
+  assert.deepEqual(state.clocks, { w: 60_000, b: 60_000 });
+  state = game.play(game.whiteToken, { from: "e2", to: "e4" }, 90_000);
+  assert.deepEqual(state.clocks, { w: 60_000, b: 60_000 });
+});
+
 test("detects timeout before accepting a move", () => {
   const game = new Match({ id: "flag", baseMs: 10_000 });
   game.joinBlack(5_000);

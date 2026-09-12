@@ -7,6 +7,7 @@ class OnlineGameState {
       sequence = json['sequence'] as int,
       round = json['round'] as int,
       status = json['status'] as String,
+      timed = json['timed'] as bool? ?? true,
       fen = json['fen'] as String,
       turn = json['turn'] as String,
       whiteMs = ((json['clocks'] as Map)['w'] as num).round(),
@@ -50,6 +51,7 @@ class OnlineGameState {
   final int sequence;
   final int round;
   final String status;
+  final bool timed;
   final String fen;
   final String turn;
   final int whiteMs;

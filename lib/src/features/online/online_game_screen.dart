@@ -11,6 +11,7 @@ import '../../services/theme_music.dart';
 import '../../services/online_match_client.dart';
 import '../play/chess_widgets.dart';
 import '../play/capture_battle_overlay.dart';
+import 'online_avatar_image.dart';
 
 class OnlineGameScreen extends StatefulWidget {
   const OnlineGameScreen({required this.client, required this.pack, super.key});
@@ -290,11 +291,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       blackTime: Duration(milliseconds: _client.session.clockMs('b')),
       turn: state.position.turn,
       accent: accent,
+      timed: state.timed,
     ),
     const SizedBox(height: 12),
-    Text(
-      '${side == Side.white ? 'Black' : 'White'} · Opponent',
-      textAlign: TextAlign.center,
+    Builder(
+      builder: (context) {
+        final opponent = state.opponentFor(_client.seat ?? 'w');
+        return Card(
+          key: const ValueKey('online-opponent-profile'),
+          child: ListTile(
+            leading: OnlineAvatarImage(avatarId: opponent.avatarId, size: 48),
+            title: Text(
+              opponent.name,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            subtitle: Text(
+              'Opponent Avatar ID · ${state.timed ? 'Timed game' : 'No timer'}',
+            ),
+          ),
+        );
+      },
     ),
     const SizedBox(height: 8),
   ];

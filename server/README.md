@@ -19,7 +19,8 @@ Players register a case-insensitively unique 3–20 character Avatar ID and one
 of eight icon IDs before entering matchmaking. A private player token permits
 the same identity to reconnect from multiple game sessions. Players can search
 exact IDs, list all their active games, and negotiate scheduled invitations with
-alternating date/time proposals. Completed rounds award three points for a win,
+alternating date/time and timed/untimed proposals. Profiles can change their
+public ID and portrait without losing their private identity. Completed rounds award three points for a win,
 one for a draw, and zero for a loss; the leaderboard and personal match ledger
 explain every awarded point.
 Tests bind an ephemeral loopback port and do not require a separately running server.

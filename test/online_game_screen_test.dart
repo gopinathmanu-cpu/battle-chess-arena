@@ -69,13 +69,23 @@ void main() {
     expect(board.top, greaterThanOrEqualTo(0));
     expect(board.right, lessThanOrEqualTo(650));
     expect(board.bottom, lessThanOrEqualTo(360));
-    expect(find.text('Capture battles'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('online-opponent-profile')),
+      findsOneWidget,
+    );
+    expect(find.text('Black Hero'), findsOneWidget);
     await tester.tap(find.byTooltip('Hide top bar'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('Show top bar'), findsOneWidget);
     final expandedBoard = tester.getRect(find.byType(ChessBoard));
     expect(expandedBoard.height, greaterThan(board.height));
     expect(expandedBoard.bottom, lessThanOrEqualTo(360));
+    await tester.scrollUntilVisible(
+      find.text('Capture battles'),
+      120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('Capture battles'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     client.dispose();
   });

@@ -26,6 +26,10 @@ Available avatar IDs are `crown`, `knight`, `mage`, `dragon`, `robot`, `ranger`,
 `sun`, and `moon`. Every game state includes public `players.w` and `players.b`
 objects containing only `name`, `avatarId`, and current `points`.
 
+An authenticated player can send `update_player` with a new unique `name` and
+`avatarId`. The server preserves the private identity, scores, invitations, and
+game seats and returns `player_updated`.
+
 The server rejects a second non-completed manual or quick game between the same
 two identities. A scheduled invitation may still be created for that opponent
 and becomes its own game after both players agree to the proposed time.
@@ -50,7 +54,10 @@ their status, an authenticated client sends `presence` with up to fifty Avatar
 Names. The response reports whether each identity currently has an authenticated
 WebSocket connection.
 
-`send_invite` contains an opponent Avatar ID and an optional `scheduledAt`
+`send_invite` contains an opponent Avatar ID, an optional `scheduledAt`, a
+`timed` boolean, and `baseMs` for timed play. `propose_invite_time` can revise
+the date, time, and timer format together. An untimed game retains clock values
+for protocol compatibility but never decrements them. The optional `scheduledAt` is a
 Unix timestamp in milliseconds. The server rejects self-invites, unknown names,
 duplicate pending invitations, and past schedules. An immediate invitation is
 rejected when the pair already has an open game, while a future invitation is

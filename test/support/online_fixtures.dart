@@ -16,6 +16,7 @@ Map<String, dynamic> stateJson({
   String blackName = 'Black Hero',
   String whiteAvatar = 'sun',
   String blackAvatar = 'moon',
+  bool timed = true,
 }) {
   game ??= GameSession();
   return {
@@ -23,6 +24,7 @@ Map<String, dynamic> stateJson({
     'sequence': sequence,
     'round': round,
     'status': status,
+    'timed': timed,
     'fen': game.position.fen,
     'turn': game.position.turn.name == 'white' ? 'w' : 'b',
     'san': game.sanMoves,

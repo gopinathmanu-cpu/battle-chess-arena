@@ -16,8 +16,12 @@ export class Match {
     id = randomUUID(),
     baseMs = 600_000,
     incrementMs = 0,
+    timed = true,
     whitePlayer = null,
   } = {}) {
+    if (typeof timed !== "boolean") {
+      throw new MatchError("INVALID_CLOCK", "timed must be a boolean");
+    }
     if (!Number.isInteger(baseMs) || baseMs < 10_000 || baseMs > 10_800_000) {
       throw new MatchError(
         "INVALID_CLOCK",
@@ -38,6 +42,7 @@ export class Match {
     this.chess = new Chess();
     this.baseMs = baseMs;
     this.incrementMs = incrementMs;
+    this.timed = timed;
     this.remaining = { w: baseMs, b: baseMs };
     this.tokens = { w: randomUUID(), b: null };
     this.players = {
@@ -74,7 +79,7 @@ export class Match {
       avatarId: "knight",
     };
     this.status = "active";
-    this.activeSince = now;
+    this.activeSince = this.timed ? now : null;
     return this.tokens.b;
   }
 
@@ -174,7 +179,7 @@ export class Match {
         this.result = null;
         this.drawOffer = null;
         this.rematchOffers.clear();
-        this.activeSince = now;
+        this.activeSince = this.timed ? now : null;
       }
       return;
     }
@@ -246,7 +251,7 @@ export class Match {
         "Move is not legal in the authoritative position",
       );
     this.remaining[side] += this.incrementMs;
-    this.activeSince = now;
+    this.activeSince = this.timed ? now : null;
     // Moving declines an opponent's offer. Your offer survives your own move.
     if (this.drawOffer?.side !== side) this.drawOffer = null;
     if (this.chess.isCheckmate()) this.#finish("checkmate", side);
@@ -273,6 +278,7 @@ export class Match {
       sequence: ++this.sequence,
       round: this.round,
       status: this.status,
+      timed: this.timed,
       fen: this.chess.fen(),
       turn: this.chess.turn(),
       san: this.chess.history(),

@@ -11,6 +11,7 @@ import '../../services/online_match_client.dart';
 import '../../services/theme_music.dart';
 import '../play/board_appearance.dart';
 import 'online_game_screen.dart';
+import 'online_avatar_image.dart';
 
 class OnlineLobbyScreen extends StatefulWidget {
   const OnlineLobbyScreen({required this.pack, this.client, super.key});
@@ -45,7 +46,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   var _loading = true;
   var _profileReady = false;
   String? _openedGameId;
-  String? _savedProfileToken;
+  String? _savedProfileKey;
   int _savedSequence = -1;
   final _savedInviteGames = <String>{};
   final _shownReminders = <String>{};
@@ -82,7 +83,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       _client.setProfile(profile);
       _avatarName.text = profile.name;
       _avatarId = profile.avatarId;
-      _savedProfileToken = profile.playerToken;
+      _savedProfileKey =
+          '${profile.name}|${profile.avatarId}|${profile.playerToken}';
       _profileReady = true;
     }
     setState(() => _loading = false);
@@ -102,10 +104,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   void _refresh() {
     if (!mounted) return;
     final profile = _client.profile;
-    if (profile?.playerToken != null &&
-        profile!.playerToken != _savedProfileToken) {
-      _savedProfileToken = profile.playerToken;
-      unawaited(OnlineGameHistory.saveProfile(profile));
+    final profileKey = profile == null
+        ? null
+        : '${profile.name}|${profile.avatarId}|${profile.playerToken}';
+    if (profile?.playerToken != null && profileKey != _savedProfileKey) {
+      _savedProfileKey = profileKey;
+      unawaited(OnlineGameHistory.saveProfile(profile!));
     }
     final state = _client.state;
     if (state != null &&
@@ -316,15 +320,161 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   Future<void> _scheduleFor(String opponentName) async {
     final scheduled = await _pickDateTime();
-    if (scheduled != null) {
-      _client.sendInvitation(opponentName, scheduledAt: scheduled);
-    }
+    if (scheduled == null || !mounted) return;
+    final format = await _pickInviteFormat();
+    if (format == null) return;
+    _client.sendInvitation(
+      opponentName,
+      scheduledAt: scheduled,
+      timed: format.timed,
+      baseMs: format.baseMs,
+    );
+  }
+
+  Future<void> _inviteNow(String opponentName) async {
+    final format = await _pickInviteFormat();
+    if (format == null) return;
+    _client.sendInvitation(
+      opponentName,
+      timed: format.timed,
+      baseMs: format.baseMs,
+    );
   }
 
   Future<void> _counterInvitation(OnlineInvitation invitation) async {
     final scheduled = await _pickDateTime(initial: invitation.scheduledAt);
-    if (scheduled != null) {
-      _client.proposeInvitationTime(invitation.inviteId, scheduled);
+    if (scheduled == null || !mounted) return;
+    final format = await _pickInviteFormat(
+      timed: invitation.timed,
+      baseMs: invitation.baseMs,
+    );
+    if (format == null) return;
+    _client.proposeInvitationTime(
+      invitation.inviteId,
+      scheduled,
+      timed: format.timed,
+      baseMs: format.baseMs,
+    );
+  }
+
+  Future<_InviteFormat?> _pickInviteFormat({
+    bool timed = true,
+    int baseMs = 600000,
+  }) => showDialog<_InviteFormat>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('Game timer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Timed game'),
+              subtitle: Text(
+                timed ? 'Both players use a clock.' : 'Play without a clock.',
+              ),
+              value: timed,
+              onChanged: (value) => setDialogState(() => timed = value),
+            ),
+            if (timed)
+              DropdownButtonFormField<int>(
+                initialValue: baseMs,
+                decoration: const InputDecoration(labelText: 'Time per player'),
+                items: [
+                  for (final control in _controls)
+                    DropdownMenuItem(
+                      value: control.baseMs,
+                      child: Text(control.label),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) setDialogState(() => baseMs = value);
+                },
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(context, _InviteFormat(timed, baseMs)),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _editProfile() async {
+    final profile = _client.profile;
+    if (profile == null) return;
+    final controller = TextEditingController(text: profile.name);
+    var avatarId = profile.avatarId;
+    final updated = await showDialog<(String, String)>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit online profile'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: controller,
+                  maxLength: 20,
+                  decoration: const InputDecoration(labelText: 'Avatar ID'),
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final avatar in onlineAvatarChoices)
+                      ChoiceChip(
+                        selected: avatarId == avatar.id,
+                        avatar: OnlineAvatarImage(
+                          avatarId: avatar.id,
+                          size: 28,
+                        ),
+                        label: Text(avatar.label),
+                        onSelected: (_) =>
+                            setDialogState(() => avatarId = avatar.id),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = controller.text.trim().replaceAll(
+                  RegExp(r'\s+'),
+                  ' ',
+                );
+                if (!RegExp(
+                  r'^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$',
+                ).hasMatch(name)) {
+                  return;
+                }
+                Navigator.pop(context, (name, avatarId));
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    if (updated != null) {
+      _client.updateProfile(name: updated.$1, avatarId: updated.$2);
     }
   }
 
@@ -412,7 +562,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 ChoiceChip(
                   key: ValueKey('avatar-${avatar.id}'),
                   selected: _avatarId == avatar.id,
-                  avatar: Icon(avatar.icon),
+                  avatar: OnlineAvatarImage(avatarId: avatar.id, size: 28),
                   label: Text(avatar.label),
                   onSelected: (_) => setState(() => _avatarId = avatar.id),
                 ),
@@ -432,18 +582,13 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   Widget _profileSummary() {
     final profile = _client.profile;
-    final avatar = onlineAvatar(profile?.avatarId ?? _avatarId);
     final mine = _client.leaderboard.where(
       (entry) => entry.name.toLowerCase() == profile?.name.toLowerCase(),
     );
     final points = mine.isEmpty ? 0 : mine.first.points;
     return Row(
       children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: widget.pack.accent.withValues(alpha: .25),
-          child: Icon(avatar.icon, color: widget.pack.accent),
-        ),
+        OnlineAvatarImage(avatarId: profile?.avatarId ?? _avatarId, size: 52),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -461,6 +606,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           ),
         ),
         Chip(label: Text('$points pts')),
+        IconButton(
+          tooltip: 'Edit Avatar ID and image',
+          onPressed: _client.connected && !_client.busy ? _editProfile : null,
+          icon: const Icon(Icons.edit),
+        ),
         if (_client.connection == MatchConnection.disconnected)
           IconButton(
             tooltip: 'Reconnect',
@@ -574,15 +724,13 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           ListTile(
             key: const ValueKey('opponent-search-result'),
             contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              child: Icon(onlineAvatar(result.avatarId).icon),
-            ),
+            leading: OnlineAvatarImage(avatarId: result.avatarId),
             title: Text(result.name),
             subtitle: Text(result.online ? 'Online' : 'Offline'),
             trailing: PopupMenuButton<String>(
               tooltip: 'Opponent actions',
               onSelected: (action) {
-                if (action == 'now') _client.sendInvitation(result.name);
+                if (action == 'now') _inviteNow(result.name);
                 if (action == 'schedule') _scheduleFor(result.name);
                 if (action == 'favorite') {
                   _toggleFavorite(result.name, result.avatarId);
@@ -614,7 +762,10 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             children: [
               for (final favorite in _favorites)
                 ActionChip(
-                  avatar: Icon(onlineAvatar(favorite.avatarId).icon, size: 17),
+                  avatar: OnlineAvatarImage(
+                    avatarId: favorite.avatarId,
+                    size: 26,
+                  ),
                   label: Text(favorite.name),
                   onPressed: () {
                     _opponentSearch.text = favorite.name;
@@ -650,9 +801,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               return Card(
                 key: ValueKey('active-${game.gameId}'),
                 child: ListTile(
-                  leading: CircleAvatar(
-                    child: Icon(onlineAvatar(opponent.avatarId).icon),
-                  ),
+                  leading: OnlineAvatarImage(avatarId: opponent.avatarId),
                   title: Text(opponent.name),
                   subtitle: Text(
                     '${game.state.status == 'waiting' ? 'Waiting' : 'In progress'} · ${game.state.san.length} moves',
@@ -668,9 +817,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             Card(
               key: ValueKey('history-${record.gameId}'),
               child: ListTile(
-                leading: CircleAvatar(
-                  child: Icon(onlineAvatar(record.opponentAvatarId).icon),
-                ),
+                leading: OnlineAvatarImage(avatarId: record.opponentAvatarId),
                 title: Text(record.opponentName),
                 subtitle: Text(
                   '${record.status == 'waiting' ? 'Waiting' : 'In progress'} · ${record.moveCount} moves',
@@ -727,18 +874,21 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final schedule = invitation.scheduledAt == null
         ? 'Play now'
         : _formatSchedule(invitation.scheduledAt!);
+    final gameFormat = invitation.timed
+        ? '${invitation.baseMs ~/ 60000} min timed'
+        : 'No timer';
     final status = acceptedGame
-        ? 'Ready to play'
+        ? 'Ready to play · $gameFormat'
         : canRespond
-        ? 'Your response · $schedule'
+        ? 'Your response · $schedule · $gameFormat'
         : invitation.status == 'pending'
-        ? 'Waiting for ${invitation.awaitingResponseFromName} · $schedule'
-        : '${invitation.status.toUpperCase()} · $schedule';
+        ? 'Waiting for ${invitation.awaitingResponseFromName} · $schedule · $gameFormat'
+        : '${invitation.status.toUpperCase()} · $schedule · $gameFormat';
     return Card(
       key: ValueKey('invite-${invitation.inviteId}'),
       child: ListTile(
         onTap: acceptedGame ? () => _openInvitation(invitation) : null,
-        leading: CircleAvatar(child: Icon(onlineAvatar(opponentAvatar).icon)),
+        leading: OnlineAvatarImage(avatarId: opponentAvatar),
         title: Text(opponentName),
         subtitle: Text(status),
         trailing: acceptedGame
@@ -847,9 +997,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   itemBuilder: (_, index) {
                     final entry = _client.leaderboard[index];
                     return ListTile(
-                      leading: CircleAvatar(
-                        child: Icon(onlineAvatar(entry.avatarId).icon),
-                      ),
+                      leading: OnlineAvatarImage(avatarId: entry.avatarId),
                       title: Text('${index + 1}. ${entry.name}'),
                       subtitle: Text(
                         '${entry.wins}W  ${entry.draws}D  ${entry.losses}L',
@@ -897,10 +1045,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                     children: [
                       for (final match in _client.pointHistory)
                         ListTile(
-                          leading: CircleAvatar(
-                            child: Icon(
-                              onlineAvatar(match.opponentAvatarId).icon,
-                            ),
+                          leading: OnlineAvatarImage(
+                            avatarId: match.opponentAvatarId,
                           ),
                           title: Text(match.opponentName),
                           subtitle: Text(
@@ -932,5 +1078,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 class _OnlineTimeControl {
   const _OnlineTimeControl(this.label, this.baseMs);
   final String label;
+  final int baseMs;
+}
+
+class _InviteFormat {
+  const _InviteFormat(this.timed, this.baseMs);
+  final bool timed;
   final int baseMs;
 }

@@ -20,12 +20,14 @@ See [validation results](docs/MILESTONE_4_VALIDATION.md).
 - Standard legal moves, castling, en passant, promotion choice, SAN history.
 - A simplified online lobby with quick matchmaking, exact Avatar ID search,
   server-listed active games, and one-tap game resume.
-- Unique Avatar IDs with eight selectable icons, multiple open opponents, a
+- Unique, editable Avatar IDs with eight themed character portraits, multiple open opponents, a
   ranked leaderboard, and a per-match points breakdown. Wins award three points
   and draws award one.
 - Favourite opponents with online/offline presence, immediate invitations,
   exact date-and-time scheduling, alternating counter-proposals, acceptance
   status, and persistent in-app reminders.
+- Invitation proposals specify either a 3, 5, or 10 minute clock or no timer;
+  the agreed format appears with the appointment and inside the game.
 - Server-controlled moves, clocks, results, resign, draw offers and mutual rematch.
 - Pending-move input lock, stale-state rejection, reconnect/resume/full sync.
 - Copy Game ID for sharing; seat tokens remain private and in memory.

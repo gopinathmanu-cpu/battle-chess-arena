@@ -56,6 +56,8 @@ export function createMatchServer({
       createdAt: invite.createdAt,
       status: invite.status,
       awaitingResponseFromName: invite.awaiting?.name ?? null,
+      timed: invite.timed,
+      baseMs: invite.baseMs,
       ...(invite.game
         ? {
             game: {
@@ -77,7 +79,11 @@ export function createMatchServer({
   };
   const createInviteGame = (invite) => {
     if (invite.game || invite.status !== "accepted") return;
-    const match = new Match({ whitePlayer: invite.sender });
+    const match = new Match({
+      whitePlayer: invite.sender,
+      timed: invite.timed,
+      baseMs: invite.baseMs,
+    });
     const blackToken = match.joinBlack(now(), invite.recipient);
     games.set(match.id, match);
     invite.game = {
@@ -203,16 +209,22 @@ export function createMatchServer({
             .replace(/\s+/g, " ")
             .toLocaleLowerCase("en-US");
           const existing = profiles.get(normalizedName);
+          const tokenProfile = message.playerToken
+            ? [...profiles.values()].find(
+                (profile) => profile.token === message.playerToken,
+              )
+            : null;
           if (
             existing &&
+            existing !== tokenProfile &&
             (!message.playerToken || message.playerToken !== existing.token)
           ) {
             throw new MatchError(
               "AVATAR_NAME_TAKEN",
-              "That Avatar Name is already in use",
+              "That Avatar ID is already in use",
             );
           }
-          const profile = existing ?? {
+          const profile = tokenProfile ?? existing ?? {
             id: randomUUID(),
             token: message.playerToken ?? randomUUID(),
             name: message.name.trim().replace(/\s+/g, " "),
@@ -228,7 +240,11 @@ export function createMatchServer({
           profile.pointHistory ??= [];
           profile.avatarId = message.avatarId;
           profile.sockets.add(socket);
-          profiles.set(normalizedName, profile);
+          const canonicalKey = profile.name
+            .trim()
+            .replace(/\s+/g, " ")
+            .toLocaleLowerCase("en-US");
+          profiles.set(canonicalKey, profile);
           peer.player = profile;
           send(socket, "player_registered", {
             commandId: message.commandId,
@@ -247,6 +263,33 @@ export function createMatchServer({
             "PROFILE_REQUIRED",
             "Choose an Avatar Name and icon before playing online",
           );
+        }
+        if (message.type === "update_player") {
+          const nextKey = message.name
+            .trim()
+            .replace(/\s+/g, " ")
+            .toLocaleLowerCase("en-US");
+          const owner = profiles.get(nextKey);
+          if (owner && owner.id !== peer.player.id)
+            throw new MatchError(
+              "AVATAR_NAME_TAKEN",
+              "That Avatar ID is already in use",
+            );
+          const oldKey = peer.player.name
+            .trim()
+            .replace(/\s+/g, " ")
+            .toLocaleLowerCase("en-US");
+          profiles.delete(oldKey);
+          peer.player.name = message.name.trim().replace(/\s+/g, " ");
+          peer.player.avatarId = message.avatarId;
+          profiles.set(nextKey, peer.player);
+          send(socket, "player_updated", {
+            commandId: message.commandId,
+            name: peer.player.name,
+            avatarId: peer.player.avatarId,
+            playerToken: peer.player.token,
+          });
+          return;
         }
         if (message.type === "leaderboard") {
           const leaders = [...profiles.values()]
@@ -380,6 +423,8 @@ export function createMatchServer({
             createdAt: Date.now(),
             status: "pending",
             awaiting: opponent,
+            timed: message.timed ?? true,
+            baseMs: message.baseMs ?? 600_000,
             game: null,
           };
           invites.set(invite.id, invite);
@@ -448,6 +493,8 @@ export function createMatchServer({
               "Proposed time must be at least one minute in the future",
             );
           invite.scheduledAt = message.scheduledAt;
+          invite.timed = message.timed ?? invite.timed;
+          invite.baseMs = message.baseMs ?? invite.baseMs;
           invite.awaiting =
             peer.player.id === invite.sender.id
               ? invite.recipient

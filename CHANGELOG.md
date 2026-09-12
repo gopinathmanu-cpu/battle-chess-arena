@@ -16,6 +16,11 @@
   alternate until accepted or declined.
 - Permit a future invitation with an opponent even while another game with that
   opponent remains active.
+- Render the eight online avatars as themed character portraits, allow players
+  to change their Avatar ID and portrait, and show the opponent's ID and portrait
+  inside every online game.
+- Let invitation proposals choose a timed 3, 5, or 10 minute game or an untimed
+  game. Counter-proposals can change both the appointment and timer format.
 
 ## 0.5.0 · 2026-09-12
 

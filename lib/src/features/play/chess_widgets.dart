@@ -12,12 +12,14 @@ class MatchHeader extends StatelessWidget {
     required this.blackTime,
     required this.turn,
     required this.accent,
+    this.timed = true,
   });
   final String status;
   final Duration whiteTime;
   final Duration blackTime;
   final Side turn;
   final Color accent;
+  final bool timed;
 
   String _format(Duration value) =>
       '${value.inMinutes.toString().padLeft(2, '0')}:${(value.inSeconds % 60).toString().padLeft(2, '0')}';
@@ -27,7 +29,7 @@ class MatchHeader extends StatelessWidget {
     children: [
       _Clock(
         label: 'WHITE',
-        time: _format(whiteTime),
+        time: timed ? _format(whiteTime) : '--:--',
         active: turn == Side.white,
       ),
       Expanded(
@@ -42,7 +44,7 @@ class MatchHeader extends StatelessWidget {
       ),
       _Clock(
         label: 'BLACK',
-        time: _format(blackTime),
+        time: timed ? _format(blackTime) : '--:--',
         active: turn == Side.black,
       ),
     ],

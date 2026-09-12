@@ -45,6 +45,7 @@ class OnlineMatchClient extends ChangeNotifier {
   Map<String, dynamic>? _pending;
   String? _setupCommandId;
   String? _profileCommandId;
+  String? _profileUpdateCommandId;
   int _generation = 0;
   int _lastFrameAt = 0;
   bool _disposed = false;
@@ -68,7 +69,10 @@ class OnlineMatchClient extends ChangeNotifier {
   OnlinePlayerProfile? get profile => _profile;
   String? get seatToken => _seatToken;
   bool get connected => connection == MatchConnection.ready && !_syncing;
-  bool get busy => _pending != null || _setupCommandId != null;
+  bool get busy =>
+      _pending != null ||
+      _setupCommandId != null ||
+      _profileUpdateCommandId != null;
   bool get searchingForOpponent =>
       _matchmaking && state?.status == 'waiting' && gameId != null;
   bool get canAct => connected && !busy && gameId != null && seat != null;
@@ -88,6 +92,17 @@ class OnlineMatchClient extends ChangeNotifier {
     _profile = profile;
     error = null;
     _notify();
+  }
+
+  void updateProfile({required String name, required String avatarId}) {
+    if (!connected || _profile == null) return;
+    _profileUpdateCommandId = _newId();
+    _send({
+      'type': 'update_player',
+      'commandId': _profileUpdateCommandId,
+      'name': name,
+      'avatarId': avatarId,
+    });
   }
 
   void _notify() {
@@ -285,7 +300,12 @@ class OnlineMatchClient extends ChangeNotifier {
     if (connected) _send({'type': 'presence', 'names': names.toList()});
   }
 
-  void sendInvitation(String opponentName, {DateTime? scheduledAt}) {
+  void sendInvitation(
+    String opponentName, {
+    DateTime? scheduledAt,
+    bool timed = true,
+    int baseMs = 600000,
+  }) {
     if (!connected) return;
     _send({
       'type': 'send_invite',
@@ -293,6 +313,8 @@ class OnlineMatchClient extends ChangeNotifier {
       'opponentName': opponentName,
       if (scheduledAt != null)
         'scheduledAt': scheduledAt.millisecondsSinceEpoch,
+      'timed': timed,
+      'baseMs': baseMs,
     });
   }
 
@@ -306,13 +328,20 @@ class OnlineMatchClient extends ChangeNotifier {
     });
   }
 
-  void proposeInvitationTime(String inviteId, DateTime scheduledAt) {
+  void proposeInvitationTime(
+    String inviteId,
+    DateTime scheduledAt, {
+    bool timed = true,
+    int baseMs = 600000,
+  }) {
     if (!connected) return;
     _send({
       'type': 'propose_invite_time',
       'commandId': _newId(),
       'inviteId': inviteId,
       'scheduledAt': scheduledAt.millisecondsSinceEpoch,
+      'timed': timed,
+      'baseMs': baseMs,
     });
   }
 
@@ -388,6 +417,17 @@ class OnlineMatchClient extends ChangeNotifier {
         loadPointHistory();
         loadInvitations();
         loadActiveGames();
+      } else if (type == 'player_updated') {
+        if (frame['commandId'] != _profileUpdateCommandId || _profile == null) {
+          throw const FormatException('Invalid profile update');
+        }
+        _profile = OnlinePlayerProfile(
+          name: frame['name'] as String,
+          avatarId: frame['avatarId'] as String,
+          playerToken: frame['playerToken'] as String,
+        );
+        _profileUpdateCommandId = null;
+        error = null;
       } else if (type == 'leaderboard') {
         leaderboard = List<OnlineLeaderboardEntry>.unmodifiable(
           (frame['leaders'] as List).map(
@@ -449,6 +489,9 @@ class OnlineMatchClient extends ChangeNotifier {
         }
       } else if (type == 'error') {
         error = frame['message'] as String? ?? 'Server rejected the request';
+        if (frame['commandId'] == _profileUpdateCommandId) {
+          _profileUpdateCommandId = null;
+        }
         if (frame['commandId'] == _profileCommandId) {
           _profileCommandId = null;
           _stopped = true;
