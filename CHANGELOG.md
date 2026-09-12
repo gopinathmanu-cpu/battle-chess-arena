@@ -1,0 +1,98 @@
+# Changelog
+
+- Add a zero-fixed-cost Render deployment Blueprint for multiplayer testing,
+  managed `wss://` transport, an HTTP health check, graceful shutdown, and
+  lobby heartbeats. Allow release builds to inject the hosted endpoint with
+  `ONLINE_SERVER_URL` while retaining editable local-development endpoints.
+- Add multiplayer Quick Match queues for 3, 5, and 10 minute games,
+  cancellable opponent search, and retain private Game ID rooms.
+- Add an animated checkmate result popup with distinct user-victory and computer-victory treatments, plus a two-line assessment derived from the player's captures, checks, development, castling, and game length.
+
+## Unreleased · 2026-09-06
+
+- Persist unfinished local/computer games with legal move history, clocks,
+  difficulty, armies, board world, and battle speed. Offer Resume Last Game or
+  confirmed New Game at startup, and confirm in-match resets before clearing.
+- Strengthen capture cinematics with synchronized original whoosh, light/heavy
+  impact, and final-strike effects governed by the global mute control.
+- Give each fighter its themed piece artwork, role-colored insignia, and combat
+  treatment; highlight the attacker as VICTOR and desaturate the defeated piece.
+- Add a cinematic capture caption naming the attacking and captured pieces with
+  their source and target squares, using standard chess piece notation.
+- Animate capturing pieces along their exact source-to-target board path before
+  the battle cinematic, with correct orientation for either online seat.
+- Expand boards when the match top bar is hidden while retaining an eight-pixel
+  visual frame, and place the restore control in the details panel clear of clocks.
+- Pace the on-board capture, impact beat, and battle cinematic as a synchronized
+  1.5-second sequence, with a tuned 700-millisecond fast mode.
+- Add Easy, Medium, and Hard computer difficulty selection at home and during
+  matches. Each level controls native Stockfish skill and thinking time, plus
+  the browser/fallback opponent's search depth.
+- Add show/hide controls for the local, computer, and online match top bars so
+  the chessboard can use the recovered vertical space.
+- Add a Flutter Web development target and isolate native Stockfish behind a
+  platform adapter. WebAssembly browser sessions use the legal Dart fallback;
+  Android keeps the native engine.
+- Replace the navy character-atlas background with genuine PNG transparency.
+- Add responsive local and online landscape match layouts: the complete board
+  stays visible on the left while clocks, status, controls, and moves use a
+  separately scrollable right panel.
+- Extend world scenery to home and online lobby pages; add five original
+  bundled instrumental loops with a global persistent mute button and
+  automatic lifecycle pause/resume. Restore the visible page soundtrack on back.
+
+- Replace board chess glyphs with sixty themed character portraits covering all
+  six roles, both sides, and five worlds. Add white/black army previews at home.
+- Add independent white army, black army, and board-world customization in local
+  and online games, themed scenery, and character promotion/capture rendering.
+- Preserve chess-role badges, legal-square semantics, and board orientation.
+- Keep computer games playable with a legal, two-ply backup opponent if native
+  search stalls, fails, or returns an illegal move. Show reduced strength in
+  the match and keep using the backup for that session.
+- Wait for Stockfish's UCI readiness acknowledgement before searching, allowing
+  slow native network initialization without losing the computer's first move.
+- Allow more time for search responses and drain stopped searches before reuse.
+- Add a retry action when the computer cannot return a move.
+- Add engine, appearance, landscape, and fallback regression tests; Flutter
+  suite passes 38 tests.
+
+## 0.4.0 · 2026-09-05
+
+- Added a playable online board with seat orientation, legal highlights, promotion,
+  authoritative commits, interpolated clocks and terminal results.
+- Extracted shared chessboard and capture widgets; retained original pawn artwork.
+- Added optional/fast/fade-only capture battles that never alter official clocks.
+- Added automatic reconnect, seat resume, full sync and pending-command retries.
+- Added resign, draw offers/responses and mutual rematches using protocol v2.
+- Added strict input validation, command receipts, round/ply guards and timed
+  state broadcasts, including timeout without incoming player commands.
+- Fixed the original game_state parsing condition, null-seat validation, and
+  castling falsely reported as a capture when encoded king-to-rook.
+- Generated Android/iOS runners while preserving all original source and assets.
+- Added Flutter domain/widget and real two-client Node integration coverage;
+  recorded dependency licences and locked resolved packages.
+- Automated verification passes; native Android/iOS two-device acceptance is
+  pending missing platform toolchains. This is not a production release.
+
+## 0.3.0
+
+- Added the original Manga Vanguard Dawn Guard and Dusk Raider pawn asset.
+- Integrated character art into pawn-versus-pawn capture cinematics.
+- Added the Flutter online lobby and WebSocket protocol client.
+- Added an open-source server-authoritative match reference implementation.
+- Added move, seat, clock, timeout, reconnect, and state-sequence tests/protocols.
+
+## 0.2.1
+
+- Licensed the complete project and original bundled assets as GPL-3.0-or-later.
+- Added an open-source-only dependency and asset policy.
+- Added direct third-party dependency notices and a release review gate.
+
+## 0.2.0
+
+- Replaced free-form demo movement with legal standard chess.
+- Added special moves, promotion selection, SAN history, and end-state display.
+- Added local two-player and Stockfish computer play.
+- Added independent chess clocks, undo, and reset.
+- Added a Manga Vanguard capture cinematic with fast and skip controls.
+- Added rules regression tests.

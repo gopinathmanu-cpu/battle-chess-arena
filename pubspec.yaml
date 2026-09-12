@@ -1,0 +1,30 @@
+name: battle_chess_arena
+description: GPL-licensed animated multi-theme chess platform.
+publish_to: "none"
+version: 0.4.0+5
+
+environment:
+  sdk: ">=3.11.0 <4.0.0"
+  flutter: ">=3.41.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dartchess: ^0.13.1
+  stockfish:
+    path: third_party/stockfish
+  web_socket_channel: ^3.0.3
+  audioplayers: ^6.8.1
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/concepts/
+    - assets/characters/
+    - assets/audio/

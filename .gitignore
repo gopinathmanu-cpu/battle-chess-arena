@@ -1,0 +1,30 @@
+# Flutter and Dart generated files
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+
+# Node dependencies and local configuration
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+
+# Local editor and operating system files
+.DS_Store
+.idea/
+*.iml
+.copilot-azure/
+
+# Native build artifacts and machine-specific settings
+**/Pods/
+**/.symlinks/
+**/.gradle/
+**/.cxx/
+**/local.properties
+**/Flutter/ephemeral/
+**/Flutter/Generated.xcconfig
+**/Flutter/flutter_export_environment.sh
