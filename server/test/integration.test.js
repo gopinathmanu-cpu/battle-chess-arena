@@ -5,7 +5,9 @@ import { once } from "node:events";
 import WebSocket from "ws";
 import { createMatchServer } from "../src/server.js";
 
-async function client(url) {
+let playerCounter = 0;
+
+async function client(url, savedProfile = null) {
   const socket = new WebSocket(url);
   const inbox = [];
   const waiters = [];
@@ -16,8 +18,9 @@ async function client(url) {
     else waiters.splice(index, 1)[0].resolve(frame);
   });
   await once(socket, "open");
-  return {
+  const api = {
     socket,
+    profile: null,
     send: (message) => socket.send(JSON.stringify(message)),
     next(predicate) {
       const index = inbox.findIndex(predicate);
@@ -37,6 +40,26 @@ async function client(url) {
       });
     },
   };
+  const profile = savedProfile ?? {
+    name: `Player ${++playerCounter}`,
+    avatarId: "knight",
+  };
+  api.send({
+    type: "register_player",
+    commandId: `profile-${playerCounter}-${Date.now()}`,
+    name: profile.name,
+    avatarId: profile.avatarId,
+    ...(profile.playerToken ? { playerToken: profile.playerToken } : {}),
+  });
+  const registered = await api.next(
+    (frame) => frame.type === "player_registered",
+  );
+  api.profile = {
+    name: registered.name,
+    avatarId: registered.avatarId,
+    playerToken: registered.playerToken,
+  };
+  return api;
 }
 
 test("health check and lobby heartbeat work without a game", async (t) => {
@@ -51,7 +74,10 @@ test("health check and lobby heartbeat work without a game", async (t) => {
 
   const lobby = await client(`ws://${address}`);
   lobby.send({ type: "ping" });
-  assert.equal((await lobby.next((frame) => frame.type === "pong")).type, "pong");
+  assert.equal(
+    (await lobby.next((frame) => frame.type === "pong")).type,
+    "pong",
+  );
 });
 
 test("two sockets play, reconnect, sync, reject replays, draw and rematch", async (t) => {
@@ -104,7 +130,7 @@ test("two sockets play, reconnect, sync, reject replays, draw and rematch", asyn
     (f) => f.type === "game_state" && f.state.san.at(-1) === "exd5",
   );
   white.socket.terminate();
-  const resumed = await client(url);
+  const resumed = await client(url, white.profile);
   resumed.send({ type: "resume_game", gameId, seatToken: created.seatToken });
   const seat = await resumed.next((f) => f.type === "seat_resumed");
   assert.equal(seat.state.san.length, 3);
@@ -231,9 +257,7 @@ test("quick match pairs equal time controls and supports cancellation", async (t
     commandId: "cancel-three",
     gameId: other.gameId,
   });
-  const cancelled = await third.next(
-    (f) => f.type === "matchmaking_cancelled",
-  );
+  const cancelled = await third.next((f) => f.type === "matchmaking_cancelled");
   assert.equal(cancelled.gameId, other.gameId);
   assert.equal(app.games.has(other.gameId), false);
 
@@ -249,6 +273,182 @@ test("quick match pairs equal time controls and supports cancellation", async (t
   );
   abandoned.socket.close();
   await once(abandoned.socket, "close");
-  await new Promise((resolve) => setImmediate(resolve));
+  for (
+    let attempt = 0;
+    attempt < 20 && app.games.has(reserved.gameId);
+    attempt++
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
   assert.equal(app.games.has(reserved.gameId), false);
+});
+
+test("unique profiles, one open game per opponent, multiple opponents and leaderboard", async (t) => {
+  const app = createMatchServer({ port: 0, host: "127.0.0.1", tickMs: 60_000 });
+  t.after(() => app.close());
+  await once(app.server, "listening");
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const alice = await client(url, { name: "Arena Alice", avatarId: "mage" });
+  const bob = await client(url, { name: "Arena Bob", avatarId: "robot" });
+
+  const imposter = new WebSocket(url);
+  await once(imposter, "open");
+  const duplicateName = new Promise((resolve) => {
+    imposter.on("message", (raw) => {
+      const frame = JSON.parse(raw);
+      if (frame.code === "AVATAR_NAME_TAKEN") resolve(frame);
+    });
+  });
+  imposter.send(
+    JSON.stringify({
+      type: "register_player",
+      commandId: "duplicate-name",
+      name: "arena alice",
+      avatarId: "crown",
+    }),
+  );
+  assert.equal((await duplicateName).code, "AVATAR_NAME_TAKEN");
+  imposter.close();
+
+  alice.send({ type: "create_game", commandId: "first", baseMs: 60_000 });
+  const first = await alice.next((frame) => frame.type === "game_created");
+  bob.send({
+    type: "join_game",
+    commandId: "join-first",
+    gameId: first.gameId,
+  });
+  await bob.next((frame) => frame.type === "seat_joined");
+
+  const aliceSecondConnection = await client(url, alice.profile);
+  aliceSecondConnection.send({
+    type: "create_game",
+    commandId: "second",
+    baseMs: 60_000,
+  });
+  const second = await aliceSecondConnection.next(
+    (frame) => frame.type === "game_created",
+  );
+  const bobSecondConnection = await client(url, bob.profile);
+  bobSecondConnection.send({
+    type: "join_game",
+    commandId: "duplicate-opponent",
+    gameId: second.gameId,
+  });
+  assert.equal(
+    (
+      await bobSecondConnection.next(
+        (frame) => frame.code === "OPPONENT_GAME_EXISTS",
+      )
+    ).code,
+    "OPPONENT_GAME_EXISTS",
+  );
+
+  const charlie = await client(url, {
+    name: "Arena Charlie",
+    avatarId: "dragon",
+  });
+  charlie.send({
+    type: "join_game",
+    commandId: "join-second",
+    gameId: second.gameId,
+  });
+  await charlie.next((frame) => frame.type === "seat_joined");
+
+  alice.send({
+    type: "resign",
+    gameId: first.gameId,
+    round: 1,
+    commandId: "resign",
+  });
+  await bob.next((frame) => frame.state?.status === "complete");
+  bob.send({ type: "leaderboard" });
+  const leaders = await bob.next((frame) => frame.type === "leaderboard");
+  assert.equal(leaders.leaders[0].name, "Arena Bob");
+  assert.equal(leaders.leaders[0].points, 3);
+  assert.equal(leaders.leaders[0].wins, 1);
+  assert.equal(
+    leaders.leaders.find((entry) => entry.name === "Arena Alice").losses,
+    1,
+  );
+});
+
+test("favourite presence and immediate or scheduled invitations", async (t) => {
+  const app = createMatchServer({ port: 0, host: "127.0.0.1", tickMs: 60_000 });
+  t.after(() => app.close());
+  await once(app.server, "listening");
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const alice = await client(url, { name: "Invite Alice", avatarId: "sun" });
+  const bob = await client(url, { name: "Invite Bob", avatarId: "moon" });
+  const charlie = await client(url, {
+    name: "Invite Charlie",
+    avatarId: "ranger",
+  });
+
+  alice.send({ type: "presence", names: ["Invite Bob", "Missing Hero"] });
+  const presence = await alice.next((frame) => frame.type === "presence");
+  assert.deepEqual(presence.statuses, [
+    { name: "Invite Bob", online: true },
+    { name: "Missing Hero", online: false },
+  ]);
+
+  alice.send({
+    type: "send_invite",
+    commandId: "invite-now",
+    opponentName: "Invite Bob",
+  });
+  const received = await bob.next((frame) => frame.type === "invite_updated");
+  assert.equal(received.invite.status, "pending");
+  bob.send({
+    type: "respond_invite",
+    commandId: "accept-now",
+    inviteId: received.invite.inviteId,
+    accept: true,
+  });
+  const bobGame = await bob.next(
+    (frame) => frame.type === "invite_updated" && frame.invite.game,
+  );
+  const aliceGame = await alice.next(
+    (frame) => frame.type === "invite_updated" && frame.invite.game,
+  );
+  assert.equal(bobGame.invite.game.seat, "b");
+  assert.equal(aliceGame.invite.game.seat, "w");
+  assert.equal(bobGame.invite.game.gameId, aliceGame.invite.game.gameId);
+  assert.notEqual(
+    bobGame.invite.game.seatToken,
+    aliceGame.invite.game.seatToken,
+  );
+
+  const due = Date.now() + 200;
+  alice.send({
+    type: "send_invite",
+    commandId: "invite-later",
+    opponentName: "Invite Charlie",
+    scheduledAt: due,
+  });
+  const scheduled = await charlie.next(
+    (frame) =>
+      frame.type === "invite_updated" && frame.invite.scheduledAt === due,
+  );
+  charlie.send({
+    type: "respond_invite",
+    commandId: "accept-later",
+    inviteId: scheduled.invite.inviteId,
+    accept: true,
+  });
+  const accepted = await charlie.next(
+    (frame) =>
+      frame.type === "invite_updated" &&
+      frame.invite.inviteId === scheduled.invite.inviteId &&
+      frame.invite.status === "accepted",
+  );
+  assert.equal(accepted.invite.game, undefined);
+  await new Promise((resolve) => setTimeout(resolve, 210));
+  app.tick();
+  const scheduledGame = await charlie.next(
+    (frame) =>
+      frame.type === "invite_updated" &&
+      frame.invite.inviteId === scheduled.invite.inviteId &&
+      frame.invite.game,
+  );
+  assert.equal(scheduledGame.invite.game.seat, "b");
 });

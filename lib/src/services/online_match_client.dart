@@ -9,6 +9,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../domain/online_game_session.dart';
 import '../domain/online_game_state.dart';
+import '../domain/online_player_profile.dart';
+import '../domain/online_social.dart';
 export '../domain/online_game_state.dart';
 
 enum MatchConnection { disconnected, connecting, resuming, ready }
@@ -16,10 +18,12 @@ enum MatchConnection { disconnected, connecting, resuming, ready }
 class OnlineMatchClient extends ChangeNotifier {
   OnlineMatchClient({
     WebSocketChannel Function(Uri)? channelFactory,
+    OnlinePlayerProfile? profile,
     this.retryDelay = const Duration(seconds: 2),
     this.heartbeatInterval = const Duration(seconds: 5),
     this.connectionTimeout = const Duration(seconds: 8),
-  }) : _channelFactory = channelFactory ?? WebSocketChannel.connect;
+  }) : _channelFactory = channelFactory ?? WebSocketChannel.connect,
+       _profile = profile;
 
   final WebSocketChannel Function(Uri) _channelFactory;
   final Duration retryDelay;
@@ -40,17 +44,24 @@ class OnlineMatchClient extends ChangeNotifier {
   String? _seatToken;
   Map<String, dynamic>? _pending;
   String? _setupCommandId;
+  String? _profileCommandId;
   int _generation = 0;
   int _lastFrameAt = 0;
   bool _disposed = false;
   bool _stopped = false;
   bool _syncing = false;
   bool _matchmaking = false;
+  OnlinePlayerProfile? _profile;
+  List<OnlineLeaderboardEntry> leaderboard = const [];
+  List<OnlineInvitation> invitations = const [];
+  Map<String, bool> presence = const {};
 
   MatchConnection connection = MatchConnection.disconnected;
   String? gameId;
   String? seat;
   String? error;
+  OnlinePlayerProfile? get profile => _profile;
+  String? get seatToken => _seatToken;
   bool get connected => connection == MatchConnection.ready && !_syncing;
   bool get busy => _pending != null || _setupCommandId != null;
   bool get searchingForOpponent =>
@@ -67,6 +78,13 @@ class OnlineMatchClient extends ChangeNotifier {
   };
 
   String _newId() => '${_idPrefix}_${++_commandCounter}';
+
+  void setProfile(OnlinePlayerProfile profile) {
+    _profile = profile;
+    error = null;
+    _notify();
+  }
+
   void _notify() {
     if (!_disposed) notifyListeners();
   }
@@ -102,10 +120,12 @@ class OnlineMatchClient extends ChangeNotifier {
         return;
       }
       _lastFrameAt = _elapsed.elapsedMilliseconds;
-      connection = _seatToken == null
+      connection = _profile == null && _seatToken == null
           ? MatchConnection.ready
-          : MatchConnection.resuming;
-      _syncing = _seatToken != null;
+          : _profile == null
+          ? MatchConnection.resuming
+          : MatchConnection.connecting;
+      _syncing = _profile != null || _seatToken != null;
       _subscription = channel.stream.listen(
         (raw) {
           if (generation == _generation && !_disposed) _handleFrame(raw);
@@ -113,7 +133,7 @@ class OnlineMatchClient extends ChangeNotifier {
         onError: (_) => _lost(generation),
         onDone: () => _lost(generation),
       );
-      if (gameId != null && _seatToken != null) {
+      if (_profile == null && gameId != null && _seatToken != null) {
         _send({
           'type': 'resume_game',
           'gameId': gameId,
@@ -232,6 +252,39 @@ class OnlineMatchClient extends ChangeNotifier {
 
   void requestRematch() => _action('rematch');
 
+  void loadLeaderboard() {
+    if (connected) _send(const {'type': 'leaderboard'});
+  }
+
+  void loadInvitations() {
+    if (connected) _send(const {'type': 'list_invites'});
+  }
+
+  void loadPresence(Iterable<String> names) {
+    if (connected) _send({'type': 'presence', 'names': names.toList()});
+  }
+
+  void sendInvitation(String opponentName, {DateTime? scheduledAt}) {
+    if (!connected) return;
+    _send({
+      'type': 'send_invite',
+      'commandId': _newId(),
+      'opponentName': opponentName,
+      if (scheduledAt != null)
+        'scheduledAt': scheduledAt.millisecondsSinceEpoch,
+    });
+  }
+
+  void respondToInvitation(String inviteId, bool accept) {
+    if (!connected) return;
+    _send({
+      'type': 'respond_invite',
+      'commandId': _newId(),
+      'inviteId': inviteId,
+      'accept': accept,
+    });
+  }
+
   void _action(String type, [Map<String, dynamic> extra = const {}]) {
     if (!canAct || state == null) return;
     _pending = {
@@ -264,9 +317,82 @@ class OnlineMatchClient extends ChangeNotifier {
         if (frame['protocolVersion'] != 2) {
           error = 'Update the match server to protocol version 2';
           unawaited(disconnect());
+        } else if (_profile != null) {
+          _profileCommandId = _newId();
+          _send({
+            'type': 'register_player',
+            'commandId': _profileCommandId,
+            'name': _profile!.name,
+            'avatarId': _profile!.avatarId,
+            if (_profile!.playerToken != null)
+              'playerToken': _profile!.playerToken,
+          });
+        } else {
+          connection = MatchConnection.ready;
+          _syncing = false;
         }
+      } else if (type == 'player_registered') {
+        if (frame['commandId'] != _profileCommandId) {
+          throw const FormatException('Invalid profile registration');
+        }
+        _profile = OnlinePlayerProfile(
+          name: frame['name'] as String,
+          avatarId: frame['avatarId'] as String,
+          playerToken: frame['playerToken'] as String,
+        );
+        _profileCommandId = null;
+        error = null;
+        if (gameId != null && _seatToken != null) {
+          connection = MatchConnection.resuming;
+          _send({
+            'type': 'resume_game',
+            'gameId': gameId,
+            'seatToken': _seatToken,
+          });
+        } else {
+          connection = MatchConnection.ready;
+          _syncing = false;
+        }
+        loadLeaderboard();
+        loadInvitations();
+      } else if (type == 'leaderboard') {
+        leaderboard = List<OnlineLeaderboardEntry>.unmodifiable(
+          (frame['leaders'] as List).map(
+            (item) => OnlineLeaderboardEntry.fromJson(
+              (item as Map).cast<String, dynamic>(),
+            ),
+          ),
+        );
+      } else if (type == 'presence') {
+        presence = {
+          for (final item in frame['statuses'] as List)
+            (item as Map)['name'] as String: item['online'] as bool,
+        };
+      } else if (type == 'invites') {
+        invitations = List<OnlineInvitation>.unmodifiable(
+          (frame['invites'] as List).map(
+            (item) => OnlineInvitation.fromJson(
+              (item as Map).cast<String, dynamic>(),
+            ),
+          ),
+        );
+      } else if (type == 'invite_updated') {
+        final invitation = OnlineInvitation.fromJson(
+          (frame['invite'] as Map).cast<String, dynamic>(),
+        );
+        final updated = invitations.toList()
+          ..removeWhere((item) => item.inviteId == invitation.inviteId)
+          ..insert(0, invitation);
+        invitations = List.unmodifiable(updated);
       } else if (type == 'error') {
         error = frame['message'] as String? ?? 'Server rejected the request';
+        if (frame['commandId'] == _profileCommandId) {
+          _profileCommandId = null;
+          _stopped = true;
+          connection = MatchConnection.disconnected;
+          _syncing = false;
+          unawaited(_closeTransport());
+        }
         if (frame['commandId'] == _pending?['commandId']) _pending = null;
         if (frame['commandId'] == null ||
             frame['commandId'] == _setupCommandId) {
@@ -331,6 +457,7 @@ class OnlineMatchClient extends ChangeNotifier {
         if (next.gameId != gameId) return;
         session.apply(next, animate: connected && frame['synced'] != true);
         if (next.status != 'waiting') _matchmaking = false;
+        if (next.status == 'complete') loadLeaderboard();
         if (frame['synced'] == true) {
           connection = MatchConnection.ready;
           _syncing = false;
@@ -387,6 +514,39 @@ class OnlineMatchClient extends ChangeNotifier {
     connection = MatchConnection.disconnected;
     _notify();
     await _closeTransport();
+  }
+
+  Future<void> startAnotherGame() async {
+    final endpoint = _endpoint;
+    await disconnect();
+    gameId = null;
+    seat = null;
+    _seatToken = null;
+    _pending = null;
+    _setupCommandId = null;
+    _matchmaking = false;
+    session.clear();
+    error = null;
+    if (endpoint != null) await connect(endpoint);
+  }
+
+  Future<void> openSavedGame({
+    required String savedGameId,
+    required String savedSeat,
+    required String savedSeatToken,
+  }) async {
+    final endpoint = _endpoint;
+    if (endpoint == null) return;
+    await disconnect();
+    gameId = savedGameId;
+    seat = savedSeat;
+    _seatToken = savedSeatToken;
+    _pending = null;
+    _setupCommandId = null;
+    _matchmaking = false;
+    session.clear();
+    error = null;
+    await connect(endpoint);
   }
 
   @override

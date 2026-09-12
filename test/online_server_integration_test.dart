@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:battle_chess_arena/src/services/online_match_client.dart';
+import 'package:battle_chess_arena/src/domain/online_player_profile.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,12 +43,23 @@ void main() {
           .listen((line) => fail('Server error: $line'));
       addTearDown(stderr.cancel);
       final uri = Uri.parse('ws://127.0.0.1:$port');
-      final white = OnlineMatchClient();
-      final black = OnlineMatchClient();
+      final white = OnlineMatchClient(
+        profile: const OnlinePlayerProfile(
+          name: 'Integration White',
+          avatarId: 'sun',
+        ),
+      );
+      final black = OnlineMatchClient(
+        profile: const OnlinePlayerProfile(
+          name: 'Integration Black',
+          avatarId: 'moon',
+        ),
+      );
       addTearDown(white.dispose);
       addTearDown(black.dispose);
       await white.connect(uri);
       await black.connect(uri);
+      await waitFor(() => white.connected && black.connected);
       white.createGame();
       await waitFor(() => white.gameId != null);
       black.joinGame(white.gameId!);

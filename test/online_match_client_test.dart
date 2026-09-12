@@ -1,5 +1,6 @@
 import 'package:battle_chess_arena/src/domain/game_session.dart';
 import 'package:battle_chess_arena/src/services/online_match_client.dart';
+import 'package:battle_chess_arena/src/domain/online_player_profile.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -8,6 +9,58 @@ import 'support/online_fixtures.dart';
 Future<void> flush() => Future<void>.delayed(Duration.zero);
 
 void main() {
+  test('registers a unique player profile before enabling the lobby', () async {
+    final channel = FakeChannel();
+    final client = OnlineMatchClient(
+      channelFactory: (_) => channel,
+      profile: const OnlinePlayerProfile(name: 'Nova Knight', avatarId: 'mage'),
+    );
+    addTearDown(client.dispose);
+    await client.connect(Uri.parse('wss://arena.example'));
+    expect(client.connected, isFalse);
+    channel.receive({'type': 'connected', 'protocolVersion': 2});
+    await flush();
+    final registration = channel.sent.single;
+    expect(registration['type'], 'register_player');
+    expect(registration['name'], 'Nova Knight');
+    channel.receive({
+      'type': 'player_registered',
+      'commandId': registration['commandId'],
+      'name': 'Nova Knight',
+      'avatarId': 'mage',
+      'playerToken': 'player-secret',
+    });
+    await flush();
+    expect(client.connected, isTrue);
+    expect(client.profile!.playerToken, 'player-secret');
+    expect(
+      channel.sent.skip(1).map((frame) => frame['type']),
+      containsAll(['leaderboard', 'list_invites']),
+    );
+    channel.receive({
+      'type': 'presence',
+      'statuses': [
+        {'name': 'Moon Mage', 'online': true},
+      ],
+    });
+    channel.receive({
+      'type': 'invites',
+      'invites': [
+        {
+          'inviteId': 'invite-one',
+          'sender': {'name': 'Moon Mage', 'avatarId': 'moon'},
+          'recipient': {'name': 'Nova Knight', 'avatarId': 'mage'},
+          'scheduledAt': null,
+          'createdAt': 1,
+          'status': 'pending',
+        },
+      ],
+    });
+    await flush();
+    expect(client.presence['Moon Mage'], isTrue);
+    expect(client.invitations.single.senderName, 'Moon Mage');
+  });
+
   test(
     'move stays pending until receipt, canonical board changes only on state',
     () async {

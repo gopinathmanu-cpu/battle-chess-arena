@@ -18,6 +18,14 @@ class OnlineGameState {
       drawOfferId = (json['drawOffer'] as Map?)?['offerId'] as String?,
       rematchOffers = List<String>.unmodifiable(
         json['rematchOffers'] as List? ?? [],
+      ),
+      whitePlayer = OnlinePlayerSummary.fromJson(
+        ((json['players'] as Map?)?['w'] as Map?)?.cast<String, dynamic>(),
+        fallbackName: 'White player',
+      ),
+      blackPlayer = OnlinePlayerSummary.fromJson(
+        ((json['players'] as Map?)?['b'] as Map?)?.cast<String, dynamic>(),
+        fallbackName: 'Waiting opponent',
       ) {
     position = Chess.fromSetup(Setup.parseFen(fen));
     if (gameId.isEmpty ||
@@ -52,7 +60,12 @@ class OnlineGameState {
   final String? drawOfferSide;
   final String? drawOfferId;
   final List<String> rematchOffers;
+  final OnlinePlayerSummary whitePlayer;
+  final OnlinePlayerSummary blackPlayer;
   late final Position position;
+
+  OnlinePlayerSummary opponentFor(String seat) =>
+      seat == 'w' ? blackPlayer : whitePlayer;
 
   String get statusLabel {
     if (status == 'waiting') return 'Waiting for an opponent';
@@ -74,4 +87,19 @@ class OnlineGameState {
     }
     return '${turn == 'w' ? 'White' : 'Black'} to move${position.isCheck ? ' · CHECK' : ''}';
   }
+}
+
+class OnlinePlayerSummary {
+  const OnlinePlayerSummary({required this.name, required this.avatarId});
+
+  factory OnlinePlayerSummary.fromJson(
+    Map<String, dynamic>? json, {
+    required String fallbackName,
+  }) => OnlinePlayerSummary(
+    name: json?['name'] as String? ?? fallbackName,
+    avatarId: json?['avatarId'] as String? ?? 'crown',
+  );
+
+  final String name;
+  final String avatarId;
 }

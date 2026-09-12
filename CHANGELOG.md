@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0 · 2026-09-12
+
+- Hide the WebSocket endpoint and connect automatically to the configured online
+  service.
+- Require a unique Avatar Name and one of eight bundled Material avatar icons
+  before online play; authenticate returning connections with a private token.
+- Persist up to fifty active and completed games on the device, including the
+  opponent's Avatar Name/icon and the private seat credential needed to reopen
+  a board.
+- Allow games with several different opponents while enforcing at most one open
+  game for the same opponent pair.
+- Add an online leaderboard with three points per win, one per draw, zero per
+  loss, and win/draw/loss totals. Award each completed rematch round once.
+- Let players favourite opponents from game history, view their live presence,
+  and send immediate or scheduled invitations. Show sent/received acceptance
+  status, create the shared game when an accepted invitation becomes due, and
+  persist optional in-app scheduled-game reminders.
+
 - Add a zero-fixed-cost Render deployment Blueprint for multiplayer testing,
   managed `wss://` transport, an HTTP health check, graceful shutdown, and
   lobby heartbeats. Allow release builds to inject the hosted endpoint with

@@ -12,7 +12,12 @@ export class MatchError extends Error {
 }
 
 export class Match {
-  constructor({ id = randomUUID(), baseMs = 600_000, incrementMs = 0 } = {}) {
+  constructor({
+    id = randomUUID(),
+    baseMs = 600_000,
+    incrementMs = 0,
+    whitePlayer = null,
+  } = {}) {
     if (!Number.isInteger(baseMs) || baseMs < 10_000 || baseMs > 10_800_000) {
       throw new MatchError(
         "INVALID_CLOCK",
@@ -35,6 +40,14 @@ export class Match {
     this.incrementMs = incrementMs;
     this.remaining = { w: baseMs, b: baseMs };
     this.tokens = { w: randomUUID(), b: null };
+    this.players = {
+      w: whitePlayer ?? {
+        id: `guest-${randomUUID()}`,
+        name: "White player",
+        avatarId: "crown",
+      },
+      b: null,
+    };
     this.status = "waiting";
     this.result = null;
     this.activeSince = null;
@@ -50,14 +63,34 @@ export class Match {
     return this.tokens.w;
   }
 
-  joinBlack(now = performance.now()) {
+  joinBlack(now = performance.now(), blackPlayer = null) {
     this.settleClock(now);
     if (this.tokens.b)
       throw new MatchError("GAME_FULL", "Both seats are already claimed");
     this.tokens.b = randomUUID();
+    this.players.b = blackPlayer ?? {
+      id: `guest-${randomUUID()}`,
+      name: "Black player",
+      avatarId: "knight",
+    };
     this.status = "active";
     this.activeSince = now;
     return this.tokens.b;
+  }
+
+  hasPlayer(playerId) {
+    return this.players.w?.id === playerId || this.players.b?.id === playerId;
+  }
+
+  isPair(firstId, secondId) {
+    return (
+      (this.players.w?.id === firstId && this.players.b?.id === secondId) ||
+      (this.players.w?.id === secondId && this.players.b?.id === firstId)
+    );
+  }
+
+  playerIdForSide(side) {
+    return this.players[side]?.id ?? null;
   }
 
   sideForToken(token) {
@@ -247,7 +280,21 @@ export class Match {
       result: this.result ? { ...this.result } : null,
       drawOffer: this.drawOffer ? { ...this.drawOffer } : null,
       rematchOffers: [...this.rematchOffers],
+      players: {
+        w: this.#publicPlayer(this.players.w),
+        b: this.#publicPlayer(this.players.b),
+      },
     };
+  }
+
+  #publicPlayer(player) {
+    return player
+      ? {
+          name: player.name,
+          avatarId: player.avatarId,
+          points: player.points ?? 0,
+        }
+      : null;
   }
 
   settleClock(now = performance.now()) {

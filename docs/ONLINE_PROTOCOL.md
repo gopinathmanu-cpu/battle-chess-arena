@@ -8,6 +8,58 @@ Every message is a JSON text frame. The server sends `connected` with
 Clients send `{"type":"ping"}` while connected. The server replies with
 `{"type":"pong"}`. This heartbeat applies in the lobby as well as during a game.
 
+## Player identity
+
+Before creating, joining, resuming, or listing games, send:
+
+```json
+{"type":"register_player","commandId":"profile-1","name":"Nova Knight","avatarId":"mage"}
+```
+
+Names contain 3–20 ASCII letters, numbers, spaces, underscores, or hyphens and
+are unique after trimming, whitespace folding, and case normalization. The
+server returns `player_registered` with a private `playerToken`. Save this token
+and include it in later registrations to reclaim the same name. Never display or
+share player or seat tokens.
+
+Available avatar IDs are `crown`, `knight`, `mage`, `dragon`, `robot`, `ranger`,
+`sun`, and `moon`. Every game state includes public `players.w` and `players.b`
+objects containing only `name`, `avatarId`, and current `points`.
+
+The server rejects a second non-completed game between the same two player
+identities with `OPPONENT_GAME_EXISTS`. Either player may have other open games
+against different opponents, using a separate connection and stored seat token.
+
+## Leaderboard
+
+Send `{"type":"leaderboard"}` after profile registration. The server returns up
+to fifty entries ordered by points, wins, and Avatar Name. A completed round
+awards 3 points to its winner or 1 point to each player for a draw, and records
+the corresponding win, draw, or loss exactly once.
+
+## Favourites, presence, and invitations
+
+Favourites are private device data and are never uploaded as a list. To refresh
+their status, an authenticated client sends `presence` with up to fifty Avatar
+Names. The response reports whether each identity currently has an authenticated
+WebSocket connection.
+
+`send_invite` contains an opponent Avatar Name and an optional `scheduledAt`
+Unix timestamp in milliseconds. The server rejects self-invites, unknown names,
+duplicate pending invitations, past schedules, and invitations to an opponent
+who already shares an open game with the sender. `invite_updated` is delivered
+to every live connection belonging to either player. `list_invites` returns the
+current user's sent and received invitations with `pending`, `accepted`,
+`declined`, or `blocked` status.
+
+Only the recipient can send `respond_invite`. Accepting an immediate invitation
+creates the game at once. Accepting a scheduled invitation creates it when its
+scheduled time arrives. Each player's invitation payload then contains only that
+player's seat and private seat token. Clients save this as a normal history entry
+and can open it from the lobby. Reminder selections are stored on the device and
+shown while the app is running; background operating-system notifications are
+not part of this version.
+
 ## Commands
 
 | Type | Fields besides `type` | Meaning |

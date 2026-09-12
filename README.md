@@ -1,4 +1,4 @@
-# Battle Chess Arena · Milestone 4
+# Battle Chess Arena · 0.5.0
 
 An Android/iOS Flutter chess game with optional, short, skippable capture battles.
 Original project code and visual assets are **GPL-3.0-or-later**; dependencies
@@ -20,6 +20,11 @@ See [validation results](docs/MILESTONE_4_VALIDATION.md).
 - Standard legal moves, castling, en passant, promotion choice, SAN history.
 - Online quick matchmaking by time control, private create/join rooms, automatic
   board handoff, and assigned-colour orientation.
+- Unique Avatar Names with eight selectable icons, local active/completed game
+  history, opponent identity cards, multiple open opponents, and a ranked online
+  leaderboard. Wins award three points and draws award one.
+- Favourite opponents with online/offline presence, immediate and scheduled game
+  invitations, sent/received acceptance status, and persistent in-app reminders.
 - Server-controlled moves, clocks, results, resign, draw offers and mutual rematch.
 - Pending-move input lock, stale-state rejection, reconnect/resume/full sync.
 - Copy Game ID for sharing; seat tokens remain private and in memory.
@@ -118,11 +123,16 @@ instance, so this configuration is intended for testing rather than production.
 
 ## Scope and recovery limits
 
-Keep the lobby open to retain your seat. Network loss reconnects automatically;
-returning home or closing the process forgets the token. Server restarts lose all
-rooms. Rematches keep the same colours and room ID. This server is for local
-reference testing, not public hosting. See [protocol v2](docs/ONLINE_PROTOCOL.md)
-for validation, idempotency, clock semantics, and production requirements.
+Network loss reconnects automatically. Rematches keep the same colours and room
+ID. This server remains a reference test deployment rather than a production
+service. See [protocol v2](docs/ONLINE_PROTOCOL.md) for validation, idempotency,
+clock semantics, identity, invitations, and recovery requirements.
+
+Version 0.5.0 persists player and seat tokens in device preferences, so returning
+home or restarting the app can reopen recorded games. Render Free still stores
+rooms, unique-name registrations, and leaderboard points in server memory. A
+Render restart or idle shutdown removes that server-side state; durable cloud
+recovery requires a database before production launch.
 
 The next gate is native two-device verification, including Stockfish and capture
 performance. Authentication, durable storage, matchmaking and tournaments remain

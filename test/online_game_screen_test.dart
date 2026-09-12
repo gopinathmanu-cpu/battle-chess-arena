@@ -8,10 +8,27 @@ import 'package:battle_chess_arena/src/services/online_match_client.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/online_fixtures.dart';
 
 void main() {
+  testWidgets(
+    'online setup hides transport details and offers avatar choices',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        MaterialApp(home: OnlineLobbyScreen(pack: piecePacks.first)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('WebSocket endpoint'), findsNothing);
+      expect(find.textContaining('wss://'), findsNothing);
+      expect(find.text('Create your arena avatar'), findsOneWidget);
+      expect(find.byKey(const ValueKey('avatar-name-field')), findsOneWidget);
+      expect(find.byType(ChoiceChip), findsNWidgets(8));
+    },
+  );
+
   Future<OnlineMatchClient> showGame(
     WidgetTester tester,
     FakeChannel channel, {

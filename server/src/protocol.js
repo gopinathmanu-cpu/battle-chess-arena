@@ -5,6 +5,12 @@ const actions = ["move", "resign", "offer_draw", "respond_draw", "rematch"];
 export const isAction = (type) => actions.includes(type);
 const fields = {
   ping: [],
+  register_player: ["commandId", "name", "avatarId", "playerToken"],
+  leaderboard: [],
+  presence: ["names"],
+  send_invite: ["commandId", "opponentName", "scheduledAt"],
+  list_invites: [],
+  respond_invite: ["commandId", "inviteId", "accept"],
   create_game: ["commandId", "baseMs", "incrementMs"],
   quick_match: ["commandId", "baseMs", "incrementMs"],
   cancel_matchmaking: ["commandId", "gameId"],
@@ -54,6 +60,50 @@ export function validateMessage(message) {
       message.incrementMs === undefined ||
         (integer(message.incrementMs) && message.incrementMs <= 60_000),
     );
+  }
+  if (message.type === "register_player") {
+    require(
+      typeof message.name === "string" &&
+        message.name === message.name.trim() &&
+        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.name),
+    );
+    require(
+      [
+        "crown",
+        "knight",
+        "mage",
+        "dragon",
+        "robot",
+        "ranger",
+        "sun",
+        "moon",
+      ].includes(message.avatarId),
+    );
+    require(
+      message.playerToken === undefined || identifier(message.playerToken),
+    );
+  }
+  if (message.type === "presence") {
+    require(
+      Array.isArray(message.names) &&
+        message.names.length <= 50 &&
+        message.names.every(
+          (name) =>
+            typeof name === "string" &&
+            /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(name),
+        ),
+    );
+  }
+  if (message.type === "send_invite") {
+    require(
+      typeof message.opponentName === "string" &&
+        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.opponentName),
+    );
+    require(message.scheduledAt === undefined || integer(message.scheduledAt));
+  }
+  if (message.type === "respond_invite") {
+    require(identifier(message.inviteId));
+    require(typeof message.accept === "boolean");
   }
   if (message.type === "resume_game") require(identifier(message.seatToken));
   if (message.type === "respond_draw")

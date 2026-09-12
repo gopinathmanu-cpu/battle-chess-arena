@@ -12,6 +12,10 @@ Map<String, dynamic> stateJson({
   Map<String, dynamic>? result,
   int whiteMs = 60000,
   int blackMs = 60000,
+  String whiteName = 'White Hero',
+  String blackName = 'Black Hero',
+  String whiteAvatar = 'sun',
+  String blackAvatar = 'moon',
 }) {
   game ??= GameSession();
   return {
@@ -26,6 +30,10 @@ Map<String, dynamic> stateJson({
     'result': result,
     'drawOffer': null,
     'rematchOffers': <String>[],
+    'players': {
+      'w': {'name': whiteName, 'avatarId': whiteAvatar},
+      'b': {'name': blackName, 'avatarId': blackAvatar},
+    },
   };
 }
 
