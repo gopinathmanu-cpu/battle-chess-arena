@@ -21,6 +21,12 @@
   inside every online game.
 - Let invitation proposals choose a timed 3, 5, or 10 minute game or an untimed
   game. Counter-proposals can change both the appointment and timer format.
+- Add three computer move lifelines per game. Each lifeline highlights the
+  strongest move's source and target squares while leaving the move to the user,
+  and the remaining count persists with an unfinished game.
+- Separate the difficulty levels clearly: Easy selects deliberately weaker
+  moves, Medium uses shallow tactical search, and Hard alone uses maximum
+  Stockfish skill with the deepest fallback search.
 
 ## 0.5.0 · 2026-09-12
 

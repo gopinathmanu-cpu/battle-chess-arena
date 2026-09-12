@@ -24,6 +24,7 @@ SavedGame savedGame({PlayerMode mode = PlayerMode.local}) => SavedGame(
   blackPack: PiecePackId.futuristic,
   boardPack: PiecePackId.classic,
   updatedAtEpochMs: 123456789,
+  lifelinesRemaining: 2,
 );
 
 void main() {
@@ -39,6 +40,7 @@ void main() {
     expect(restored?.moves, original.moves);
     expect(restored?.difficulty, ComputerDifficulty.hard);
     expect(restored?.blackPack, PiecePackId.futuristic);
+    expect(restored?.lifelinesRemaining, 2);
     final session = GameSession.fromMoves(
       mode: restored!.mode,
       moves: restored.moves,
@@ -47,6 +49,11 @@ void main() {
     expect(session.sanMoves, ['e4', 'e5', 'Nf3']);
     session.undo();
     expect(session.uciMoves, ['e2e4', 'e7e5']);
+  });
+
+  test('older saved games receive all three lifelines', () {
+    final json = savedGame().toJson()..remove('lifelinesRemaining');
+    expect(SavedGame.fromJson(json).lifelinesRemaining, 3);
   });
 
   testWidgets('home prompts and resumes the unfinished game', (tester) async {

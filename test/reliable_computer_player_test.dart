@@ -40,27 +40,52 @@ void main() {
     player.dispose();
   });
   test('difficulty settings increase engine and backup strength', () {
-    expect(ComputerDifficulty.easy.stockfishSkill, 2);
-    expect(ComputerDifficulty.medium.stockfishSkill, 10);
-    expect(ComputerDifficulty.hard.stockfishSkill, 18);
+    expect(ComputerDifficulty.easy.stockfishSkill, 0);
+    expect(ComputerDifficulty.medium.stockfishSkill, 5);
+    expect(ComputerDifficulty.hard.stockfishSkill, 20);
     expect(ComputerDifficulty.easy.fallbackDepth, 0);
     expect(ComputerDifficulty.medium.fallbackDepth, 1);
-    expect(ComputerDifficulty.hard.fallbackDepth, 2);
+    expect(ComputerDifficulty.hard.fallbackDepth, 3);
     expect(
       ComputerDifficulty.easy.thinkTime < ComputerDifficulty.hard.thinkTime,
       true,
     );
   });
-  test('browser default immediately uses the legal Dart opponent', () async {
-    if (!kIsWeb) return;
-    final player = ReliableComputerPlayer();
-    final move = await player.bestMove(fen);
-    expect(move, isNotNull);
+  test(
+    'browser medium immediately uses the controlled Dart opponent',
+    () async {
+      if (!kIsWeb) return;
+      final player = ReliableComputerPlayer();
+      final move = await player.bestMove(fen);
+      expect(move, isNotNull);
+      expect(
+        Chess.fromSetup(Setup.parseFen(fen)).isLegal(Move.parse(move!)!),
+        true,
+      );
+      expect(player.reducedStrength, false);
+      player.dispose();
+    },
+  );
+  test('easy and medium deliberately bypass the full native engine', () async {
+    final primary = StubPlayer(() async => 'e7e5');
+    final player = ReliableComputerPlayer(primary: primary);
+    final easy = await player.bestMove(
+      fen,
+      difficulty: ComputerDifficulty.easy,
+    );
+    final medium = await player.bestMove(
+      fen,
+      difficulty: ComputerDifficulty.medium,
+    );
     expect(
-      Chess.fromSetup(Setup.parseFen(fen)).isLegal(Move.parse(move!)!),
+      Chess.fromSetup(Setup.parseFen(fen)).isLegal(Move.parse(easy!)!),
       true,
     );
-    expect(player.reducedStrength, true);
+    expect(
+      Chess.fromSetup(Setup.parseFen(fen)).isLegal(Move.parse(medium!)!),
+      true,
+    );
+    expect(primary.calls, 0);
     player.dispose();
   });
   testWidgets('stalled native engine falls back and is never retried', (
@@ -70,7 +95,9 @@ void main() {
     final primary = StubPlayer(() => pending.future);
     final player = ReliableComputerPlayer(primary: primary);
     String? move;
-    final result = player.bestMove(fen).then((value) => move = value);
+    final result = player
+        .bestMove(fen, difficulty: ComputerDifficulty.hard)
+        .then((value) => move = value);
     await tester.pump(const Duration(seconds: 13));
     await result;
     expect(
@@ -81,7 +108,10 @@ void main() {
     expect(primary.disposed, true);
     pending.complete('e7e5');
     await tester.pump();
-    final again = await player.bestMove(fen);
+    final again = await player.bestMove(
+      fen,
+      difficulty: ComputerDifficulty.hard,
+    );
     expect(again, isNotNull);
     expect(primary.calls, 1);
     player.dispose();
@@ -91,7 +121,10 @@ void main() {
       final player = ReliableComputerPlayer(
         primary: StubPlayer(() async => reply),
       );
-      final move = await player.bestMove(fen);
+      final move = await player.bestMove(
+        fen,
+        difficulty: ComputerDifficulty.hard,
+      );
       expect(
         Chess.fromSetup(Setup.parseFen(fen)).isLegal(Move.parse(move!)!),
         true,

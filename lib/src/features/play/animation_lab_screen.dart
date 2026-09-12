@@ -20,12 +20,14 @@ class AnimationLabScreen extends StatefulWidget {
     this.mode = PlayerMode.local,
     this.difficulty = ComputerDifficulty.medium,
     this.savedGame,
+    this.computerPlayer,
     super.key,
   });
   final PiecePack pack;
   final PlayerMode mode;
   final ComputerDifficulty difficulty;
   final SavedGame? savedGame;
+  final ComputerPlayer? computerPlayer;
 
   @override
   State<AnimationLabScreen> createState() => _AnimationLabScreenState();
@@ -53,6 +55,9 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   late bool _fastBattles;
   bool _showTopBar = true;
   bool _computerThinking = false;
+  bool _hintThinking = false;
+  int _lifelinesRemaining = 3;
+  String? _hintMessage;
   late ComputerDifficulty _difficulty;
   String? _computerError;
   late Duration _whiteTime;
@@ -81,11 +86,12 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
             board: _pack(saved.boardPack),
           );
     _difficulty = saved?.difficulty ?? widget.difficulty;
+    _lifelinesRemaining = saved?.lifelinesRemaining ?? 3;
     _fastBattles = saved?.fastBattles ?? false;
     _whiteTime = Duration(milliseconds: saved?.whiteMilliseconds ?? 600000);
     _blackTime = Duration(milliseconds: saved?.blackMilliseconds ?? 600000);
     if (widget.mode == PlayerMode.computer) {
-      _computer = ReliableComputerPlayer();
+      _computer = widget.computerPlayer ?? ReliableComputerPlayer();
     }
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     if (saved != null && widget.mode == PlayerMode.computer) {
@@ -115,6 +121,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   bool get _inputLocked =>
       _battle != null ||
       _computerThinking ||
+      _hintThinking ||
       _flagged != null ||
       _game.position.isGameOver ||
       !_game.isHumanTurn;
@@ -164,12 +171,14 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
         blackPack: _appearance.black.id,
         boardPack: _appearance.board.id,
         updatedAtEpochMs: DateTime.now().millisecondsSinceEpoch,
+        lifelinesRemaining: _lifelinesRemaining,
       ),
     );
   }
 
   Future<void> _tapSquare(Square square) async {
     if (_inputLocked) return;
+    if (_hintMessage != null) setState(() => _hintMessage = null);
     final piece = _game.pieceAt(square);
     if (_selected == null ||
         (piece != null && piece.color == _game.position.turn)) {
@@ -241,6 +250,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     setState(() {
       _selected = null;
       _legalTargets = const {};
+      _hintMessage = null;
       if (resolution.isCapture) _battle = resolution;
     });
     unawaited(_saveOpenGame());
@@ -335,6 +345,55 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     }
   }
 
+  Future<void> _useComputerLifeline() async {
+    if (_computer == null ||
+        widget.mode != PlayerMode.computer ||
+        _lifelinesRemaining <= 0 ||
+        _inputLocked ||
+        _game.position.turn != Side.white) {
+      return;
+    }
+    final fen = _game.position.fen;
+    final requestEpoch = _gameEpoch;
+    setState(() {
+      _hintThinking = true;
+      _hintMessage = null;
+    });
+    try {
+      final suggestion = await _computer!.bestMove(
+        fen,
+        difficulty: ComputerDifficulty.hard,
+      );
+      if (!mounted || requestEpoch != _gameEpoch || _game.position.fen != fen) {
+        return;
+      }
+      final parsed = suggestion == null ? null : Move.parse(suggestion);
+      if (parsed case final NormalMove move when _game.position.isLegal(move)) {
+        setState(() {
+          _hintThinking = false;
+          _lifelinesRemaining--;
+          _selected = move.from;
+          _legalTargets = {move.to};
+          _hintMessage = 'Suggested move: ${move.from.name} → ${move.to.name}';
+        });
+        unawaited(_saveOpenGame());
+      } else {
+        setState(() {
+          _hintThinking = false;
+          _hintMessage =
+              'A suggestion is unavailable. Your lifeline was not used.';
+        });
+      }
+    } catch (_) {
+      if (!mounted || requestEpoch != _gameEpoch) return;
+      setState(() {
+        _hintThinking = false;
+        _hintMessage =
+            'A suggestion is unavailable. Your lifeline was not used.';
+      });
+    }
+  }
+
   Future<void> _reset() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -368,6 +427,9 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       _flagged = null;
       _computerError = null;
       _computerThinking = false;
+      _hintThinking = false;
+      _lifelinesRemaining = 3;
+      _hintMessage = null;
       _resultShown = false;
     });
     await LastGameStorage.clear();
@@ -380,6 +442,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       if (widget.mode == PlayerMode.computer && _game.canUndo) _game.undo();
       _selected = null;
       _legalTargets = const {};
+      _hintMessage = null;
       _flagged = null;
     });
     unawaited(_saveOpenGame());
@@ -482,6 +545,66 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
                     unawaited(_saveOpenGame());
                   }
                 },
+        ),
+      ),
+    if (widget.mode == PlayerMode.computer)
+      Card(
+        key: const ValueKey('computer-lifelines'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Computer Lifelines',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  for (var index = 0; index < 3; index++)
+                    Icon(
+                      Icons.lightbulb,
+                      color: index < _lifelinesRemaining
+                          ? Colors.amberAccent
+                          : Colors.white24,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text('Highlights the best move. You still make the move.'),
+              const SizedBox(height: 8),
+              FilledButton.tonalIcon(
+                key: const ValueKey('use-computer-lifeline'),
+                onPressed: _lifelinesRemaining > 0 && !_inputLocked
+                    ? _useComputerLifeline
+                    : null,
+                icon: _hintThinking
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.psychology),
+                label: Text(
+                  _lifelinesRemaining == 0
+                      ? 'No lifelines remaining'
+                      : 'Suggest best move ($_lifelinesRemaining left)',
+                ),
+              ),
+              if (_hintMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _hintMessage!,
+                    key: const ValueKey('computer-hint-message'),
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     SwitchListTile(

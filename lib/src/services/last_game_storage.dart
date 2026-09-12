@@ -20,6 +20,7 @@ class SavedGame {
     required this.blackPack,
     required this.boardPack,
     required this.updatedAtEpochMs,
+    this.lifelinesRemaining = 3,
   });
 
   final PlayerMode mode;
@@ -33,6 +34,7 @@ class SavedGame {
   final PiecePackId blackPack;
   final PiecePackId boardPack;
   final int updatedAtEpochMs;
+  final int lifelinesRemaining;
 
   Map<String, Object> toJson() => {
     'version': 1,
@@ -47,6 +49,7 @@ class SavedGame {
     'blackPack': blackPack.name,
     'boardPack': boardPack.name,
     'updatedAtEpochMs': updatedAtEpochMs,
+    'lifelinesRemaining': lifelinesRemaining,
   };
 
   factory SavedGame.fromJson(Map<String, Object?> json) {
@@ -68,6 +71,7 @@ class SavedGame {
       blackPack: PiecePackId.values.byName(json['blackPack'] as String),
       boardPack: PiecePackId.values.byName(json['boardPack'] as String),
       updatedAtEpochMs: json['updatedAtEpochMs'] as int,
+      lifelinesRemaining: json['lifelinesRemaining'] as int? ?? 3,
     );
   }
 }

@@ -37,7 +37,7 @@ void main() {
     await tester.pump();
     expect(engine.commands, [
       'isready',
-      'setoption name Skill Level value 10',
+      'setoption name Skill Level value 5',
       'position fen test-fen',
       'go movetime 650',
     ]);
@@ -63,9 +63,9 @@ void main() {
     await tester.pump();
     expect(engine.commands, [
       'isready',
-      'setoption name Skill Level value 18',
+      'setoption name Skill Level value 20',
       'position fen test-fen',
-      'go movetime 1400',
+      'go movetime 2500',
     ]);
     engine.output.add('bestmove e7e5');
     await tester.pump();

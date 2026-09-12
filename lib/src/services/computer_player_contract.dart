@@ -10,27 +10,27 @@ extension ComputerDifficultyDetails on ComputerDifficulty {
   };
 
   String get description => switch (this) {
-    ComputerDifficulty.easy => 'Quick moves for learning and relaxed games',
-    ComputerDifficulty.medium => 'Balanced strength and response time',
-    ComputerDifficulty.hard => 'Deeper search for a stronger challenge',
+    ComputerDifficulty.easy => 'Deliberately weaker play for learning',
+    ComputerDifficulty.medium => 'Shallow tactics for a fair challenge',
+    ComputerDifficulty.hard => 'Full Stockfish strength',
   };
 
   Duration get thinkTime => switch (this) {
     ComputerDifficulty.easy => const Duration(milliseconds: 250),
     ComputerDifficulty.medium => const Duration(milliseconds: 650),
-    ComputerDifficulty.hard => const Duration(milliseconds: 1400),
+    ComputerDifficulty.hard => const Duration(milliseconds: 2500),
   };
 
   int get stockfishSkill => switch (this) {
-    ComputerDifficulty.easy => 2,
-    ComputerDifficulty.medium => 10,
-    ComputerDifficulty.hard => 18,
+    ComputerDifficulty.easy => 0,
+    ComputerDifficulty.medium => 5,
+    ComputerDifficulty.hard => 20,
   };
 
   int get fallbackDepth => switch (this) {
     ComputerDifficulty.easy => 0,
     ComputerDifficulty.medium => 1,
-    ComputerDifficulty.hard => 2,
+    ComputerDifficulty.hard => 3,
   };
 }
 

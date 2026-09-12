@@ -25,6 +25,12 @@ class ReliableComputerPlayer implements ComputerPlayer {
     if (_disposed) return null;
     final position = Chess.fromSetup(Setup.parseFen(fen));
     if (position.isGameOver) return null;
+    if (difficulty == ComputerDifficulty.easy) {
+      return _easyMove(position, fen)?.uci;
+    }
+    if (difficulty == ComputerDifficulty.medium) {
+      return _bestFallback(position, difficulty.fallbackDepth)?.uci;
+    }
     if (!reducedStrength) {
       try {
         final move = await _primary
@@ -40,16 +46,31 @@ class ReliableComputerPlayer implements ComputerPlayer {
       reducedStrength = true;
       _primary.dispose();
     }
+    return _bestFallback(position, difficulty.fallbackDepth)?.uci;
+  }
+
+  static NormalMove? _easyMove(Position position, String fen) {
+    final ranked = <(NormalMove, int)>[
+      for (final move in _moves(position))
+        (move, -_search(position.play(move), 0)),
+    ]..sort((a, b) => a.$2.compareTo(b.$2));
+    if (ranked.isEmpty) return null;
+    final weakerChoices = (ranked.length / 2).ceil();
+    final hash = fen.codeUnits.fold<int>(0, (value, unit) => value * 31 + unit);
+    return ranked[hash.abs() % weakerChoices].$1;
+  }
+
+  static NormalMove? _bestFallback(Position position, int depth) {
     NormalMove? best;
     var bestScore = -1000000;
     for (final move in _moves(position)) {
-      final score = -_search(position.play(move), difficulty.fallbackDepth);
+      final score = -_search(position.play(move), depth);
       if (score > bestScore) {
         bestScore = score;
         best = move;
       }
     }
-    return best?.uci;
+    return best;
   }
 
   static Iterable<NormalMove> _moves(Position position) sync* {
