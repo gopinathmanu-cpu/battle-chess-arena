@@ -12,7 +12,7 @@ extension ComputerDifficultyDetails on ComputerDifficulty {
   String get description => switch (this) {
     ComputerDifficulty.easy => 'Safe, sensible play with fewer attacking ideas',
     ComputerDifficulty.medium => 'Consistent positional and tactical play',
-    ComputerDifficulty.hard => 'Full Stockfish strength',
+    ComputerDifficulty.hard => 'Maximum Stockfish skill with deepest search',
   };
 
   Duration get thinkTime => switch (this) {

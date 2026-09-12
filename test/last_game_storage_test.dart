@@ -12,11 +12,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'theme_music_test.dart' show FakeMusicOutput;
 
-SavedGame savedGame({PlayerMode mode = PlayerMode.local}) => SavedGame(
+SavedGame savedGame({
+  PlayerMode mode = PlayerMode.local,
+  List<String> moves = const ['e2e4', 'e7e5', 'g1f3'],
+}) => SavedGame(
   mode: mode,
   homePack: PiecePackId.greek,
   difficulty: ComputerDifficulty.hard,
-  moves: const ['e2e4', 'e7e5', 'g1f3'],
+  moves: moves,
   whiteMilliseconds: 574000,
   blackMilliseconds: 581000,
   fastBattles: true,
@@ -76,6 +79,22 @@ void main() {
     final board = tester.widget<ChessBoard>(find.byType(ChessBoard));
     expect(board.position.turn, Side.black);
     expect(board.position.board.pieceAt(Square.f3)?.role, Role.knight);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('home does not prompt when no move has been played', (
+    tester,
+  ) async {
+    await LastGameStorage.save(savedGame(moves: const []));
+    await tester.pumpWidget(
+      BattleChessArenaApp(musicOutput: FakeMusicOutput()),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Resume last game?'), findsNothing);
+    expect(find.byType(AnimationLabScreen), findsNothing);
+    expect(await LastGameStorage.load(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
 

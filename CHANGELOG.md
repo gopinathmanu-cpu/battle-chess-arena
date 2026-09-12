@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.3 · 2026-09-12
+
+- Finalize the three computer levels: controlled safe variation on Easy,
+  deterministic positional and tactical search on Medium, and maximum native
+  Stockfish skill on Hard.
+- Treat games with no moves as fresh games, clear any empty cached save, and do
+  not show the Resume/New Game prompt until at least one move has been played.
+
 ## 0.8.2 · 2026-09-12
 
 - Strengthen Medium with deterministic two-ply reply search and positional

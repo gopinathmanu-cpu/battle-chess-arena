@@ -36,6 +36,9 @@ class SavedGame {
   final int updatedAtEpochMs;
   final int lifelinesRemaining;
 
+  bool get canResume =>
+      moves.isNotEmpty && whiteMilliseconds > 0 && blackMilliseconds > 0;
+
   Map<String, Object> toJson() => {
     'version': 1,
     'mode': mode.name,
@@ -83,16 +86,20 @@ class LastGameStorage {
 
   static Future<SavedGame?> load() async {
     try {
-      if (_memory != null) return _memory;
+      if (_memory case final cached?) {
+        if (!cached.canResume) {
+          await clear();
+          return null;
+        }
+        return cached;
+      }
       final preferences = await SharedPreferences.getInstance();
       final encoded = preferences.getString(_key);
       if (encoded == null) return null;
       final saved = SavedGame.fromJson(
         (jsonDecode(encoded) as Map).cast<String, Object?>(),
       );
-      if (saved.moves.isEmpty ||
-          saved.whiteMilliseconds <= 0 ||
-          saved.blackMilliseconds <= 0) {
+      if (!saved.canResume) {
         await clear();
         return null;
       }
@@ -106,6 +113,10 @@ class LastGameStorage {
   }
 
   static Future<void> save(SavedGame game) async {
+    if (!game.canResume) {
+      await clear();
+      return;
+    }
     final revision = ++_revision;
     _memory = game;
     final encoded = jsonEncode(game.toJson());
