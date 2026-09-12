@@ -22,8 +22,8 @@ extension ComputerDifficultyDetails on ComputerDifficulty {
   };
 
   int get stockfishSkill => switch (this) {
-    ComputerDifficulty.easy => 0,
-    ComputerDifficulty.medium => 5,
+    ComputerDifficulty.easy => 5,
+    ComputerDifficulty.medium => 10,
     ComputerDifficulty.hard => 20,
   };
 

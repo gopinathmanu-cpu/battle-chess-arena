@@ -29,12 +29,6 @@ class ReliableComputerPlayer implements ComputerPlayer {
     if (_disposed) return null;
     final position = Chess.fromSetup(Setup.parseFen(fen));
     if (position.isGameOver) return null;
-    if (difficulty == ComputerDifficulty.easy) {
-      return _easyMove(position, fen)?.uci;
-    }
-    if (difficulty == ComputerDifficulty.medium) {
-      return _bestFallback(position, difficulty.fallbackDepth)?.uci;
-    }
     if (!reducedStrength) {
       try {
         final move = await _primary
@@ -50,7 +44,13 @@ class ReliableComputerPlayer implements ComputerPlayer {
       reducedStrength = true;
       _primary.dispose();
     }
-    return _bestFallback(position, difficulty.fallbackDepth)?.uci;
+    return switch (difficulty) {
+      ComputerDifficulty.easy => _easyMove(position, fen)?.uci,
+      ComputerDifficulty.medium || ComputerDifficulty.hard => _bestFallback(
+        position,
+        difficulty.fallbackDepth,
+      )?.uci,
+    };
   }
 
   NormalMove? _easyMove(Position position, String fen) {

@@ -41,8 +41,8 @@ void main() {
     player.dispose();
   });
   test('difficulty settings increase engine and backup strength', () {
-    expect(ComputerDifficulty.easy.stockfishSkill, 0);
-    expect(ComputerDifficulty.medium.stockfishSkill, 5);
+    expect(ComputerDifficulty.easy.stockfishSkill, 5);
+    expect(ComputerDifficulty.medium.stockfishSkill, 10);
     expect(ComputerDifficulty.hard.stockfishSkill, 20);
     expect(ComputerDifficulty.easy.fallbackDepth, 1);
     expect(ComputerDifficulty.medium.fallbackDepth, 2);
@@ -63,11 +63,11 @@ void main() {
         Chess.fromSetup(Setup.parseFen(fen)).isLegal(Move.parse(move!)!),
         true,
       );
-      expect(player.reducedStrength, false);
+      expect(player.reducedStrength, true);
       player.dispose();
     },
   );
-  test('easy and medium deliberately bypass the full native engine', () async {
+  test('easy and medium use their configured primary engine levels', () async {
     final primary = StubPlayer(() async => 'e7e5');
     final player = ReliableComputerPlayer(primary: primary);
     final easy = await player.bestMove(
@@ -86,7 +86,8 @@ void main() {
       Chess.fromSetup(Setup.parseFen(fen)).isLegal(Move.parse(medium!)!),
       true,
     );
-    expect(primary.calls, 0);
+    expect(primary.calls, 2);
+    expect(primary.lastDifficulty, ComputerDifficulty.medium);
     player.dispose();
   });
   test('easy mixes safe standard opening replies', () async {
@@ -101,7 +102,7 @@ void main() {
     };
     final replies = <String>{};
     for (var seed = 0; seed < 12; seed++) {
-      final primary = StubPlayer(() async => 'e7e5');
+      final primary = StubPlayer(() async => null);
       final player = ReliableComputerPlayer(
         primary: primary,
         random: Random(seed),
@@ -111,7 +112,7 @@ void main() {
         difficulty: ComputerDifficulty.easy,
       );
       expect(standardReplies, contains(move));
-      expect(primary.calls, 0);
+      expect(primary.calls, 1);
       replies.add(move!);
       player.dispose();
     }
@@ -120,7 +121,7 @@ void main() {
   test('medium chooses the same strongest move without randomness', () async {
     final replies = <String>{};
     for (var seed = 0; seed < 6; seed++) {
-      final primary = StubPlayer(() async => 'e7e5');
+      final primary = StubPlayer(() async => null);
       final player = ReliableComputerPlayer(
         primary: primary,
         random: Random(seed),
@@ -131,7 +132,7 @@ void main() {
       );
       expect(move, isNotNull);
       replies.add(move!);
-      expect(primary.calls, 0);
+      expect(primary.calls, 1);
       player.dispose();
     }
     expect(replies, hasLength(1));

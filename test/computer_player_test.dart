@@ -37,7 +37,7 @@ void main() {
     await tester.pump();
     expect(engine.commands, [
       'isready',
-      'setoption name Skill Level value 5',
+      'setoption name Skill Level value 10',
       'position fen test-fen',
       'go movetime 650',
     ]);
@@ -66,6 +66,31 @@ void main() {
       'setoption name Skill Level value 20',
       'position fen test-fen',
       'go movetime 2500',
+    ]);
+    engine.output.add('bestmove e7e5');
+    await tester.pump();
+    expect(await move, 'e7e5');
+    player.dispose();
+    await engine.output.close();
+  });
+
+  testWidgets('easy difficulty configures Stockfish skill level 5', (
+    tester,
+  ) async {
+    final engine = FakeEngine();
+    final player = StockfishComputerPlayer(engineFactory: () async => engine);
+    final move = player.bestMove(
+      'test-fen',
+      difficulty: ComputerDifficulty.easy,
+    );
+    await tester.pump();
+    engine.output.add('readyok');
+    await tester.pump();
+    expect(engine.commands, [
+      'isready',
+      'setoption name Skill Level value 5',
+      'position fen test-fen',
+      'go movetime 250',
     ]);
     engine.output.add('bestmove e7e5');
     await tester.pump();

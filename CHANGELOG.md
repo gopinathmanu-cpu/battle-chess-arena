@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.4 · 2026-09-12
+
+- Route every mobile difficulty through Stockfish with a direct skill mapping:
+  Easy 5, Medium 10, and Hard 20.
+- Retain the safe varied Easy and deterministic Medium Dart players as browser
+  and native-engine failure fallbacks.
+
 ## 0.8.3 · 2026-09-12
 
 - Finalize the three computer levels: controlled safe variation on Easy,
