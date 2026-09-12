@@ -3,7 +3,8 @@
 - Add a zero-fixed-cost Render deployment Blueprint for multiplayer testing,
   managed `wss://` transport, an HTTP health check, graceful shutdown, and
   lobby heartbeats. Allow release builds to inject the hosted endpoint with
-  `ONLINE_SERVER_URL` while retaining editable local-development endpoints.
+  `ONLINE_SERVER_URL`, default to the deployed Render service, and retain an
+  editable endpoint for local development.
 - Add multiplayer Quick Match queues for 3, 5, and 10 minute games,
   cancellable opponent search, and retain private Game ID rooms.
 - Add an animated checkmate result popup with distinct user-victory and computer-victory treatments, plus a two-line assessment derived from the player's captures, checks, development, castling, and game length.

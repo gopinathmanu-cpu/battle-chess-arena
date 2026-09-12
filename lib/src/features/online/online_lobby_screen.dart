@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import 'online_game_screen.dart';
 import '../play/board_appearance.dart';
@@ -21,15 +20,10 @@ class OnlineLobbyScreen extends StatefulWidget {
 class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   static const _configuredEndpoint = String.fromEnvironment(
     'ONLINE_SERVER_URL',
+    defaultValue: 'wss://battle-chess-arena-server.onrender.com',
   );
   late final _client = widget.client ?? OnlineMatchClient();
-  final _endpoint = TextEditingController(
-    text: _configuredEndpoint.isNotEmpty
-        ? _configuredEndpoint
-        : defaultTargetPlatform == TargetPlatform.android
-        ? 'ws://10.0.2.2:8080'
-        : 'ws://127.0.0.1:8080',
-  );
+  final _endpoint = TextEditingController(text: _configuredEndpoint);
   bool _openedGame = false;
   final _gameId = TextEditingController();
   _OnlineTimeControl _timeControl = _timeControls.last;
@@ -133,11 +127,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             const SizedBox(height: 20),
             TextField(
               controller: _endpoint,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'WebSocket endpoint',
-                helperText: _configuredEndpoint.isNotEmpty
-                    ? 'Secure online multiplayer server'
-                    : 'Android emulator uses 10.0.2.2 for your computer',
+                helperText: 'Secure online multiplayer server',
               ),
             ),
             const SizedBox(height: 12),

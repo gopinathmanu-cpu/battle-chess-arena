@@ -107,6 +107,10 @@ flutter build apk --release \
   --dart-define=ONLINE_SERVER_URL=wss://YOUR-SERVICE.onrender.com
 ```
 
+The current default is
+`wss://battle-chess-arena-server.onrender.com`, and the lobby field remains
+editable for local-server testing.
+
 Free instances sleep after 15 minutes without inbound HTTP or WebSocket traffic.
 The first connection after sleep can take about a minute. Active clients exchange
 heartbeats. Room state remains in memory and is lost if Render restarts the

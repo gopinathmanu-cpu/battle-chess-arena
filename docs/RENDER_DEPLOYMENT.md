@@ -12,9 +12,8 @@ Node web service in Singapore with managed TLS and a health check.
 5. Open `https://battle-chess-arena-server.onrender.com/health`. A healthy
    deployment returns `{"status":"ok","protocolVersion":2}`.
 
-The game endpoint is the same host with the WebSocket scheme:
-`wss://battle-chess-arena-server.onrender.com`. If Render adds a suffix to the
-service name, copy the exact hostname from its dashboard.
+The deployed game endpoint is:
+`wss://battle-chess-arena-server.onrender.com`.
 
 ## Build the app with the hosted endpoint
 
@@ -25,9 +24,10 @@ flutter build apk --release \
   --dart-define=ONLINE_SERVER_URL=wss://battle-chess-arena-server.onrender.com
 ```
 
-The lobby still keeps the endpoint editable, which makes local-server testing
-possible. An app built without `ONLINE_SERVER_URL` defaults to
-`ws://10.0.2.2:8080` on Android and `ws://127.0.0.1:8080` elsewhere.
+The lobby keeps the endpoint editable, which makes local-server testing possible.
+An app built without `ONLINE_SERVER_URL` defaults to the hosted Render server.
+For an Android emulator connected to the local Node server, enter
+`ws://10.0.2.2:8080`; elsewhere on this Mac, enter `ws://127.0.0.1:8080`.
 
 ## Free-tier behavior
 
