@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1 · 2026-09-12
+
+- Strengthen Easy with a mixed strategy: choose varied standard opening moves,
+  then select randomly among a narrow set of safe quiet or defensive moves.
+- Keep tactical discipline on Easy by taking material and answering threats when
+  a passive move would fall meaningfully behind.
+
 ## 0.8.0 · 2026-09-12
 
 - Keep completed game history permanent while retaining per-player deletion for

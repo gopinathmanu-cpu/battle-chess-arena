@@ -1,4 +1,4 @@
-# Battle Chess Arena · 0.8.0
+# Battle Chess Arena · 0.8.1
 
 An Android/iOS Flutter chess game with optional, short, skippable capture battles.
 Original project code and visual assets are **GPL-3.0-or-later**; dependencies

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dartchess/dartchess.dart';
 import 'computer_player_contract.dart';
 import 'stockfish_computer_player_web.dart'
@@ -10,10 +12,12 @@ export 'stockfish_computer_player_web.dart'
 
 /// Keeps a playable local opponent when native initialization or search stalls.
 class ReliableComputerPlayer implements ComputerPlayer {
-  ReliableComputerPlayer({ComputerPlayer? primary})
-    : _primary = primary ?? createPrimaryComputerPlayer();
+  ReliableComputerPlayer({ComputerPlayer? primary, Random? random})
+    : _primary = primary ?? createPrimaryComputerPlayer(),
+      _random = random ?? Random();
 
   final ComputerPlayer _primary;
+  final Random _random;
   bool reducedStrength = false;
   bool _disposed = false;
 
@@ -49,12 +53,14 @@ class ReliableComputerPlayer implements ComputerPlayer {
     return _bestFallback(position, difficulty.fallbackDepth)?.uci;
   }
 
-  static NormalMove? _easyMove(Position position, String fen) {
+  NormalMove? _easyMove(Position position, String fen) {
     final ranked = <(NormalMove, int, bool, int)>[];
     for (final move in _moves(position)) {
       final next = position.play(move);
       final piece = position.board.pieceAt(move.from);
-      final quiet = position.board.pieceAt(move.to) == null && !next.isCheck;
+      final target = position.board.pieceAt(move.to);
+      final quiet =
+          (target == null || target.color == piece?.color) && !next.isCheck;
       var development = 0;
       if ({Square.d4, Square.e4, Square.d5, Square.e5}.contains(move.to)) {
         development += 20;
@@ -62,6 +68,9 @@ class ReliableComputerPlayer implements ComputerPlayer {
       if ((piece?.role == Role.knight || piece?.role == Role.bishop) &&
           (move.from.rank == Rank.first || move.from.rank == Rank.eighth)) {
         development += 25;
+      }
+      if (piece?.role == Role.king && target?.color == piece?.color) {
+        development += 50;
       }
       ranked.add((move, -_search(next, 1), quiet, development));
     }
@@ -73,14 +82,52 @@ class ReliableComputerPlayer implements ComputerPlayer {
     );
     final bestScore = ranked.first.$2;
     final sensible = ranked
-        .where((candidate) => candidate.$2 >= bestScore - 75)
+        .where((candidate) => candidate.$2 >= bestScore - 40)
         .toList();
+
+    final fullMove =
+        int.tryParse(fen.split(' ').elementAtOrNull(5) ?? '') ?? 99;
+    if (fullMove <= 4) {
+      final standardMoves = position.turn == Side.white
+          ? _whiteOpeningMoves
+          : _blackOpeningMoves;
+      final openingChoices = sensible
+          .where((candidate) => standardMoves.contains(candidate.$1.uci))
+          .toList();
+      if (openingChoices.isNotEmpty) {
+        return openingChoices[_random.nextInt(openingChoices.length)].$1;
+      }
+    }
+
     final quiet = sensible.where((candidate) => candidate.$3).toList();
     final choices = quiet.isNotEmpty ? quiet : sensible;
     final choiceCount = choices.length.clamp(1, 3);
-    final hash = fen.codeUnits.fold<int>(0, (value, unit) => value * 31 + unit);
-    return choices[hash.abs() % choiceCount].$1;
+    return choices[_random.nextInt(choiceCount)].$1;
   }
+
+  static const _whiteOpeningMoves = {
+    'e2e4',
+    'd2d4',
+    'c2c4',
+    'g1f3',
+    'b1c3',
+    'f1b5',
+    'f1c4',
+    'f1e2',
+  };
+
+  static const _blackOpeningMoves = {
+    'e7e5',
+    'c7c5',
+    'e7e6',
+    'c7c6',
+    'd7d5',
+    'g8f6',
+    'b8c6',
+    'f8b4',
+    'f8c5',
+    'f8e7',
+  };
 
   static NormalMove? _bestFallback(Position position, int depth) {
     NormalMove? best;

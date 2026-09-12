@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:battle_chess_arena/src/services/computer_player.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/foundation.dart';
@@ -87,6 +88,34 @@ void main() {
     );
     expect(primary.calls, 0);
     player.dispose();
+  });
+  test('easy mixes safe standard opening replies', () async {
+    const standardReplies = {
+      'e7e5',
+      'c7c5',
+      'e7e6',
+      'c7c6',
+      'd7d5',
+      'g8f6',
+      'b8c6',
+    };
+    final replies = <String>{};
+    for (var seed = 0; seed < 12; seed++) {
+      final primary = StubPlayer(() async => 'e7e5');
+      final player = ReliableComputerPlayer(
+        primary: primary,
+        random: Random(seed),
+      );
+      final move = await player.bestMove(
+        fen,
+        difficulty: ComputerDifficulty.easy,
+      );
+      expect(standardReplies, contains(move));
+      expect(primary.calls, 0);
+      replies.add(move!);
+      player.dispose();
+    }
+    expect(replies.length, greaterThan(1));
   });
   testWidgets('stalled native engine falls back and is never retried', (
     tester,
