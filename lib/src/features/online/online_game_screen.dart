@@ -311,6 +311,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       _battle = null;
       _lastBattleEndedAt = DateTime.now();
     });
+    MusicScope.of(context)?.resumeBackground();
     if (showNext && _battleQueue.isNotEmpty && _battlesEnabled) {
       _scheduleNextBattle(const Duration(seconds: 2));
       return;

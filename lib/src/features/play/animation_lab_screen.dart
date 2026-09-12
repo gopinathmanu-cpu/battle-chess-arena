@@ -276,6 +276,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     if (!mounted || _battle == null) return;
     _battleTimer?.cancel();
     setState(() => _battle = null);
+    MusicScope.of(context)?.resumeBackground();
     if (widget.mode == PlayerMode.computer &&
         _game.position.turn == Side.black &&
         !_game.position.isGameOver) {

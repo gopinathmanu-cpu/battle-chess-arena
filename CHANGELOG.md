@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.0-beta.1 · 2026-09-12
+
+- Load the authoritative active-game list behind a compact progress state and
+  remove the stale local-card pass that made completed games flash on screen.
+- Perform the requested historical-data cleanup once for Beta 1, then preserve
+  all games created after the cleanup marker is written.
+- Explicitly restore enabled theme music after capture cinematics, including
+  platforms that temporarily take audio focus for sound effects.
+- Package the first friend-testing Android beta as an optimized release build
+  with a stable private signing key for future beta updates.
+- Replace the generated example package identifiers with the stable
+  `com.manugopinath.battlechessarena` Android and iOS application identity.
+
 ## 0.8.5 · 2026-09-12
 
 - Prevent invitation timer dropdown failures when an existing invitation uses

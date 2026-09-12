@@ -1,4 +1,4 @@
-package com.example.battle_chess_arena
+package com.manugopinath.battlechessarena
 
 import io.flutter.embedding.android.FlutterActivity
 

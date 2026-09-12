@@ -36,15 +36,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   var _avatarId = onlineAvatarChoices.first.id;
   var _playerLevel = OnlinePlayerLevel.intermediate;
   var _timeControl = onlineTimeControls.last;
-  var _history = <OnlineGameRecord>[];
   var _favorites = <OnlineFavorite>[];
   var _reminders = <String>{};
   var _loading = true;
   var _profileReady = false;
   String? _openedGameId;
   String? _savedProfileKey;
-  int _savedSequence = -1;
-  final _savedInviteGames = <String>{};
   final _shownReminders = <String>{};
   String? _presenceRequestKey;
   Timer? _reminderTimer;
@@ -68,13 +65,13 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   Future<void> _restore() async {
     final profile = await OnlineGameHistory.loadProfile();
-    final history = await OnlineGameHistory.loadGames();
-    final favorites = await OnlineGameHistory.loadFavorites();
-    final reminders = await OnlineGameHistory.loadReminders();
+    final restored = await Future.wait([
+      OnlineGameHistory.loadFavorites(),
+      OnlineGameHistory.loadReminders(),
+    ]);
     if (!mounted) return;
-    _history = history;
-    _favorites = favorites;
-    _reminders = reminders;
+    _favorites = restored[0] as List<OnlineFavorite>;
+    _reminders = restored[1] as Set<String>;
     if (profile != null) {
       _client.setProfile(profile);
       _avatarName.text = profile.name;
@@ -109,50 +106,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       unawaited(OnlineGameHistory.saveProfile(profile!));
     }
     final state = _client.state;
-    if (state != null &&
-        _client.seat != null &&
-        _client.seatToken != null &&
-        state.sequence != _savedSequence) {
-      _savedSequence = state.sequence;
-      final opponent = state.opponentFor(_client.seat!);
-      unawaited(
-        _saveGame(
-          OnlineGameRecord(
-            gameId: state.gameId,
-            seat: _client.seat!,
-            seatToken: _client.seatToken!,
-            opponentName: opponent.name,
-            opponentAvatarId: opponent.avatarId,
-            status: state.status,
-            moveCount: state.san.length,
-            updatedAt: DateTime.now(),
-          ),
-        ),
-      );
-    }
-    for (final invitation in _client.invitations) {
-      final game = invitation.game;
-      if (game == null || !_savedInviteGames.add(game.gameId)) continue;
-      final isRecipient = invitation.receivedBy(profile?.name ?? '');
-      unawaited(
-        _saveGame(
-          OnlineGameRecord(
-            gameId: game.gameId,
-            seat: game.seat,
-            seatToken: game.seatToken,
-            opponentName: isRecipient
-                ? invitation.senderName
-                : invitation.recipientName,
-            opponentAvatarId: isRecipient
-                ? invitation.senderAvatarId
-                : invitation.recipientAvatarId,
-            status: game.state.status,
-            moveCount: game.state.san.length,
-            updatedAt: DateTime.now(),
-          ),
-        ),
-      );
-    }
     if (_client.connected && _favorites.isNotEmpty) {
       final key = (_favorites.map((favorite) => favorite.name).toList()..sort())
           .join('|');
@@ -238,11 +191,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     await OnlineGameHistory.saveReminders(_reminders);
   }
 
-  Future<void> _saveGame(OnlineGameRecord record) async {
-    final history = await OnlineGameHistory.upsert(record);
-    if (mounted) setState(() => _history = history);
-  }
-
   Future<void> _createProfile() async {
     final name = _avatarName.text.trim().replaceAll(RegExp(r'\s+'), ' ');
     if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$').hasMatch(name)) {
@@ -262,18 +210,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   Future<void> _playAnother() async {
     _openedGameId = null;
-    _savedSequence = -1;
     await _client.startAnotherGame();
-  }
-
-  Future<void> _resume(OnlineGameRecord record) async {
-    _openedGameId = null;
-    _savedSequence = -1;
-    await _client.openSavedGame(
-      savedGameId: record.gameId,
-      savedSeat: record.seat,
-      savedSeatToken: record.seatToken,
-    );
   }
 
   void _openGame() {
@@ -288,7 +225,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final game = invitation.game;
     if (game == null) return;
     _openedGameId = null;
-    _savedSequence = -1;
     await _client.openSavedGame(
       savedGameId: game.gameId,
       savedSeat: game.seat,
@@ -298,7 +234,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   Future<void> _openActiveGame(OnlineInviteGame game) async {
     _openedGameId = null;
-    _savedSequence = -1;
     await _client.openSavedGame(
       savedGameId: game.gameId,
       savedSeat: game.seat,
@@ -858,7 +793,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   );
 
   Widget _activeGamesSection() {
-    final savedActive = _history.where((game) => game.isOpen).toList();
     final serverActive = _client.activeGames;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -870,8 +804,21 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         const SizedBox(height: 6),
         if (_client.activeGamesLoaded && serverActive.isEmpty)
           const Text('You have no open games.'),
-        if (!_client.activeGamesLoaded && savedActive.isEmpty)
-          const Text('Loading your open games…'),
+        if (!_client.activeGamesLoaded)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 10),
+                Text('Loading your open games…'),
+              ],
+            ),
+          ),
         for (final game in serverActive)
           Builder(
             builder: (context) {
@@ -890,20 +837,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
               );
             },
           ),
-        if (!_client.activeGamesLoaded)
-          for (final record in savedActive)
-            Card(
-              key: ValueKey('history-${record.gameId}'),
-              child: ListTile(
-                leading: OnlineAvatarImage(avatarId: record.opponentAvatarId),
-                title: Text(record.opponentName),
-                subtitle: Text(
-                  '${record.status == 'waiting' ? 'Waiting' : 'In progress'} · ${record.moveCount} moves',
-                ),
-                trailing: const Icon(Icons.play_arrow),
-                onTap: () => _resume(record),
-              ),
-            ),
       ],
     );
   }

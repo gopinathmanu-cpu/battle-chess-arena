@@ -72,7 +72,11 @@ test("health check and lobby heartbeat work without a game", async (t) => {
 
   const response = await fetch(`http://${address}/health`);
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { status: "ok", protocolVersion: 3 });
+  const health = await response.json();
+  assert.equal(health.status, "ok");
+  assert.equal(health.protocolVersion, 3);
+  assert.equal(health.serverVersion, "0.9.0-beta.1");
+  assert.equal(Number.isInteger(health.startedAt), true);
 
   const lobby = await client(`ws://${address}`);
   lobby.send({ type: "ping" });

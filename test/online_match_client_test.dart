@@ -131,6 +131,11 @@ void main() {
     expect(client.pointHistory.single.points, 3);
     expect(client.activeGames.single.gameId, 'active-one');
     expect(client.pointHistory.single.recordId, 'record-one');
+    expect(client.activeGamesLoaded, isTrue);
+    client.loadActiveGames();
+    expect(client.activeGamesLoaded, isFalse);
+    expect(client.activeGames, isEmpty);
+    expect(channel.sent.last['type'], 'list_games');
     client.deleteInvitation('invite-one');
     expect(channel.sent.last['type'], 'delete_invite');
     expect(client.invitations, isEmpty);

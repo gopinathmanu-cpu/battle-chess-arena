@@ -121,4 +121,20 @@ void main() {
     ]);
     music.dispose();
   });
+  test('background resumes after a cinematic audio interruption', () async {
+    final output = FakeMusicOutput();
+    final music = ThemeMusic(output: output, saveMuted: (_) async {});
+    music.select(PiecePackId.greek);
+    await music.settled;
+    expect(output.playing, isTrue);
+
+    await music.playEffect(CinematicSound.attack);
+    output.playing = false;
+    music.resumeBackground();
+    await music.settled;
+
+    expect(output.playing, isTrue);
+    expect(output.current, PiecePackId.greek);
+    music.dispose();
+  });
 }

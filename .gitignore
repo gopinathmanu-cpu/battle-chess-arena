@@ -28,3 +28,8 @@ node_modules/
 **/Flutter/ephemeral/
 **/Flutter/Generated.xcconfig
 **/Flutter/flutter_export_environment.sh
+
+# Private Android release signing material
+android/key.properties
+*.jks
+*.keystore

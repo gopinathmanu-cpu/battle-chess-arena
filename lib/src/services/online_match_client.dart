@@ -313,7 +313,11 @@ class OnlineMatchClient extends ChangeNotifier {
   }
 
   void loadActiveGames() {
-    if (connected) _send(const {'type': 'list_games'});
+    if (!connected) return;
+    activeGames = const [];
+    activeGamesLoaded = false;
+    _send(const {'type': 'list_games'});
+    _notify();
   }
 
   void loadPresence(Iterable<String> names) {

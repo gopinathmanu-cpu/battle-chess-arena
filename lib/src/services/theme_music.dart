@@ -115,6 +115,9 @@ class ThemeMusic extends ChangeNotifier {
     }
   }
 
+  /// Restores the selected soundtrack after a platform audio-focus interruption.
+  void resumeBackground() => _sync();
+
   void _sync() {
     _pending = _pending.then((_) async {
       if (_closed) return;

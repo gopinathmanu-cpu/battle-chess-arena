@@ -169,4 +169,12 @@ class OnlineGameHistory {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setStringList(_remindersKey, inviteIds.toList());
   }
+
+  static Future<void> clearHistoricalData() async {
+    final preferences = await SharedPreferences.getInstance();
+    await Future.wait([
+      preferences.remove(_gamesKey),
+      preferences.remove(_remindersKey),
+    ]);
+  }
 }

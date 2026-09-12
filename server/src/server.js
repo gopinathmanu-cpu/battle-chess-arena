@@ -12,6 +12,7 @@ export function createMatchServer({
   tickMs = 1000,
   now = () => performance.now(),
 } = {}) {
+  const startedAt = Date.now();
   const games = new Map();
   const peers = new Map();
   const matchmaking = new Map();
@@ -21,7 +22,14 @@ export function createMatchServer({
   const httpServer = createServer((request, response) => {
     if (request.method === "GET" && request.url === "/health") {
       response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify({ status: "ok", protocolVersion: 3 }));
+      response.end(
+        JSON.stringify({
+          status: "ok",
+          protocolVersion: 3,
+          serverVersion: "0.9.0-beta.1",
+          startedAt,
+        }),
+      );
       return;
     }
     response.writeHead(404, { "content-type": "application/json" });

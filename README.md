@@ -1,4 +1,4 @@
-# Battle Chess Arena · 0.8.5
+# Battle Chess Arena · 0.9.0 Beta 1
 
 An Android/iOS Flutter chess game with optional, short, skippable capture battles.
 Original project code and visual assets are **GPL-3.0-or-later**; dependencies
@@ -112,6 +112,8 @@ firewall. Use debug builds for the local `ws://` server.
 
 The [device checklist](docs/DEVICE_VALIDATION_CHECKLIST.md) contains the remaining
 acceptance steps and platform configuration details.
+Release signing and repeatable beta builds are documented in the
+[Android beta release guide](docs/ANDROID_BETA_RELEASE.md).
 
 ## Free hosted multiplayer testing
 
