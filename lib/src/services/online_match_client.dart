@@ -53,8 +53,13 @@ class OnlineMatchClient extends ChangeNotifier {
   bool _matchmaking = false;
   OnlinePlayerProfile? _profile;
   List<OnlineLeaderboardEntry> leaderboard = const [];
+  List<OnlinePointRecord> pointHistory = const [];
   List<OnlineInvitation> invitations = const [];
+  List<OnlineInviteGame> activeGames = const [];
+  bool activeGamesLoaded = false;
   Map<String, bool> presence = const {};
+  OnlinePlayerSearchResult? playerSearchResult;
+  bool playerSearchCompleted = false;
 
   MatchConnection connection = MatchConnection.disconnected;
   String? gameId;
@@ -256,8 +261,24 @@ class OnlineMatchClient extends ChangeNotifier {
     if (connected) _send(const {'type': 'leaderboard'});
   }
 
+  void loadPointHistory() {
+    if (connected) _send(const {'type': 'points_history'});
+  }
+
+  void findPlayer(String avatarId) {
+    if (!connected) return;
+    playerSearchResult = null;
+    playerSearchCompleted = false;
+    _send({'type': 'find_player', 'query': avatarId.trim()});
+    _notify();
+  }
+
   void loadInvitations() {
     if (connected) _send(const {'type': 'list_invites'});
+  }
+
+  void loadActiveGames() {
+    if (connected) _send(const {'type': 'list_games'});
   }
 
   void loadPresence(Iterable<String> names) {
@@ -282,6 +303,16 @@ class OnlineMatchClient extends ChangeNotifier {
       'commandId': _newId(),
       'inviteId': inviteId,
       'accept': accept,
+    });
+  }
+
+  void proposeInvitationTime(String inviteId, DateTime scheduledAt) {
+    if (!connected) return;
+    _send({
+      'type': 'propose_invite_time',
+      'commandId': _newId(),
+      'inviteId': inviteId,
+      'scheduledAt': scheduledAt.millisecondsSinceEpoch,
     });
   }
 
@@ -354,7 +385,9 @@ class OnlineMatchClient extends ChangeNotifier {
           _syncing = false;
         }
         loadLeaderboard();
+        loadPointHistory();
         loadInvitations();
+        loadActiveGames();
       } else if (type == 'leaderboard') {
         leaderboard = List<OnlineLeaderboardEntry>.unmodifiable(
           (frame['leaders'] as List).map(
@@ -363,6 +396,29 @@ class OnlineMatchClient extends ChangeNotifier {
             ),
           ),
         );
+      } else if (type == 'points_history') {
+        pointHistory = List<OnlinePointRecord>.unmodifiable(
+          (frame['matches'] as List).map(
+            (item) => OnlinePointRecord.fromJson(
+              (item as Map).cast<String, dynamic>(),
+            ),
+          ),
+        );
+      } else if (type == 'player_found') {
+        final player = frame['player'] as Map?;
+        playerSearchResult = player == null
+            ? null
+            : OnlinePlayerSearchResult.fromJson(player.cast<String, dynamic>());
+        playerSearchCompleted = true;
+      } else if (type == 'active_games') {
+        activeGames = List<OnlineInviteGame>.unmodifiable(
+          (frame['games'] as List).map(
+            (item) => OnlineInviteGame.fromJson(
+              (item as Map).cast<String, dynamic>(),
+            ),
+          ),
+        );
+        activeGamesLoaded = true;
       } else if (type == 'presence') {
         presence = {
           for (final item in frame['statuses'] as List)
@@ -384,6 +440,13 @@ class OnlineMatchClient extends ChangeNotifier {
           ..removeWhere((item) => item.inviteId == invitation.inviteId)
           ..insert(0, invitation);
         invitations = List.unmodifiable(updated);
+        if (invitation.game case final inviteGame?) {
+          activeGames = List.unmodifiable([
+            inviteGame,
+            ...activeGames.where((game) => game.gameId != inviteGame.gameId),
+          ]);
+          activeGamesLoaded = true;
+        }
       } else if (type == 'error') {
         error = frame['message'] as String? ?? 'Server rejected the request';
         if (frame['commandId'] == _profileCommandId) {
@@ -442,6 +505,16 @@ class OnlineMatchClient extends ChangeNotifier {
             next.status == 'waiting' &&
             (type == 'matchmaking_waiting' || _matchmaking);
         session.apply(next, animate: false);
+        activeGames = List.unmodifiable([
+          OnlineInviteGame(
+            gameId: next.gameId,
+            seat: nextSeat,
+            seatToken: _seatToken!,
+            state: next,
+          ),
+          ...activeGames.where((game) => game.gameId != next.gameId),
+        ]);
+        activeGamesLoaded = true;
         error = null;
         if (type == 'seat_resumed') {
           // Explicit full sync gates input and retries after recovering the seat.
@@ -456,8 +529,30 @@ class OnlineMatchClient extends ChangeNotifier {
         );
         if (next.gameId != gameId) return;
         session.apply(next, animate: connected && frame['synced'] != true);
+        if (_seatToken != null && seat != null) {
+          final remaining = activeGames.where(
+            (game) => game.gameId != next.gameId,
+          );
+          activeGames = List.unmodifiable(
+            next.status == 'complete'
+                ? remaining
+                : [
+                    OnlineInviteGame(
+                      gameId: next.gameId,
+                      seat: seat!,
+                      seatToken: _seatToken!,
+                      state: next,
+                    ),
+                    ...remaining,
+                  ],
+          );
+          activeGamesLoaded = true;
+        }
         if (next.status != 'waiting') _matchmaking = false;
-        if (next.status == 'complete') loadLeaderboard();
+        if (next.status == 'complete') {
+          loadLeaderboard();
+          loadPointHistory();
+        }
         if (frame['synced'] == true) {
           connection = MatchConnection.ready;
           _syncing = false;

@@ -7,10 +7,14 @@ const fields = {
   ping: [],
   register_player: ["commandId", "name", "avatarId", "playerToken"],
   leaderboard: [],
+  points_history: [],
+  find_player: ["query"],
+  list_games: [],
   presence: ["names"],
   send_invite: ["commandId", "opponentName", "scheduledAt"],
   list_invites: [],
   respond_invite: ["commandId", "inviteId", "accept"],
+  propose_invite_time: ["commandId", "inviteId", "scheduledAt"],
   create_game: ["commandId", "baseMs", "incrementMs"],
   quick_match: ["commandId", "baseMs", "incrementMs"],
   cancel_matchmaking: ["commandId", "gameId"],
@@ -94,6 +98,13 @@ export function validateMessage(message) {
         ),
     );
   }
+  if (message.type === "find_player") {
+    require(
+      typeof message.query === "string" &&
+        message.query === message.query.trim() &&
+        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.query),
+    );
+  }
   if (message.type === "send_invite") {
     require(
       typeof message.opponentName === "string" &&
@@ -104,6 +115,10 @@ export function validateMessage(message) {
   if (message.type === "respond_invite") {
     require(identifier(message.inviteId));
     require(typeof message.accept === "boolean");
+  }
+  if (message.type === "propose_invite_time") {
+    require(identifier(message.inviteId));
+    require(integer(message.scheduledAt));
   }
   if (message.type === "resume_game") require(identifier(message.seatToken));
   if (message.type === "respond_draw")

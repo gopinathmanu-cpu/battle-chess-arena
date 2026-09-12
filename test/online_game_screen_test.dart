@@ -23,7 +23,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('WebSocket endpoint'), findsNothing);
       expect(find.textContaining('wss://'), findsNothing);
-      expect(find.text('Create your arena avatar'), findsOneWidget);
+      expect(find.text('Create your online Avatar ID'), findsOneWidget);
       expect(find.byKey(const ValueKey('avatar-name-field')), findsOneWidget);
       expect(find.byType(ChoiceChip), findsNWidgets(8));
     },

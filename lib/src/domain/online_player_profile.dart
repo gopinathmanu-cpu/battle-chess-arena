@@ -82,3 +82,52 @@ class OnlineLeaderboardEntry {
   final int draws;
   final int losses;
 }
+
+class OnlinePlayerSearchResult {
+  const OnlinePlayerSearchResult({
+    required this.name,
+    required this.avatarId,
+    required this.online,
+  });
+
+  factory OnlinePlayerSearchResult.fromJson(Map<String, dynamic> json) =>
+      OnlinePlayerSearchResult(
+        name: json['name'] as String,
+        avatarId: json['avatarId'] as String,
+        online: json['online'] as bool,
+      );
+
+  final String name;
+  final String avatarId;
+  final bool online;
+}
+
+class OnlinePointRecord {
+  const OnlinePointRecord({
+    required this.gameId,
+    required this.opponentName,
+    required this.opponentAvatarId,
+    required this.result,
+    required this.points,
+    required this.completedAt,
+  });
+
+  factory OnlinePointRecord.fromJson(Map<String, dynamic> json) =>
+      OnlinePointRecord(
+        gameId: json['gameId'] as String,
+        opponentName: json['opponentName'] as String,
+        opponentAvatarId: json['opponentAvatarId'] as String,
+        result: json['result'] as String,
+        points: json['points'] as int,
+        completedAt: DateTime.fromMillisecondsSinceEpoch(
+          json['completedAt'] as int,
+        ),
+      );
+
+  final String gameId;
+  final String opponentName;
+  final String opponentAvatarId;
+  final String result;
+  final int points;
+  final DateTime completedAt;
+}

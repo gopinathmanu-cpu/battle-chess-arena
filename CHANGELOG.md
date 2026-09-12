@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0 · 2026-09-12
+
+- Simplify Play Online around Quick Game, exact Avatar ID search, active games,
+  invitations, and ranking actions. Remove completed matches and private room
+  controls from the main online page.
+- List every server-side open game for the authenticated player and reopen a
+  selected board with its private seat credential.
+- Add an exact Avatar ID lookup with avatar icon and live presence, plus invite
+  and favourite actions on the search result.
+- Add a personal points breakdown containing the opponent, result, completion
+  time, and points awarded for each completed match.
+- Support scheduled invitations with a specific local date and time. Let the
+  player awaiting a response accept, decline, or propose another time; proposals
+  alternate until accepted or declined.
+- Permit a future invitation with an opponent even while another game with that
+  opponent remains active.
+
 ## 0.5.0 · 2026-09-12
 
 - Hide the WebSocket endpoint and connect automatically to the configured online

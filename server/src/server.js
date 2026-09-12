@@ -55,6 +55,7 @@ export function createMatchServer({
       scheduledAt: invite.scheduledAt,
       createdAt: invite.createdAt,
       status: invite.status,
+      awaitingResponseFromName: invite.awaiting?.name ?? null,
       ...(invite.game
         ? {
             game: {
@@ -76,16 +77,6 @@ export function createMatchServer({
   };
   const createInviteGame = (invite) => {
     if (invite.game || invite.status !== "accepted") return;
-    const duplicate = [...games.values()].some(
-      (game) =>
-        game.status !== "complete" &&
-        game.isPair(invite.sender.id, invite.recipient.id),
-    );
-    if (duplicate) {
-      invite.status = "blocked";
-      publishInvite(invite);
-      return;
-    }
     const match = new Match({ whitePlayer: invite.sender });
     const blackToken = match.joinBlack(now(), invite.recipient);
     games.set(match.id, match);
@@ -120,11 +111,23 @@ export function createMatchServer({
     const white = game.players.w;
     const black = game.players.b;
     if (!white || !black) return;
+    let whitePoints = 1;
+    let blackPoints = 1;
+    let whiteResult = "draw";
+    let blackResult = "draw";
     if (game.result?.winner === "w") {
+      whitePoints = 3;
+      blackPoints = 0;
+      whiteResult = "win";
+      blackResult = "loss";
       white.points += 3;
       white.wins += 1;
       black.losses += 1;
     } else if (game.result?.winner === "b") {
+      whitePoints = 0;
+      blackPoints = 3;
+      whiteResult = "loss";
+      blackResult = "win";
       black.points += 3;
       black.wins += 1;
       white.losses += 1;
@@ -134,6 +137,23 @@ export function createMatchServer({
       white.draws += 1;
       black.draws += 1;
     }
+    const completedAt = Date.now();
+    white.pointHistory.push({
+      gameId: game.id,
+      opponentName: black.name,
+      opponentAvatarId: black.avatarId,
+      result: whiteResult,
+      points: whitePoints,
+      completedAt,
+    });
+    black.pointHistory.push({
+      gameId: game.id,
+      opponentName: white.name,
+      opponentAvatarId: white.avatarId,
+      result: blackResult,
+      points: blackPoints,
+      completedAt,
+    });
   };
   const tick = () => {
     activateDueInvites();
@@ -201,9 +221,11 @@ export function createMatchServer({
             wins: 0,
             draws: 0,
             losses: 0,
+            pointHistory: [],
             sockets: new Set(),
           };
           profile.sockets ??= new Set();
+          profile.pointHistory ??= [];
           profile.avatarId = message.avatarId;
           profile.sockets.add(socket);
           profiles.set(normalizedName, profile);
@@ -246,6 +268,51 @@ export function createMatchServer({
           send(socket, "leaderboard", { leaders });
           return;
         }
+        if (message.type === "points_history") {
+          send(socket, "points_history", {
+            matches: [...peer.player.pointHistory].reverse(),
+          });
+          return;
+        }
+        if (message.type === "find_player") {
+          const found = profiles.get(
+            message.query
+              .trim()
+              .replace(/\s+/g, " ")
+              .toLocaleLowerCase("en-US"),
+          );
+          send(socket, "player_found", {
+            player:
+              found && found.id !== peer.player.id
+                ? {
+                    name: found.name,
+                    avatarId: found.avatarId,
+                    online: found.sockets.size > 0,
+                  }
+                : null,
+          });
+          return;
+        }
+        if (message.type === "list_games") {
+          const activeGames = [...games.values()]
+            .filter(
+              (candidate) =>
+                candidate.status !== "complete" &&
+                candidate.hasPlayer(peer.player.id),
+            )
+            .map((candidate) => {
+              const side =
+                candidate.players.w?.id === peer.player.id ? "w" : "b";
+              return {
+                gameId: candidate.id,
+                seat: side,
+                seatToken: candidate.tokens[side],
+                state: candidate.snapshot(now()),
+              };
+            });
+          send(socket, "active_games", { games: activeGames });
+          return;
+        }
         if (message.type === "presence") {
           const statuses = message.names.map((name) => {
             const profile = profiles.get(
@@ -273,7 +340,9 @@ export function createMatchServer({
             );
           if (opponent.id === peer.player.id)
             throw new MatchError("SELF_INVITE", "You cannot invite yourself");
+          const scheduledAt = message.scheduledAt ?? null;
           if (
+            scheduledAt === null &&
             [...games.values()].some(
               (game) =>
                 game.status !== "complete" &&
@@ -282,7 +351,7 @@ export function createMatchServer({
           )
             throw new MatchError(
               "OPPONENT_GAME_EXISTS",
-              "You already have an open game with this opponent",
+              "Schedule a future game while your current game is open",
             );
           if (
             [...invites.values()].some(
@@ -298,7 +367,6 @@ export function createMatchServer({
               "INVITE_EXISTS",
               "A pending invitation already exists with this opponent",
             );
-          const scheduledAt = message.scheduledAt ?? null;
           if (scheduledAt !== null && scheduledAt < Date.now() - 60_000)
             throw new MatchError(
               "INVALID_SCHEDULE",
@@ -311,6 +379,7 @@ export function createMatchServer({
             scheduledAt,
             createdAt: Date.now(),
             status: "pending",
+            awaiting: opponent,
             game: null,
           };
           invites.set(invite.id, invite);
@@ -335,7 +404,7 @@ export function createMatchServer({
         }
         if (message.type === "respond_invite") {
           const invite = invites.get(message.inviteId);
-          if (!invite || invite.recipient.id !== peer.player.id)
+          if (!invite || invite.awaiting?.id !== peer.player.id)
             throw new MatchError(
               "INVITE_NOT_FOUND",
               "Invitation is unavailable",
@@ -346,6 +415,7 @@ export function createMatchServer({
               "Invitation already has a response",
             );
           invite.status = message.accept ? "accepted" : "declined";
+          invite.awaiting = null;
           if (
             invite.status === "accepted" &&
             (invite.scheduledAt === null || invite.scheduledAt <= Date.now())
@@ -354,6 +424,35 @@ export function createMatchServer({
           } else {
             publishInvite(invite);
           }
+          send(socket, "command_result", {
+            commandId: message.commandId,
+            accepted: true,
+          });
+          return;
+        }
+        if (message.type === "propose_invite_time") {
+          const invite = invites.get(message.inviteId);
+          if (!invite || invite.awaiting?.id !== peer.player.id)
+            throw new MatchError(
+              "INVITE_NOT_FOUND",
+              "Invitation is unavailable or awaiting the other player",
+            );
+          if (invite.status !== "pending")
+            throw new MatchError(
+              "INVITE_ALREADY_ANSWERED",
+              "Invitation already has a response",
+            );
+          if (message.scheduledAt < Date.now() + 60_000)
+            throw new MatchError(
+              "INVALID_SCHEDULE",
+              "Proposed time must be at least one minute in the future",
+            );
+          invite.scheduledAt = message.scheduledAt;
+          invite.awaiting =
+            peer.player.id === invite.sender.id
+              ? invite.recipient
+              : invite.sender;
+          publishInvite(invite);
           send(socket, "command_result", {
             commandId: message.commandId,
             accepted: true,

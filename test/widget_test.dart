@@ -49,8 +49,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Play Online'));
     await tester.pumpAndSettle();
-    expect(find.text('Online Match Lobby'), findsOneWidget);
-    expect(find.text('Create your arena avatar'), findsOneWidget);
+    expect(find.text('Play Online'), findsOneWidget);
+    expect(find.text('Create your online Avatar ID'), findsOneWidget);
     expect(find.text('Enter Arena'), findsOneWidget);
     expect(find.textContaining('wss://'), findsNothing);
   });

@@ -35,8 +35,43 @@ void main() {
     expect(client.profile!.playerToken, 'player-secret');
     expect(
       channel.sent.skip(1).map((frame) => frame['type']),
-      containsAll(['leaderboard', 'list_invites']),
+      containsAll([
+        'leaderboard',
+        'points_history',
+        'list_invites',
+        'list_games',
+      ]),
     );
+    client.findPlayer('Moon Mage');
+    expect(channel.sent.last, {'type': 'find_player', 'query': 'Moon Mage'});
+    channel.receive({
+      'type': 'player_found',
+      'player': {'name': 'Moon Mage', 'avatarId': 'moon', 'online': true},
+    });
+    channel.receive({
+      'type': 'points_history',
+      'matches': [
+        {
+          'gameId': 'finished-one',
+          'opponentName': 'Moon Mage',
+          'opponentAvatarId': 'moon',
+          'result': 'win',
+          'points': 3,
+          'completedAt': 1000,
+        },
+      ],
+    });
+    channel.receive({
+      'type': 'active_games',
+      'games': [
+        {
+          'gameId': 'active-one',
+          'seat': 'w',
+          'seatToken': 'active-secret',
+          'state': stateJson(gameId: 'active-one'),
+        },
+      ],
+    });
     channel.receive({
       'type': 'presence',
       'statuses': [
@@ -53,12 +88,22 @@ void main() {
           'scheduledAt': null,
           'createdAt': 1,
           'status': 'pending',
+          'awaitingResponseFromName': 'Nova Knight',
         },
       ],
     });
     await flush();
     expect(client.presence['Moon Mage'], isTrue);
     expect(client.invitations.single.senderName, 'Moon Mage');
+    expect(client.invitations.single.canRespondBy('Nova Knight'), isTrue);
+    expect(client.playerSearchResult!.name, 'Moon Mage');
+    expect(client.pointHistory.single.points, 3);
+    expect(client.activeGames.single.gameId, 'active-one');
+    client.proposeInvitationTime(
+      'invite-one',
+      DateTime.fromMillisecondsSinceEpoch(5000),
+    );
+    expect(channel.sent.last['type'], 'propose_invite_time');
   });
 
   test(

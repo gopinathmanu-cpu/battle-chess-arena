@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../domain/online_player_profile.dart';
+import '../../domain/online_social.dart';
 import '../../domain/piece_pack.dart';
 import '../../services/online_game_history.dart';
 import '../../services/online_match_client.dart';
@@ -35,7 +36,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   late final OnlineMatchClient _client;
   final _avatarName = TextEditingController();
-  final _gameId = TextEditingController();
+  final _opponentSearch = TextEditingController();
   var _avatarId = onlineAvatarChoices.first.id;
   var _timeControl = _controls.last;
   var _history = <OnlineGameRecord>[];
@@ -94,7 +95,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     _reminderTimer?.cancel();
     if (widget.client == null) _client.dispose();
     _avatarName.dispose();
-    _gameId.dispose();
+    _opponentSearch.dispose();
     super.dispose();
   }
 
@@ -254,34 +255,107 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     );
   }
 
+  Future<void> _openInvitation(OnlineInvitation invitation) async {
+    final game = invitation.game;
+    if (game == null) return;
+    _openedGameId = null;
+    _savedSequence = -1;
+    await _client.openSavedGame(
+      savedGameId: game.gameId,
+      savedSeat: game.seat,
+      savedSeatToken: game.seatToken,
+    );
+  }
+
+  Future<void> _openActiveGame(OnlineInviteGame game) async {
+    _openedGameId = null;
+    _savedSequence = -1;
+    await _client.openSavedGame(
+      savedGameId: game.gameId,
+      savedSeat: game.seat,
+      savedSeatToken: game.seatToken,
+    );
+  }
+
+  Future<DateTime?> _pickDateTime({DateTime? initial}) async {
+    final now = DateTime.now();
+    final seed = initial != null && initial.isAfter(now)
+        ? initial.toLocal()
+        : now.add(const Duration(hours: 1));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: DateTime(seed.year, seed.month, seed.day),
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 1, now.month, now.day),
+    );
+    if (date == null || !mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(seed),
+    );
+    if (time == null) return null;
+    final result = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    if (!result.isAfter(DateTime.now().add(const Duration(minutes: 1)))) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Choose a time at least one minute from now.'),
+          ),
+        );
+      }
+      return null;
+    }
+    return result;
+  }
+
+  Future<void> _scheduleFor(String opponentName) async {
+    final scheduled = await _pickDateTime();
+    if (scheduled != null) {
+      _client.sendInvitation(opponentName, scheduledAt: scheduled);
+    }
+  }
+
+  Future<void> _counterInvitation(OnlineInvitation invitation) async {
+    final scheduled = await _pickDateTime(initial: invitation.scheduledAt);
+    if (scheduled != null) {
+      _client.proposeInvitationTime(invitation.inviteId, scheduled);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Online Match Lobby'),
+      title: const Text('Play Online'),
       actions: const [MusicButton()],
     ),
     body: WorldBackdrop(
       pack: widget.pack,
       child: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : !_profileReady
+          ? ListView(
               padding: const EdgeInsets.all(20),
-              children: [
-                _banner(),
-                const SizedBox(height: 18),
-                if (!_profileReady)
-                  _profileForm()
-                else ...[
-                  _profileHeader(),
-                  const SizedBox(height: 14),
-                  _connectionStatus(),
-                  if (_client.connected) ...[
-                    const SizedBox(height: 18),
-                    if (_client.gameId == null) _newGameControls(),
-                    if (_client.gameId != null) _currentGameCard(),
-                  ],
+              children: [_profileForm()],
+            )
+          : RefreshIndicator(
+              onRefresh: () async {
+                _client.loadInvitations();
+                _client.loadLeaderboard();
+                _client.loadPointHistory();
+                _client.loadActiveGames();
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                children: [
+                  _profileSummary(),
                   if (_client.error != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       _client.error!,
                       style: const TextStyle(
@@ -289,53 +363,20 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    if (_client.profile?.playerToken == null &&
-                        _client.connection == MatchConnection.disconnected)
-                      TextButton(
-                        onPressed: () {
-                          _client.disconnect();
-                          setState(() => _profileReady = false);
-                        },
-                        child: const Text('Choose a different Avatar Name'),
-                      ),
                   ],
-                  const SizedBox(height: 24),
-                  _historySection(),
-                  const SizedBox(height: 24),
-                  _favoritesSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
+                  _quickGameCard(),
+                  const SizedBox(height: 10),
+                  _findOpponentCard(),
+                  const SizedBox(height: 20),
+                  _activeGamesSection(),
+                  const SizedBox(height: 20),
                   _invitationsSection(),
-                  const SizedBox(height: 24),
-                  _leaderboardSection(),
+                  const SizedBox(height: 20),
+                  _rankingSection(),
                 ],
-              ],
+              ),
             ),
-    ),
-  );
-
-  Widget _banner() => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [
-          widget.pack.accent.withValues(alpha: .28),
-          const Color(0xFF151725),
-        ],
-      ),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'MULTIPLAYER ARENA',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2),
-        ),
-        SizedBox(height: 8),
-        Text(
-          'Challenge several opponents, reopen active boards, and climb the leaderboard.',
-        ),
-      ],
     ),
   );
 
@@ -346,21 +387,22 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Create your arena avatar',
+            'Create your online Avatar ID',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           ),
-          const Text('Avatar Names are unique across the arena.'),
+          const SizedBox(height: 4),
+          const Text('Your Avatar ID is unique and lets friends find you.'),
           const SizedBox(height: 16),
           TextField(
             key: const ValueKey('avatar-name-field'),
             controller: _avatarName,
             maxLength: 20,
             decoration: const InputDecoration(
-              labelText: 'Avatar Name',
+              labelText: 'Avatar ID',
               prefixIcon: Icon(Icons.badge_outlined),
             ),
           ),
-          const Text('Choose an Avatar Icon'),
+          const Text('Choose an icon'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -388,96 +430,48 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     ),
   );
 
-  Widget _profileHeader() {
+  Widget _profileSummary() {
     final profile = _client.profile;
     final avatar = onlineAvatar(profile?.avatarId ?? _avatarId);
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        radius: 25,
-        backgroundColor: widget.pack.accent.withValues(alpha: .25),
-        child: Icon(avatar.icon, color: widget.pack.accent, size: 28),
-      ),
-      title: Text(
-        profile?.name ?? _avatarName.text,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-      ),
-      subtitle: Text(avatar.label),
+    final mine = _client.leaderboard.where(
+      (entry) => entry.name.toLowerCase() == profile?.name.toLowerCase(),
+    );
+    final points = mine.isEmpty ? 0 : mine.first.points;
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 24,
+          backgroundColor: widget.pack.accent.withValues(alpha: .25),
+          child: Icon(avatar.icon, color: widget.pack.accent),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                profile?.name ?? _avatarName.text,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(_client.connectionLabel),
+            ],
+          ),
+        ),
+        Chip(label: Text('$points pts')),
+        if (_client.connection == MatchConnection.disconnected)
+          IconButton(
+            tooltip: 'Reconnect',
+            onPressed: () => _client.connect(_endpoint),
+            icon: const Icon(Icons.refresh),
+          ),
+      ],
     );
   }
 
-  Widget _connectionStatus() => Row(
-    children: [
-      Icon(
-        _client.connected ? Icons.cloud_done : Icons.cloud_sync,
-        color: _client.connected ? Colors.greenAccent : Colors.amberAccent,
-      ),
-      const SizedBox(width: 8),
-      Expanded(child: Text(_client.connectionLabel)),
-      if (_client.connection == MatchConnection.disconnected)
-        TextButton(
-          onPressed: () => _client.connect(_endpoint),
-          child: const Text('Retry'),
-        ),
-    ],
-  );
-
-  Widget _newGameControls() => Column(
-    children: [
-      DropdownButtonFormField<_OnlineTimeControl>(
-        key: const ValueKey('online-time-control'),
-        initialValue: _timeControl,
-        decoration: const InputDecoration(
-          labelText: 'Time control',
-          prefixIcon: Icon(Icons.timer_outlined),
-        ),
-        items: [
-          for (final control in _controls)
-            DropdownMenuItem(value: control, child: Text(control.label)),
-        ],
-        onChanged: (value) {
-          if (value != null) setState(() => _timeControl = value);
-        },
-      ),
-      const SizedBox(height: 12),
-      FilledButton.icon(
-        key: const ValueKey('quick-match-button'),
-        onPressed: !_client.busy
-            ? () => _client.quickMatch(baseMs: _timeControl.baseMs)
-            : null,
-        icon: const Icon(Icons.bolt),
-        label: Text('Quick Match · ${_timeControl.label}'),
-      ),
-      const SizedBox(height: 18),
-      const Divider(),
-      OutlinedButton.icon(
-        onPressed: !_client.busy
-            ? () => _client.createGame(baseMs: _timeControl.baseMs)
-            : null,
-        icon: const Icon(Icons.add),
-        label: Text('Create ${_timeControl.label} private room'),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _gameId,
-        onChanged: (_) => setState(() {}),
-        decoration: const InputDecoration(
-          labelText: 'Friend’s Game ID',
-          prefixIcon: Icon(Icons.key),
-        ),
-      ),
-      const SizedBox(height: 10),
-      OutlinedButton.icon(
-        onPressed: !_client.busy && _gameId.text.trim().isNotEmpty
-            ? () => _client.joinGame(_gameId.text)
-            : null,
-        icon: const Icon(Icons.login),
-        label: const Text('Join private room'),
-      ),
-    ],
-  );
-
-  Widget _currentGameCard() {
+  Widget _quickGameCard() {
     if (_client.searchingForOpponent) {
       return Card(
         key: const ValueKey('matchmaking-waiting'),
@@ -487,7 +481,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             children: [
               const LinearProgressIndicator(),
               const SizedBox(height: 12),
-              const Text('Searching for an opponent…'),
+              const Text('Finding anyone available…'),
               TextButton(
                 onPressed: _client.busy ? null : _client.cancelMatchmaking,
                 child: const Text('Cancel search'),
@@ -497,29 +491,50 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         ),
       );
     }
-    final opponent = _client.state?.opponentFor(_client.seat ?? 'w');
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ListTile(
-              leading: CircleAvatar(
-                child: Icon(onlineAvatar(opponent?.avatarId ?? 'crown').icon),
-              ),
-              title: Text(opponent?.name ?? 'Waiting opponent'),
-              subtitle: Text(_client.state?.statusLabel ?? 'Waiting'),
+            const Text(
+              'Quick Game',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
             ),
-            SelectableText('Game ID: ${_client.gameId}'),
-            if (_client.state?.status != 'waiting')
-              FilledButton(
-                onPressed: _openGame,
-                child: const Text('Return to game'),
-              ),
-            OutlinedButton(
-              key: const ValueKey('play-another-opponent'),
-              onPressed: _playAnother,
-              child: const Text('Play another opponent'),
+            const Text('Play with anyone available.'),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<_OnlineTimeControl>(
+                    key: const ValueKey('online-time-control'),
+                    initialValue: _timeControl,
+                    decoration: const InputDecoration(labelText: 'Game time'),
+                    items: [
+                      for (final control in _controls)
+                        DropdownMenuItem(
+                          value: control,
+                          child: Text(control.label),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) setState(() => _timeControl = value);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                FilledButton.icon(
+                  key: const ValueKey('quick-match-button'),
+                  onPressed: _client.connected && !_client.busy
+                      ? () async {
+                          if (_client.gameId != null) await _playAnother();
+                          _client.quickMatch(baseMs: _timeControl.baseMs);
+                        }
+                      : null,
+                  icon: const Icon(Icons.bolt),
+                  label: const Text('Play'),
+                ),
+              ],
             ),
           ],
         ),
@@ -527,151 +542,145 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     );
   }
 
-  Widget _historySection() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'GAME HISTORY',
-        style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
+  Widget _findOpponentCard() => Card(
+    child: ExpansionTile(
+      key: const ValueKey('find-opponent-section'),
+      leading: const Icon(Icons.person_search),
+      title: const Text(
+        'Find Opponent',
+        style: TextStyle(fontWeight: FontWeight.w900),
       ),
-      if (_history.isEmpty)
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text('Active and completed games will appear here.'),
-        ),
-      for (final record in _history)
-        Card(
-          key: ValueKey('history-${record.gameId}'),
-          child: ListTile(
-            leading: CircleAvatar(
-              child: Icon(onlineAvatar(record.opponentAvatarId).icon),
+      subtitle: const Text('Search by exact Avatar ID'),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      children: [
+        TextField(
+          key: const ValueKey('opponent-search-field'),
+          controller: _opponentSearch,
+          maxLength: 20,
+          textInputAction: TextInputAction.search,
+          onSubmitted: _client.findPlayer,
+          decoration: InputDecoration(
+            labelText: 'Avatar ID',
+            suffixIcon: IconButton(
+              tooltip: 'Search',
+              onPressed: () => _client.findPlayer(_opponentSearch.text),
+              icon: const Icon(Icons.search),
             ),
-            title: Text(record.opponentName),
-            subtitle: Text(
-              '${record.isOpen ? 'Open' : 'Completed'} · ${record.moveCount} moves · ${record.seat == 'w' ? 'White' : 'Black'}',
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Favourite opponent',
-                  onPressed: () => _toggleFavorite(
-                    record.opponentName,
-                    record.opponentAvatarId,
-                  ),
-                  icon: Icon(
-                    _favorites.any(
-                          (item) =>
-                              item.name.toLowerCase() ==
-                              record.opponentName.toLowerCase(),
-                        )
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                  ),
-                ),
-                const Icon(Icons.chevron_right),
-              ],
-            ),
-            onTap: () => _resume(record),
           ),
         ),
-    ],
-  );
-
-  Widget _favoritesSection() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'FAVOURITE OPPONENTS',
-        style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
-      ),
-      const SizedBox(height: 6),
-      if (_favorites.isEmpty)
-        const Text('Tap the heart beside a game-history opponent to add them.'),
-      for (final favorite in _favorites)
-        Card(
-          child: ListTile(
-            leading: Stack(
-              children: [
-                CircleAvatar(child: Icon(onlineAvatar(favorite.avatarId).icon)),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 11,
-                    height: 11,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _client.presence[favorite.name] == true
-                          ? Colors.greenAccent
-                          : Colors.grey,
-                      border: Border.all(color: Colors.black, width: 2),
-                    ),
-                  ),
-                ),
-              ],
+        if (_client.playerSearchCompleted && _client.playerSearchResult == null)
+          const ListTile(title: Text('No matching Avatar ID found.')),
+        if (_client.playerSearchResult case final result?)
+          ListTile(
+            key: const ValueKey('opponent-search-result'),
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              child: Icon(onlineAvatar(result.avatarId).icon),
             ),
-            title: Text(favorite.name),
-            subtitle: Text(
-              _client.presence[favorite.name] == true ? 'Online' : 'Offline',
-            ),
+            title: Text(result.name),
+            subtitle: Text(result.online ? 'Online' : 'Offline'),
             trailing: PopupMenuButton<String>(
-              tooltip: 'Invite opponent',
-              onSelected: (value) {
-                if (value == 'now') {
-                  _client.sendInvitation(favorite.name);
-                } else if (value == 'schedule') {
-                  _scheduleInvitation(favorite);
-                } else if (value == 'remove') {
-                  _toggleFavorite(favorite.name, favorite.avatarId);
+              tooltip: 'Opponent actions',
+              onSelected: (action) {
+                if (action == 'now') _client.sendInvitation(result.name);
+                if (action == 'schedule') _scheduleFor(result.name);
+                if (action == 'favorite') {
+                  _toggleFavorite(result.name, result.avatarId);
                 }
               },
               itemBuilder: (_) => const [
                 PopupMenuItem(value: 'now', child: Text('Invite now')),
                 PopupMenuItem(
                   value: 'schedule',
-                  child: Text('Schedule invitation'),
+                  child: Text('Choose date & time'),
                 ),
-                PopupMenuItem(value: 'remove', child: Text('Remove favourite')),
+                PopupMenuItem(
+                  value: 'favorite',
+                  child: Text('Add/remove favourite'),
+                ),
               ],
             ),
           ),
-        ),
-    ],
+        if (_favorites.isNotEmpty) ...[
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Favourites',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+          Wrap(
+            spacing: 6,
+            children: [
+              for (final favorite in _favorites)
+                ActionChip(
+                  avatar: Icon(onlineAvatar(favorite.avatarId).icon, size: 17),
+                  label: Text(favorite.name),
+                  onPressed: () {
+                    _opponentSearch.text = favorite.name;
+                    _client.findPlayer(favorite.name);
+                  },
+                ),
+            ],
+          ),
+        ],
+      ],
+    ),
   );
 
-  Future<void> _scheduleInvitation(OnlineFavorite favorite) async {
-    final delay = await showModalBottomSheet<Duration>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(
-              title: Text(
-                'Schedule game',
-                style: TextStyle(fontWeight: FontWeight.w900),
+  Widget _activeGamesSection() {
+    final savedActive = _history.where((game) => game.isOpen).toList();
+    final serverActive = _client.activeGames;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'ACTIVE GAMES',
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
+        ),
+        const SizedBox(height: 6),
+        if (_client.activeGamesLoaded && serverActive.isEmpty)
+          const Text('You have no open games.'),
+        if (!_client.activeGamesLoaded && savedActive.isEmpty)
+          const Text('Loading your open games…'),
+        for (final game in serverActive)
+          Builder(
+            builder: (context) {
+              final opponent = game.state.opponentFor(game.seat);
+              return Card(
+                key: ValueKey('active-${game.gameId}'),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Icon(onlineAvatar(opponent.avatarId).icon),
+                  ),
+                  title: Text(opponent.name),
+                  subtitle: Text(
+                    '${game.state.status == 'waiting' ? 'Waiting' : 'In progress'} · ${game.state.san.length} moves',
+                  ),
+                  trailing: const Icon(Icons.play_arrow),
+                  onTap: () => _openActiveGame(game),
+                ),
+              );
+            },
+          ),
+        if (!_client.activeGamesLoaded)
+          for (final record in savedActive)
+            Card(
+              key: ValueKey('history-${record.gameId}'),
+              child: ListTile(
+                leading: CircleAvatar(
+                  child: Icon(onlineAvatar(record.opponentAvatarId).icon),
+                ),
+                title: Text(record.opponentName),
+                subtitle: Text(
+                  '${record.status == 'waiting' ? 'Waiting' : 'In progress'} · ${record.moveCount} moves',
+                ),
+                trailing: const Icon(Icons.play_arrow),
+                onTap: () => _resume(record),
               ),
             ),
-            for (final choice in const [
-              ('In 15 minutes', Duration(minutes: 15)),
-              ('In 1 hour', Duration(hours: 1)),
-              ('Tomorrow', Duration(days: 1)),
-            ])
-              ListTile(
-                title: Text(choice.$1),
-                onTap: () => Navigator.pop(context, choice.$2),
-              ),
-          ],
-        ),
-      ),
+      ],
     );
-    if (delay != null) {
-      _client.sendInvitation(
-        favorite.name,
-        scheduledAt: DateTime.now().add(delay),
-      );
-    }
   }
 
   Widget _invitationsSection() {
@@ -697,119 +706,227 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             ),
           ],
         ),
-        if (_client.invitations.isEmpty)
-          const Text('Sent and received invitations will appear here.'),
+        if (_client.invitations.isEmpty) const Text('No invitations.'),
         for (final invitation in _client.invitations)
-          Builder(
-            builder: (context) {
-              final received = invitation.receivedBy(name);
-              final opponentName = received
-                  ? invitation.senderName
-                  : invitation.recipientName;
-              final opponentAvatar = received
-                  ? invitation.senderAvatarId
-                  : invitation.recipientAvatarId;
-              final scheduled = invitation.scheduledAt;
-              return Card(
-                key: ValueKey('invite-${invitation.inviteId}'),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    child: Icon(onlineAvatar(opponentAvatar).icon),
-                  ),
-                  title: Text('${received ? 'From' : 'To'} $opponentName'),
-                  subtitle: Text(
-                    '${invitation.status.toUpperCase()}${scheduled == null ? ' · Play now' : ' · ${_formatSchedule(scheduled)}'}',
-                  ),
-                  trailing: invitation.status == 'pending' && received
-                      ? Wrap(
-                          spacing: 2,
-                          children: [
-                            IconButton(
-                              tooltip: 'Decline invitation',
-                              onPressed: () => _client.respondToInvitation(
-                                invitation.inviteId,
-                                false,
-                              ),
-                              icon: const Icon(Icons.close),
-                            ),
-                            IconButton(
-                              tooltip: 'Accept invitation',
-                              onPressed: () => _client.respondToInvitation(
-                                invitation.inviteId,
-                                true,
-                              ),
-                              icon: const Icon(Icons.check),
-                            ),
-                          ],
-                        )
-                      : scheduled != null &&
-                            ['pending', 'accepted'].contains(invitation.status)
-                      ? IconButton(
-                          tooltip: 'Scheduled-game reminder',
-                          onPressed: () => _toggleReminder(invitation.inviteId),
-                          icon: Icon(
-                            _reminders.contains(invitation.inviteId)
-                                ? Icons.notifications_active
-                                : Icons.notifications_none,
-                          ),
-                        )
-                      : invitation.game != null
-                      ? const Icon(Icons.sports_esports)
-                      : null,
-                ),
-              );
-            },
-          ),
+          _invitationTile(invitation, name),
       ],
+    );
+  }
+
+  Widget _invitationTile(OnlineInvitation invitation, String myName) {
+    final received = invitation.receivedBy(myName);
+    final opponentName = received
+        ? invitation.senderName
+        : invitation.recipientName;
+    final opponentAvatar = received
+        ? invitation.senderAvatarId
+        : invitation.recipientAvatarId;
+    final canRespond = invitation.canRespondBy(myName);
+    final acceptedGame =
+        invitation.status == 'accepted' && invitation.game != null;
+    final schedule = invitation.scheduledAt == null
+        ? 'Play now'
+        : _formatSchedule(invitation.scheduledAt!);
+    final status = acceptedGame
+        ? 'Ready to play'
+        : canRespond
+        ? 'Your response · $schedule'
+        : invitation.status == 'pending'
+        ? 'Waiting for ${invitation.awaitingResponseFromName} · $schedule'
+        : '${invitation.status.toUpperCase()} · $schedule';
+    return Card(
+      key: ValueKey('invite-${invitation.inviteId}'),
+      child: ListTile(
+        onTap: acceptedGame ? () => _openInvitation(invitation) : null,
+        leading: CircleAvatar(child: Icon(onlineAvatar(opponentAvatar).icon)),
+        title: Text(opponentName),
+        subtitle: Text(status),
+        trailing: acceptedGame
+            ? const Icon(Icons.play_arrow)
+            : canRespond
+            ? PopupMenuButton<String>(
+                tooltip: 'Respond to invitation',
+                onSelected: (action) {
+                  if (action == 'accept') {
+                    _client.respondToInvitation(invitation.inviteId, true);
+                  }
+                  if (action == 'decline') {
+                    _client.respondToInvitation(invitation.inviteId, false);
+                  }
+                  if (action == 'counter') _counterInvitation(invitation);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'accept', child: Text('Accept')),
+                  PopupMenuItem(
+                    value: 'counter',
+                    child: Text('Propose new date & time'),
+                  ),
+                  PopupMenuItem(value: 'decline', child: Text('Decline')),
+                ],
+              )
+            : invitation.scheduledAt != null &&
+                  ['pending', 'accepted'].contains(invitation.status)
+            ? IconButton(
+                tooltip: 'Scheduled-game reminder',
+                onPressed: () => _toggleReminder(invitation.inviteId),
+                icon: Icon(
+                  _reminders.contains(invitation.inviteId)
+                      ? Icons.notifications_active
+                      : Icons.notifications_none,
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _rankingSection() {
+    final myName = _client.profile?.name ?? '';
+    final mine = _client.leaderboard.where(
+      (entry) => entry.name.toLowerCase() == myName.toLowerCase(),
+    );
+    final entry = mine.isEmpty ? null : mine.first;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'YOUR RANKING',
+              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${entry?.points ?? 0} points',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              '${entry?.wins ?? 0} wins · ${entry?.draws ?? 0} draws · ${entry?.losses ?? 0} losses',
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: _showPointsBreakdown,
+                  child: const Text('Points breakdown'),
+                ),
+                FilledButton.tonal(
+                  onPressed: _showLeaderboard,
+                  child: const Text('View leaderboard'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showLeaderboard() async {
+    _client.loadLeaderboard();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .7,
+          child: Column(
+            children: [
+              const ListTile(
+                title: Text(
+                  'Leaderboard',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text('Win 3 · Draw 1 · Loss 0'),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _client.leaderboard.length,
+                  itemBuilder: (_, index) {
+                    final entry = _client.leaderboard[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        child: Icon(onlineAvatar(entry.avatarId).icon),
+                      ),
+                      title: Text('${index + 1}. ${entry.name}'),
+                      subtitle: Text(
+                        '${entry.wins}W  ${entry.draws}D  ${entry.losses}L',
+                      ),
+                      trailing: Text(
+                        '${entry.points} pts',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPointsBreakdown() async {
+    _client.loadPointHistory();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(context).height * .7,
+          child: Column(
+            children: [
+              const ListTile(
+                title: Text(
+                  'Points breakdown',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                ),
+              ),
+              if (_client.pointHistory.isEmpty)
+                const Expanded(
+                  child: Center(
+                    child: Text('Completed matches will appear here.'),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView(
+                    children: [
+                      for (final match in _client.pointHistory)
+                        ListTile(
+                          leading: CircleAvatar(
+                            child: Icon(
+                              onlineAvatar(match.opponentAvatarId).icon,
+                            ),
+                          ),
+                          title: Text(match.opponentName),
+                          subtitle: Text(
+                            '${match.result.toUpperCase()} · ${_formatSchedule(match.completedAt)}',
+                          ),
+                          trailing: Text(
+                            '+${match.points}',
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   String _formatSchedule(DateTime value) {
     final local = value.toLocal();
     final minute = local.minute.toString().padLeft(2, '0');
-    return '${local.day}/${local.month} ${local.hour}:$minute';
+    final hour = local.hour.toString().padLeft(2, '0');
+    return '${local.day}/${local.month}/${local.year} $hour:$minute';
   }
-
-  Widget _leaderboardSection() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          const Expanded(
-            child: Text(
-              'LEADERBOARD',
-              style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Refresh leaderboard',
-            onPressed: _client.loadLeaderboard,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      const Text('Win 3 points · Draw 1 point · Loss 0 points'),
-      const SizedBox(height: 8),
-      for (var index = 0; index < _client.leaderboard.length; index++)
-        ListTile(
-          dense: true,
-          leading: CircleAvatar(
-            child: Icon(onlineAvatar(_client.leaderboard[index].avatarId).icon),
-          ),
-          title: Text(
-            '${index + 1}. ${_client.leaderboard[index].name}',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          subtitle: Text(
-            '${_client.leaderboard[index].wins}W  ${_client.leaderboard[index].draws}D  ${_client.leaderboard[index].losses}L',
-          ),
-          trailing: Text(
-            '${_client.leaderboard[index].points} pts',
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-        ),
-    ],
-  );
 }
 
 class _OnlineTimeControl {

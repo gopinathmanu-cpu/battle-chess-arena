@@ -10,6 +10,7 @@ class OnlineInvitation {
     required this.recipientAvatarId,
     required this.status,
     required this.createdAt,
+    required this.awaitingResponseFromName,
     this.scheduledAt,
     this.game,
   });
@@ -26,6 +27,9 @@ class OnlineInvitation {
       recipientAvatarId: recipient['avatarId'] as String,
       status: json['status'] as String,
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int),
+      awaitingResponseFromName:
+          json['awaitingResponseFromName'] as String? ??
+          (json['status'] == 'pending' ? recipient['name'] as String : null),
       scheduledAt: json['scheduledAt'] == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(json['scheduledAt'] as int),
@@ -42,11 +46,16 @@ class OnlineInvitation {
   final String recipientAvatarId;
   final String status;
   final DateTime createdAt;
+  final String? awaitingResponseFromName;
   final DateTime? scheduledAt;
   final OnlineInviteGame? game;
 
   bool receivedBy(String playerName) =>
       recipientName.toLowerCase() == playerName.toLowerCase();
+
+  bool canRespondBy(String playerName) =>
+      status == 'pending' &&
+      awaitingResponseFromName?.toLowerCase() == playerName.toLowerCase();
 }
 
 class OnlineInviteGame {

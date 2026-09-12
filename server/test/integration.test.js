@@ -291,6 +291,14 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
   const alice = await client(url, { name: "Arena Alice", avatarId: "mage" });
   const bob = await client(url, { name: "Arena Bob", avatarId: "robot" });
 
+  alice.send({ type: "find_player", query: "Arena Bob" });
+  const found = await alice.next((frame) => frame.type === "player_found");
+  assert.deepEqual(found.player, {
+    name: "Arena Bob",
+    avatarId: "robot",
+    online: true,
+  });
+
   const imposter = new WebSocket(url);
   await once(imposter, "open");
   const duplicateName = new Promise((resolve) => {
@@ -318,6 +326,12 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
     gameId: first.gameId,
   });
   await bob.next((frame) => frame.type === "seat_joined");
+  bob.send({ type: "list_games" });
+  const activeGames = await bob.next(
+    (frame) => frame.type === "active_games",
+  );
+  assert.equal(activeGames.games.length, 1);
+  assert.equal(activeGames.games[0].state.players.w.name, "Arena Alice");
 
   const aliceSecondConnection = await client(url, alice.profile);
   aliceSecondConnection.send({
@@ -370,6 +384,12 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
     leaders.leaders.find((entry) => entry.name === "Arena Alice").losses,
     1,
   );
+  bob.send({ type: "points_history" });
+  const points = await bob.next((frame) => frame.type === "points_history");
+  assert.equal(points.matches.length, 1);
+  assert.equal(points.matches[0].opponentName, "Arena Alice");
+  assert.equal(points.matches[0].result, "win");
+  assert.equal(points.matches[0].points, 3);
 });
 
 test("favourite presence and immediate or scheduled invitations", async (t) => {
@@ -417,6 +437,44 @@ test("favourite presence and immediate or scheduled invitations", async (t) => {
     bobGame.invite.game.seatToken,
     aliceGame.invite.game.seatToken,
   );
+
+  const future = Date.now() + 180_000;
+  alice.send({
+    type: "send_invite",
+    commandId: "invite-active-opponent-later",
+    opponentName: "Invite Bob",
+    scheduledAt: future,
+  });
+  const futureInvite = await bob.next(
+    (frame) =>
+      frame.type === "invite_updated" && frame.invite.scheduledAt === future,
+  );
+  assert.equal(futureInvite.invite.awaitingResponseFromName, "Invite Bob");
+  const counter = future + 60_000;
+  bob.send({
+    type: "propose_invite_time",
+    commandId: "counter-time",
+    inviteId: futureInvite.invite.inviteId,
+    scheduledAt: counter,
+  });
+  const countered = await alice.next(
+    (frame) =>
+      frame.type === "invite_updated" && frame.invite.scheduledAt === counter,
+  );
+  assert.equal(countered.invite.awaitingResponseFromName, "Invite Alice");
+  alice.send({
+    type: "respond_invite",
+    commandId: "accept-counter",
+    inviteId: futureInvite.invite.inviteId,
+    accept: true,
+  });
+  const counterAccepted = await bob.next(
+    (frame) =>
+      frame.type === "invite_updated" &&
+      frame.invite.inviteId === futureInvite.invite.inviteId &&
+      frame.invite.status === "accepted",
+  );
+  assert.equal(counterAccepted.invite.game, undefined);
 
   const due = Date.now() + 200;
   alice.send({
