@@ -150,6 +150,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     _ticksSinceSave++;
     if (_flagged != null) {
       unawaited(LastGameStorage.clear());
+      unawaited(_showTimeoutResult());
     } else if (_ticksSinceSave >= 5) {
       _ticksSinceSave = 0;
       unawaited(_saveOpenGame());
@@ -320,6 +321,43 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     final startNew = await showCheckmateDialog(
       context: context,
       userWon: userWon,
+      title: versusComputer
+          ? (userWon ? 'You Win!' : 'Computer Wins')
+          : '${winner == Side.white ? 'White' : 'Black'} Wins!',
+      message: message,
+    );
+    if (mounted && startNew) await _reset();
+  }
+
+  Future<void> _showTimeoutResult() async {
+    final flagged = _flagged;
+    if (!mounted || _resultShown || flagged == null) return;
+    _resultShown = true;
+    await LastGameStorage.clear();
+    if (!mounted) return;
+    final winner = flagged.opposite;
+    final versusComputer = widget.mode == PlayerMode.computer;
+    final userWon = !versusComputer || winner == Side.white;
+    unawaited(
+      MusicScope.of(context)?.playEffect(
+        userWon ? CinematicSound.victoryApplause : CinematicSound.finalStrike,
+      ),
+    );
+    final message = userWon
+        ? const GameResultMessage(
+            sentiment: 'Victory on the clock! You held your nerve.',
+            comment:
+                'You managed the pressure and kept enough time to claim the arena.',
+          )
+        : const GameResultMessage(
+            sentiment: 'Time ran out, but the next battle awaits.',
+            comment:
+                'Play the critical positions a little faster and keep time for the finish.',
+          );
+    final startNew = await showGameResultDialog(
+      context: context,
+      outcome: userWon ? GameResultOutcome.victory : GameResultOutcome.defeat,
+      heading: 'WINNER BY TIMEOUT',
       title: versusComputer
           ? (userWon ? 'You Win!' : 'Computer Wins')
           : '${winner == Side.white ? 'White' : 'Black'} Wins!',

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.2 · 2026-09-12
+
+- Strengthen Medium with deterministic two-ply reply search and positional
+  scoring for development, central control, mobility, and king safety.
+- Remove arbitrary move selection from tied Medium evaluations by applying a
+  stable tie-break, so the same position always produces the same move.
+- Declare the opposing player the winner when a clock expires and present the
+  full result animation with a clear “Winner by Timeout” announcement.
+- Replace short 3, 5, and 10 minute online clocks with 15 minute Rapid and 30 or
+  60 minute Classical choices, while retaining the untimed invitation option.
+
 ## 0.8.1 · 2026-09-12
 
 - Strengthen Easy with a mixed strategy: choose varied standard opening moves,

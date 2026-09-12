@@ -16,7 +16,7 @@ void main() {
     expect(state.position.board.pieceAt(Square.e1)?.role, Role.king);
     expect(state.whiteMs, 60000);
     expect(state.winner, 'b');
-    expect(state.statusLabel, 'Time expired · Black wins');
+    expect(state.statusLabel, 'Winner by timeout · Black wins');
     expect(state.rematchOffers, ['w']);
     expect(() => state.san.add('e4'), throwsUnsupportedError);
   });

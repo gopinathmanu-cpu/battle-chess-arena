@@ -1,4 +1,4 @@
-# Battle Chess Arena · 0.8.1
+# Battle Chess Arena · 0.8.2
 
 An Android/iOS Flutter chess game with optional, short, skippable capture battles.
 Original project code and visual assets are **GPL-3.0-or-later**; dependencies
@@ -29,7 +29,7 @@ See [validation results](docs/MILESTONE_4_VALIDATION.md).
 - Favourite opponents with online/offline presence, immediate invitations,
   exact date-and-time scheduling, alternating counter-proposals, acceptance
   status, and persistent in-app reminders.
-- Invitation proposals specify either a 3, 5, or 10 minute clock or no timer;
+- Invitation proposals specify a 15, 30, or 60 minute clock or no timer;
   the agreed format appears with the appointment and inside the game.
 - Server-controlled moves, clocks, results, resign, draw offers and mutual rematch.
 - Pending-move input lock, stale-state rejection, reconnect/resume/full sync.

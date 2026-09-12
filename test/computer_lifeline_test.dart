@@ -48,7 +48,7 @@ void main() {
   testWidgets('lifeline highlights a hard-level move without playing it', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
+    await tester.binding.setSurfaceSize(const Size(390, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final player = HintPlayer();
     await tester.pumpWidget(

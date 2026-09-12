@@ -96,7 +96,7 @@ class OnlineGameState {
     if (status == 'complete') {
       final reason = switch (resultReason) {
         'checkmate' => 'Checkmate',
-        'timeout' => 'Time expired',
+        'timeout' => 'Winner by timeout',
         'resignation' => 'Resignation',
         'agreement' => 'Draw by agreement',
         'stalemate' => 'Draw by stalemate',

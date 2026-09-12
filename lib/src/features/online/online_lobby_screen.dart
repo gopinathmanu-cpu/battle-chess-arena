@@ -30,9 +30,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     ),
   );
   static const _controls = <_OnlineTimeControl>[
-    _OnlineTimeControl('3 min', 180000),
-    _OnlineTimeControl('5 min', 300000),
-    _OnlineTimeControl('10 min', 600000),
+    _OnlineTimeControl('15 min · Rapid', 900000),
+    _OnlineTimeControl('30 min · Classical', 1800000),
+    _OnlineTimeControl('60 min · Classical', 3600000),
   ];
 
   late final OnlineMatchClient _client;

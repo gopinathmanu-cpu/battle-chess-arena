@@ -45,7 +45,7 @@ void main() {
     expect(ComputerDifficulty.medium.stockfishSkill, 5);
     expect(ComputerDifficulty.hard.stockfishSkill, 20);
     expect(ComputerDifficulty.easy.fallbackDepth, 1);
-    expect(ComputerDifficulty.medium.fallbackDepth, 1);
+    expect(ComputerDifficulty.medium.fallbackDepth, 2);
     expect(ComputerDifficulty.hard.fallbackDepth, 3);
     expect(
       ComputerDifficulty.easy.thinkTime < ComputerDifficulty.hard.thinkTime,
@@ -116,6 +116,25 @@ void main() {
       player.dispose();
     }
     expect(replies.length, greaterThan(1));
+  });
+  test('medium chooses the same strongest move without randomness', () async {
+    final replies = <String>{};
+    for (var seed = 0; seed < 6; seed++) {
+      final primary = StubPlayer(() async => 'e7e5');
+      final player = ReliableComputerPlayer(
+        primary: primary,
+        random: Random(seed),
+      );
+      final move = await player.bestMove(
+        fen,
+        difficulty: ComputerDifficulty.medium,
+      );
+      expect(move, isNotNull);
+      replies.add(move!);
+      expect(primary.calls, 0);
+      player.dispose();
+    }
+    expect(replies, hasLength(1));
   });
   testWidgets('stalled native engine falls back and is never retried', (
     tester,

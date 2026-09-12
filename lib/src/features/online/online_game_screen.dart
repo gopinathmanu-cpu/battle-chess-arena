@@ -353,12 +353,24 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         : GameResultOutcome.defeat;
     final heading = switch (state.resultReason) {
       'checkmate' => 'CHECKMATE',
-      'timeout' => 'TIME',
+      'timeout' => 'WINNER BY TIMEOUT',
       'resignation' => 'RESIGNATION',
       _ when draw => 'DRAW',
       _ => 'GAME OVER',
     };
-    final message = draw
+    final message = state.resultReason == 'timeout'
+        ? userWon
+              ? const GameResultMessage(
+                  sentiment: 'Victory on the clock! You held your nerve.',
+                  comment:
+                      'You managed the pressure and kept enough time to claim the arena.',
+                )
+              : const GameResultMessage(
+                  sentiment: 'Time ran out, but the next battle awaits.',
+                  comment:
+                      'Play the critical positions a little faster and keep time for the finish.',
+                )
+        : draw
         ? const GameResultMessage(
             sentiment: 'A hard-fought draw.',
             comment:

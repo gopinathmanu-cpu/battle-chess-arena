@@ -569,4 +569,25 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     client.dispose();
   });
+
+  testWidgets('online timeout names the opponent as winner', (tester) async {
+    final channel = FakeChannel();
+    final client = await showGame(tester, channel);
+    channel.receive({
+      'type': 'game_state',
+      'state': stateJson(
+        sequence: 2,
+        status: 'complete',
+        whiteMs: 0,
+        result: {'reason': 'timeout', 'winner': 'b'},
+      ),
+    });
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(find.text('WINNER BY TIMEOUT'), findsOneWidget);
+    expect(find.text('You Lost'), findsOneWidget);
+    expect(find.byKey(const ValueKey('result-atmosphere')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    client.dispose();
+  });
 }

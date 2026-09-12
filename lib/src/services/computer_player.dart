@@ -130,16 +130,15 @@ class ReliableComputerPlayer implements ComputerPlayer {
   };
 
   static NormalMove? _bestFallback(Position position, int depth) {
-    NormalMove? best;
-    var bestScore = -1000000;
-    for (final move in _moves(position)) {
-      final score = -_search(position.play(move), depth);
-      if (score > bestScore) {
-        bestScore = score;
-        best = move;
-      }
-    }
-    return best;
+    final ranked =
+        [
+          for (final move in _moves(position))
+            (move, -_search(position.play(move), depth)),
+        ]..sort((a, b) {
+          final scoreOrder = b.$2.compareTo(a.$2);
+          return scoreOrder != 0 ? scoreOrder : a.$1.uci.compareTo(b.$1.uci);
+        });
+    return ranked.firstOrNull?.$1;
   }
 
   static Iterable<NormalMove> _moves(Position position) sync* {
@@ -169,7 +168,7 @@ class ReliableComputerPlayer implements ComputerPlayer {
       }
       return best;
     }
-    const values = {
+    const materialValues = {
       Role.pawn: 100,
       Role.knight: 320,
       Role.bishop: 330,
@@ -180,10 +179,53 @@ class ReliableComputerPlayer implements ComputerPlayer {
     var score = 0;
     for (final square in position.board.occupied.squares) {
       final piece = position.board.pieceAt(square)!;
-      score += values[piece.role]! * (piece.color == position.turn ? 1 : -1);
+      final value =
+          materialValues[piece.role]! + _positionalValue(piece, square);
+      score += value * (piece.color == position.turn ? 1 : -1);
     }
+    final mobility = position.legalMoves.values.fold<int>(
+      0,
+      (total, destinations) => total + destinations.squares.length,
+    );
+    score += min(mobility, 30);
+    if (position.isCheck) score -= 30;
     return score;
   }
+
+  static int _positionalValue(Piece piece, Square square) {
+    final fileDistance = min(
+      (square.file.value - 3).abs(),
+      (square.file.value - 4).abs(),
+    );
+    final rankDistance = min(
+      (square.rank.value - 3).abs(),
+      (square.rank.value - 4).abs(),
+    );
+    final centerBonus = max(0, 16 - ((fileDistance + rankDistance) * 5));
+
+    return switch (piece.role) {
+      Role.pawn =>
+        centerBonus +
+            (piece.color == Side.white
+                ? max(0, square.rank.value - 1) * 3
+                : max(0, 6 - square.rank.value) * 3),
+      Role.knight =>
+        centerBonus + (_isHomeRank(piece.color, square.rank) ? 0 : 12),
+      Role.bishop =>
+        (centerBonus ~/ 2) + (_isHomeRank(piece.color, square.rank) ? 0 : 10),
+      Role.rook => centerBonus ~/ 3,
+      Role.queen => centerBonus ~/ 4,
+      Role.king => _isCastledKingSquare(piece.color, square) ? 25 : 0,
+    };
+  }
+
+  static bool _isHomeRank(Side side, Rank rank) =>
+      rank == (side == Side.white ? Rank.first : Rank.eighth);
+
+  static bool _isCastledKingSquare(Side side, Square square) =>
+      side == Side.white
+      ? square == Square.g1 || square == Square.c1
+      : square == Square.g8 || square == Square.c8;
 
   @override
   void dispose() {
