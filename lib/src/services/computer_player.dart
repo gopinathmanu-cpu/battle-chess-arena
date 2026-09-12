@@ -50,14 +50,36 @@ class ReliableComputerPlayer implements ComputerPlayer {
   }
 
   static NormalMove? _easyMove(Position position, String fen) {
-    final ranked = <(NormalMove, int)>[
-      for (final move in _moves(position))
-        (move, -_search(position.play(move), 0)),
-    ]..sort((a, b) => a.$2.compareTo(b.$2));
+    final ranked = <(NormalMove, int, bool, int)>[];
+    for (final move in _moves(position)) {
+      final next = position.play(move);
+      final piece = position.board.pieceAt(move.from);
+      final quiet = position.board.pieceAt(move.to) == null && !next.isCheck;
+      var development = 0;
+      if ({Square.d4, Square.e4, Square.d5, Square.e5}.contains(move.to)) {
+        development += 20;
+      }
+      if ((piece?.role == Role.knight || piece?.role == Role.bishop) &&
+          (move.from.rank == Rank.first || move.from.rank == Rank.eighth)) {
+        development += 25;
+      }
+      ranked.add((move, -_search(next, 1), quiet, development));
+    }
     if (ranked.isEmpty) return null;
-    final weakerChoices = (ranked.length / 2).ceil();
+    ranked.sort(
+      (a, b) => b.$2.compareTo(a.$2) != 0
+          ? b.$2.compareTo(a.$2)
+          : b.$4.compareTo(a.$4),
+    );
+    final bestScore = ranked.first.$2;
+    final sensible = ranked
+        .where((candidate) => candidate.$2 >= bestScore - 75)
+        .toList();
+    final quiet = sensible.where((candidate) => candidate.$3).toList();
+    final choices = quiet.isNotEmpty ? quiet : sensible;
+    final choiceCount = choices.length.clamp(1, 3);
     final hash = fen.codeUnits.fold<int>(0, (value, unit) => value * 31 + unit);
-    return ranked[hash.abs() % weakerChoices].$1;
+    return choices[hash.abs() % choiceCount].$1;
   }
 
   static NormalMove? _bestFallback(Position position, int depth) {

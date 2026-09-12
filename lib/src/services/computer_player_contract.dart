@@ -10,7 +10,7 @@ extension ComputerDifficultyDetails on ComputerDifficulty {
   };
 
   String get description => switch (this) {
-    ComputerDifficulty.easy => 'Deliberately weaker play for learning',
+    ComputerDifficulty.easy => 'Safe, sensible play with fewer attacking ideas',
     ComputerDifficulty.medium => 'Shallow tactics for a fair challenge',
     ComputerDifficulty.hard => 'Full Stockfish strength',
   };
@@ -28,7 +28,7 @@ extension ComputerDifficultyDetails on ComputerDifficulty {
   };
 
   int get fallbackDepth => switch (this) {
-    ComputerDifficulty.easy => 0,
+    ComputerDifficulty.easy => 1,
     ComputerDifficulty.medium => 1,
     ComputerDifficulty.hard => 3,
   };

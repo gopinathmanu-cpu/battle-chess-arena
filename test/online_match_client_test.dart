@@ -22,7 +22,7 @@ void main() {
     addTearDown(client.dispose);
     await client.connect(Uri.parse('wss://arena.example'));
     expect(client.connected, isFalse);
-    channel.receive({'type': 'connected', 'protocolVersion': 2});
+    channel.receive({'type': 'connected', 'protocolVersion': 3});
     await flush();
     final registration = channel.sent.single;
     expect(registration['type'], 'register_player');
@@ -130,10 +130,7 @@ void main() {
     expect(client.playerSearchResult!.name, 'Moon Mage');
     expect(client.pointHistory.single.points, 3);
     expect(client.activeGames.single.gameId, 'active-one');
-    client.deleteHistory(client.pointHistory.single);
-    expect(channel.sent.last['type'], 'delete_history');
-    expect(channel.sent.last['recordId'], 'record-one');
-    expect(client.pointHistory, isEmpty);
+    expect(client.pointHistory.single.recordId, 'record-one');
     client.deleteInvitation('invite-one');
     expect(channel.sent.last['type'], 'delete_invite');
     expect(client.invitations, isEmpty);

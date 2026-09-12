@@ -165,9 +165,9 @@ class _HomeScreenState extends State<HomeScreen> {
               title: 'Tournaments',
               subtitle: 'Arena, Swiss and private events',
               accent: _selected.accent,
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tournament lobby is Phase 3.')),
-              ),
+              onTap: () => ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Coming Soon!!!'))),
             ),
           ],
         ),

@@ -9,6 +9,7 @@ import '../../domain/game_session.dart';
 import '../../domain/game_result_analysis.dart';
 import '../../domain/online_player_profile.dart';
 import '../../domain/piece_pack.dart';
+import '../../services/computer_player.dart';
 import '../../services/theme_music.dart';
 import '../../services/online_match_client.dart';
 import '../play/chess_widgets.dart';
@@ -17,9 +18,15 @@ import '../play/checkmate_dialog.dart';
 import 'online_avatar_image.dart';
 
 class OnlineGameScreen extends StatefulWidget {
-  const OnlineGameScreen({required this.client, required this.pack, super.key});
+  const OnlineGameScreen({
+    required this.client,
+    required this.pack,
+    this.computerPlayer,
+    super.key,
+  });
   final OnlineMatchClient client;
   final PiecePack pack;
+  final ComputerPlayer? computerPlayer;
 
   @override
   State<OnlineGameScreen> createState() => _OnlineGameScreenState();
@@ -37,8 +44,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   Square? _selected;
   Set<Square> _targets = const {};
   MoveResolution? _battle;
+  final List<MoveResolution> _battleQueue = [];
   Timer? _battleTimer;
+  Timer? _battleGapTimer;
   Timer? _displayTimer;
+  Timer? _hintTimer;
+  late final ComputerPlayer _computer;
   int _lastCapture = -1;
   String? _lastFen;
   int? _round;
@@ -49,20 +60,37 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   bool _reduceMotion = false;
   int? _resultScheduledRound;
   int? _resultShownRound;
+  int _lastLifelineRequests = 0;
+  int _hintRequestEpoch = 0;
+  bool _hintThinking = false;
+  Square? _hintFrom;
+  Square? _hintTo;
+  String? _hintMessage;
+  String? _cachedHintFen;
+  Square? _cachedHintFrom;
+  Square? _cachedHintTo;
+  DateTime? _lastBattleEndedAt;
+  bool _battleGapActive = false;
   OnlineMatchClient get _client => widget.client;
   bool get _inputEnabled =>
       _client.canAct &&
       _client.session.canMove(_client.seat) &&
       _battle == null &&
+      _battleQueue.isEmpty &&
+      !_battleGapActive &&
+      !_hintThinking &&
       !_promotionOpen;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _computer = widget.computerPlayer ?? ReliableComputerPlayer();
     _lastCapture = _client.session.captureSequence;
     _lastFen = _client.state?.fen;
     _round = _client.state?.round;
+    _lastLifelineRequests =
+        _client.state?.lifelineRequestsFor(_client.seat) ?? 0;
     _client.addListener(_refresh);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = _client.state;
@@ -90,44 +118,203 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     _client.removeListener(_refresh);
     _displayTimer?.cancel();
     _battleTimer?.cancel();
+    _battleGapTimer?.cancel();
+    _hintTimer?.cancel();
+    _computer.dispose();
     super.dispose();
   }
 
   void _refresh() {
     if (!mounted) return;
     final state = _client.state;
-    if (_lastFen != state?.fen ||
-        !_client.connected ||
-        _round != state?.round) {
+    final roundChanged = _round != state?.round;
+    final fenChanged = _lastFen != state?.fen;
+    if (_lastFen != state?.fen || !_client.connected || roundChanged) {
       _selected = null;
       _targets = const {};
     }
-    if (_round != state?.round) _finishBattle();
+    if (fenChanged || roundChanged || state?.status != 'active') {
+      _hintRequestEpoch++;
+      _hintTimer?.cancel();
+      _hintThinking = false;
+      _hintFrom = null;
+      _hintTo = null;
+      _hintMessage = null;
+      _cachedHintFen = null;
+      _cachedHintFrom = null;
+      _cachedHintTo = null;
+    }
+    final requests = state?.lifelineRequestsFor(_client.seat) ?? 0;
+    final lifelineRequested =
+        state != null && !roundChanged && requests > _lastLifelineRequests;
+    _lastLifelineRequests = requests;
+    if (roundChanged) {
+      _battleQueue.clear();
+      _battleGapTimer?.cancel();
+      _battleGapActive = false;
+      _lastBattleEndedAt = null;
+      _finishBattle(showNext: false);
+    }
     _round = state?.round;
     _lastFen = state?.fen;
     final capture = _client.session.committedCapture;
     if (_client.session.captureSequence != _lastCapture) {
       _lastCapture = _client.session.captureSequence;
       if (_battlesEnabled && capture != null) {
-        _battle = capture;
-        _battleTimer?.cancel();
-        final reduced =
-            _reduceMotion || MediaQuery.disableAnimationsOf(context);
-        _battleTimer = Timer(
-          captureBattleDuration(reduced: reduced, fast: _fastBattles) +
-              Duration(milliseconds: reduced ? 25 : 100),
-          _finishBattle,
-        );
+        _queueOrShowBattle(capture);
       }
     }
     setState(() {});
+    if (lifelineRequested) unawaited(_generateLifelineHint(state));
     if (state != null) _scheduleResult(state);
   }
 
-  void _finishBattle() {
+  Future<void> _generateLifelineHint(OnlineGameState requestedState) async {
+    final fen = requestedState.fen;
+    final round = requestedState.round;
+    final requestEpoch = ++_hintRequestEpoch;
+    setState(() {
+      _hintThinking = true;
+      _hintFrom = null;
+      _hintTo = null;
+      _hintMessage = 'Finding the best move…';
+    });
+    try {
+      final suggestion = await _computer.bestMove(
+        fen,
+        difficulty: ComputerDifficulty.hard,
+      );
+      if (!mounted ||
+          requestEpoch != _hintRequestEpoch ||
+          _client.state?.fen != fen ||
+          _client.state?.round != round) {
+        return;
+      }
+      final parsed = suggestion == null ? null : Move.parse(suggestion);
+      if (parsed case final NormalMove move
+          when requestedState.position.isLegal(move)) {
+        _displayHint(move.from, move.to, fen);
+      } else {
+        setState(() {
+          _hintThinking = false;
+          _hintMessage = 'A move suggestion is unavailable for this position.';
+        });
+      }
+    } catch (_) {
+      if (!mounted || requestEpoch != _hintRequestEpoch) return;
+      setState(() {
+        _hintThinking = false;
+        _hintMessage = 'A move suggestion is unavailable on this device.';
+      });
+    }
+  }
+
+  void _displayHint(Square from, Square to, String fen) {
+    final displayEpoch = ++_hintRequestEpoch;
+    _hintTimer?.cancel();
+    setState(() {
+      _hintThinking = false;
+      _hintFrom = from;
+      _hintTo = to;
+      _hintMessage =
+          'Suggested move: ${from.name} → ${to.name} · highlighted for 10 seconds';
+      _cachedHintFen = fen;
+      _cachedHintFrom = from;
+      _cachedHintTo = to;
+    });
+    _hintTimer = Timer(const Duration(seconds: 10), () {
+      if (!mounted || displayEpoch != _hintRequestEpoch) return;
+      setState(() {
+        _hintFrom = null;
+        _hintTo = null;
+        _hintMessage = null;
+      });
+    });
+  }
+
+  void _useOnlineLifeline() {
+    final state = _client.state;
+    if (state == null) return;
+    if (_cachedHintFen == state.fen &&
+        _cachedHintFrom != null &&
+        _cachedHintTo != null) {
+      _displayHint(_cachedHintFrom!, _cachedHintTo!, state.fen);
+      return;
+    }
+    _client.useLifeline();
+  }
+
+  void _clearLifelineHint() {
+    if (!_hintThinking &&
+        _hintFrom == null &&
+        _hintTo == null &&
+        _hintMessage == null) {
+      return;
+    }
+    _hintRequestEpoch++;
+    _hintTimer?.cancel();
+    setState(() {
+      _hintThinking = false;
+      _hintFrom = null;
+      _hintTo = null;
+      _hintMessage = null;
+    });
+  }
+
+  void _queueOrShowBattle(MoveResolution capture) {
+    if (_battle != null || _battleGapActive) {
+      _battleQueue.add(capture);
+      return;
+    }
+    final elapsed = _lastBattleEndedAt == null
+        ? const Duration(seconds: 2)
+        : DateTime.now().difference(_lastBattleEndedAt!);
+    if (elapsed < const Duration(seconds: 2)) {
+      _battleQueue.add(capture);
+      _scheduleNextBattle(const Duration(seconds: 2) - elapsed);
+      return;
+    }
+    _showBattle(capture);
+  }
+
+  void _showBattle(MoveResolution capture) {
+    if (!mounted) return;
+    _battle = capture;
+    _battleGapActive = false;
+    _battleTimer?.cancel();
+    final reduced = _reduceMotion || MediaQuery.disableAnimationsOf(context);
+    _battleTimer = Timer(
+      captureBattleDuration(reduced: reduced, fast: _fastBattles) +
+          Duration(milliseconds: reduced ? 25 : 100),
+      _finishBattle,
+    );
+  }
+
+  void _scheduleNextBattle(Duration delay) {
+    _battleGapTimer?.cancel();
+    _battleGapActive = true;
+    _battleGapTimer = Timer(delay, () {
+      if (!mounted) return;
+      if (!_battlesEnabled || _battleQueue.isEmpty) {
+        setState(() => _battleGapActive = false);
+        return;
+      }
+      final next = _battleQueue.removeAt(0);
+      setState(() => _showBattle(next));
+    });
+  }
+
+  void _finishBattle({bool showNext = true}) {
     _battleTimer?.cancel();
     if (!mounted) return;
-    setState(() => _battle = null);
+    setState(() {
+      _battle = null;
+      _lastBattleEndedAt = DateTime.now();
+    });
+    if (showNext && _battleQueue.isNotEmpty && _battlesEnabled) {
+      _scheduleNextBattle(const Duration(seconds: 2));
+      return;
+    }
     final state = _client.state;
     if (state != null) _scheduleResult(state);
   }
@@ -135,18 +322,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   void _scheduleResult(OnlineGameState state) {
     if (state.status != 'complete' ||
         _resultShownRound == state.round ||
-        _resultScheduledRound == state.round) {
+        _resultScheduledRound == state.round ||
+        _battle != null ||
+        _battleQueue.isNotEmpty ||
+        _battleGapActive) {
       return;
     }
     _resultScheduledRound = state.round;
-    final delay = _battle == null
-        ? const Duration(milliseconds: 250)
-        : captureBattleDuration(
-                reduced:
-                    _reduceMotion || MediaQuery.disableAnimationsOf(context),
-                fast: _fastBattles,
-              ) +
-              const Duration(milliseconds: 150);
+    const delay = Duration(milliseconds: 250);
     Future.delayed(delay, () {
       if (!mounted) return;
       final latest = _client.state;
@@ -211,6 +394,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   }
 
   Future<void> _tapSquare(Square square) async {
+    _clearLifelineHint();
     if (!_inputEnabled) return;
     final state = _client.state!;
     final piece = state.position.board.pieceAt(square);
@@ -324,6 +508,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           accent: accent,
           orientation: side,
           hiddenPieceSquare: _battle?.move.to,
+          suggestedFrom: _hintFrom,
+          suggestedTo: _hintTo,
           onSquareTap: _tapSquare,
         ),
         if (_battle != null)
@@ -427,6 +613,73 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       ),
     if (_client.error != null)
       Text(_client.error!, style: const TextStyle(color: Colors.redAccent)),
+    if (state.status == 'active')
+      Card(
+        key: const ValueKey('online-computer-lifelines'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Computer Lifelines',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  for (var index = 0; index < 3; index++)
+                    Icon(
+                      Icons.lightbulb,
+                      color: index < state.lifelinesFor(_client.seat)
+                          ? Colors.amberAccent
+                          : Colors.white24,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Highlights the best move for 10 seconds. You still make the move.',
+              ),
+              const SizedBox(height: 8),
+              FilledButton.tonalIcon(
+                key: const ValueKey('use-online-computer-lifeline'),
+                onPressed:
+                    _inputEnabled &&
+                        (state.lifelinesFor(_client.seat) > 0 ||
+                            (_cachedHintFen == state.fen &&
+                                _cachedHintFrom != null &&
+                                _cachedHintTo != null))
+                    ? _useOnlineLifeline
+                    : null,
+                icon: _hintThinking
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.psychology),
+                label: Text(
+                  state.lifelinesFor(_client.seat) == 0
+                      ? 'No lifelines remaining'
+                      : 'Suggest best move (${state.lifelinesFor(_client.seat)} left)',
+                ),
+              ),
+              if (_hintMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _hintMessage!,
+                    key: const ValueKey('online-computer-hint-message'),
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     if (state.drawOfferSide != null)
       Card(
         child: Padding(
@@ -495,7 +748,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       title: const Text('Capture battles'),
       onChanged: (value) {
         setState(() => _battlesEnabled = value);
-        if (!value) _finishBattle();
+        if (!value) {
+          _battleQueue.clear();
+          _battleGapTimer?.cancel();
+          _battleGapActive = false;
+          _finishBattle(showNext: false);
+        }
       },
     ),
     SwitchListTile(

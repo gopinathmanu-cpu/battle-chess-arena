@@ -21,7 +21,7 @@ export function createMatchServer({
   const httpServer = createServer((request, response) => {
     if (request.method === "GET" && request.url === "/health") {
       response.writeHead(200, { "content-type": "application/json" });
-      response.end(JSON.stringify({ status: "ok", protocolVersion: 2 }));
+      response.end(JSON.stringify({ status: "ok", protocolVersion: 3 }));
       return;
     }
     response.writeHead(404, { "content-type": "application/json" });
@@ -182,7 +182,7 @@ export function createMatchServer({
     const peer = { setupReceipts: new Map() };
     peers.set(socket, peer);
     socket.on("error", () => {}); // A transport failure must not crash other rooms.
-    send(socket, "connected", { protocolVersion: 2 });
+    send(socket, "connected", { protocolVersion: 3 });
     socket.on("message", (raw, binary) => {
       let message;
       let game;
@@ -227,19 +227,20 @@ export function createMatchServer({
               "That Avatar ID is already in use",
             );
           }
-          const profile = tokenProfile ?? existing ?? {
-            id: randomUUID(),
-            token: message.playerToken ?? randomUUID(),
-            name: message.name.trim().replace(/\s+/g, " "),
-            avatarId: message.avatarId,
-            level: message.level ?? "intermediate",
-            points: 0,
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            pointHistory: [],
-            sockets: new Set(),
-          };
+          const profile = tokenProfile ??
+            existing ?? {
+              id: randomUUID(),
+              token: message.playerToken ?? randomUUID(),
+              name: message.name.trim().replace(/\s+/g, " "),
+              avatarId: message.avatarId,
+              level: message.level ?? "intermediate",
+              points: 0,
+              wins: 0,
+              draws: 0,
+              losses: 0,
+              pointHistory: [],
+              sockets: new Set(),
+            };
           profile.sockets ??= new Set();
           profile.pointHistory ??= [];
           profile.avatarId = message.avatarId;
@@ -323,16 +324,6 @@ export function createMatchServer({
         if (message.type === "points_history") {
           send(socket, "points_history", {
             matches: [...peer.player.pointHistory].reverse(),
-          });
-          return;
-        }
-        if (message.type === "delete_history") {
-          peer.player.pointHistory = peer.player.pointHistory.filter(
-            (record) => record.recordId !== message.recordId,
-          );
-          send(socket, "history_deleted", {
-            commandId: message.commandId,
-            recordId: message.recordId,
           });
           return;
         }

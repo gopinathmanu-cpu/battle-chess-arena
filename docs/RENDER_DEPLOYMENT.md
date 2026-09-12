@@ -10,7 +10,7 @@ Node web service in Singapore with managed TLS and a health check.
 3. Connect the repository and select `render.yaml`.
 4. Review the single free service and apply the Blueprint.
 5. Open `https://battle-chess-arena-server.onrender.com/health`. A healthy
-   deployment returns `{"status":"ok","protocolVersion":2}`.
+   deployment returns `{"status":"ok","protocolVersion":3}`.
 
 The deployed game endpoint is:
 `wss://battle-chess-arena-server.onrender.com`.

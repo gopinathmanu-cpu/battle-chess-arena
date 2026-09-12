@@ -54,4 +54,19 @@ void main() {
     expect(find.text('Enter Arena'), findsOneWidget);
     expect(find.textContaining('wss://'), findsNothing);
   });
+
+  testWidgets('tournaments shows the coming-soon message', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      BattleChessArenaApp(musicOutput: FakeMusicOutput()),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Tournaments'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Tournaments'));
+    await tester.pump();
+    expect(find.text('Coming Soon!!!'), findsOneWidget);
+  });
 }

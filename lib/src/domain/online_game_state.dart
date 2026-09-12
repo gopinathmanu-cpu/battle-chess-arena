@@ -20,6 +20,12 @@ class OnlineGameState {
       rematchOffers = List<String>.unmodifiable(
         json['rematchOffers'] as List? ?? [],
       ),
+      whiteLifelines = ((json['lifelines'] as Map?)?['w'] as int?) ?? 3,
+      blackLifelines = ((json['lifelines'] as Map?)?['b'] as int?) ?? 3,
+      whiteLifelineRequests =
+          ((json['lifelineRequests'] as Map?)?['w'] as int?) ?? 0,
+      blackLifelineRequests =
+          ((json['lifelineRequests'] as Map?)?['b'] as int?) ?? 0,
       whitePlayer = OnlinePlayerSummary.fromJson(
         ((json['players'] as Map?)?['w'] as Map?)?.cast<String, dynamic>(),
         fallbackName: 'White player',
@@ -42,6 +48,12 @@ class OnlineGameState {
         (winner != null && !['w', 'b'].contains(winner)) ||
         (drawOfferSide != null &&
             (!['w', 'b'].contains(drawOfferSide) || drawOfferId == null)) ||
+        whiteLifelines < 0 ||
+        whiteLifelines > 3 ||
+        blackLifelines < 0 ||
+        blackLifelines > 3 ||
+        whiteLifelineRequests < 0 ||
+        blackLifelineRequests < 0 ||
         rematchOffers.any((side) => !['w', 'b'].contains(side))) {
       throw const FormatException('Invalid authoritative state');
     }
@@ -62,12 +74,22 @@ class OnlineGameState {
   final String? drawOfferSide;
   final String? drawOfferId;
   final List<String> rematchOffers;
+  final int whiteLifelines;
+  final int blackLifelines;
+  final int whiteLifelineRequests;
+  final int blackLifelineRequests;
   final OnlinePlayerSummary whitePlayer;
   final OnlinePlayerSummary blackPlayer;
   late final Position position;
 
   OnlinePlayerSummary opponentFor(String seat) =>
       seat == 'w' ? blackPlayer : whitePlayer;
+
+  int lifelinesFor(String? seat) =>
+      seat == 'b' ? blackLifelines : whiteLifelines;
+
+  int lifelineRequestsFor(String? seat) =>
+      seat == 'b' ? blackLifelineRequests : whiteLifelineRequests;
 
   String get statusLabel {
     if (status == 'waiting') return 'Waiting for an opponent';

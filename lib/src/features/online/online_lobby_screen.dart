@@ -243,36 +243,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     await OnlineGameHistory.saveReminders(_reminders);
   }
 
-  Future<void> _deleteHistory(
-    OnlinePointRecord record,
-    BuildContext sheetContext,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete game history?'),
-        content: const Text(
-          'The match card will be removed. Your points and win/draw/loss totals will not change.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    _client.deleteHistory(record);
-    final history = await OnlineGameHistory.deleteGame(record.gameId);
-    if (mounted) setState(() => _history = history);
-    if (sheetContext.mounted) Navigator.pop(sheetContext);
-  }
-
   Future<void> _saveGame(OnlineGameRecord record) async {
     final history = await OnlineGameHistory.upsert(record);
     if (mounted) setState(() => _history = history);
@@ -658,10 +628,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             ),
             items: [
               for (final level in OnlinePlayerLevel.values)
-                DropdownMenuItem(
-                  value: level,
-                  child: Text(level.label),
-                ),
+                DropdownMenuItem(value: level, child: Text(level.label)),
             ],
             onChanged: (value) {
               if (value != null) setState(() => _playerLevel = value);
@@ -1152,9 +1119,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   'Game history',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                 ),
-                subtitle: Text(
-                  'Deleting a match card does not change points or totals.',
-                ),
+                subtitle: Text('Completed games are retained with your score.'),
               ),
               if (_client.pointHistory.isEmpty)
                 const Expanded(
@@ -1177,21 +1142,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                             subtitle: Text(
                               '${_historyStatus(match.result)} · ${_formatSchedule(match.completedAt)}',
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Chip(label: Text('+${match.points} pts')),
-                                IconButton(
-                                  key: ValueKey(
-                                    'delete-history-${match.recordId}',
-                                  ),
-                                  tooltip: 'Delete game history',
-                                  onPressed: () =>
-                                      _deleteHistory(match, context),
-                                  icon: const Icon(Icons.delete_outline),
-                                ),
-                              ],
-                            ),
+                            trailing: Chip(label: Text('+${match.points} pts')),
                           ),
                         ),
                     ],

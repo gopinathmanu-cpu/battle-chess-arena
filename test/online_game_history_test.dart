@@ -49,8 +49,6 @@ void main() {
       expect(history.single.opponentName, 'Moon Mage');
       expect(history.single.status, 'complete');
       expect(history.single.moveCount, 19);
-      expect(await OnlineGameHistory.deleteGame(first.gameId), isEmpty);
-
       var favorites = await OnlineGameHistory.toggleFavorite(
         const OnlineFavorite(name: 'Moon Mage', avatarId: 'moon'),
       );

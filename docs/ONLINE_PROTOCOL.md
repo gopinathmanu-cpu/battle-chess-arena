@@ -1,9 +1,9 @@
-# Online Game Protocol v2
+# Online Game Protocol v3
 
-Milestone 4 requires v2 on both ends. v1 clients are incompatible.
+Online lifelines require v3 on both ends. Earlier clients are incompatible.
 The development endpoint is `ws://localhost:8080`; production must use `wss://`.
 Every message is a JSON text frame. The server sends `connected` with
-`protocolVersion: 2` after the WebSocket handshake.
+`protocolVersion: 3` after the WebSocket handshake.
 
 Clients send `{"type":"ping"}` while connected. The server replies with
 `{"type":"pong"}`. This heartbeat applies in the lobby as well as during a game.
@@ -13,7 +13,7 @@ Clients send `{"type":"ping"}` while connected. The server replies with
 Before creating, joining, resuming, or listing games, send:
 
 ```json
-{"type":"register_player","commandId":"profile-1","name":"Nova Knight","avatarId":"mage"}
+{"type":"register_player","commandId":"profile-1","name":"Nova Knight","avatarId":"mage","level":"intermediate"}
 ```
 
 Avatar IDs contain 3–20 ASCII letters, numbers, spaces, underscores, or hyphens and
@@ -42,7 +42,8 @@ awards 3 points to its winner or 1 point to each player for a draw, and records
 the corresponding win, draw, or loss exactly once.
 
 `points_history` returns the authenticated player's completed matches with the
-opponent identity, result, completion timestamp, and awarded points. `list_games`
+opponent identity, result, completion timestamp, and awarded points. Completed
+history cannot be deleted. `list_games`
 returns all non-completed server games for that player with only their own private
 seat credential. `find_player` performs a case-insensitive exact Avatar ID lookup
 and returns the public avatar icon and current online status.
@@ -92,6 +93,7 @@ not part of this version.
 | `offer_draw` | `commandId`, `gameId`, `round` | Offer a draw; only one offer may be outstanding. |
 | `respond_draw` | `commandId`, `gameId`, `round`, `offerId`, `accept` | Opponent accepts/declines the identified offer; `accept` is a boolean. |
 | `rematch` | `commandId`, `gameId`, `round` | Consent to another round after completion. |
+| `use_lifeline` | `commandId`, `gameId`, `round` | Consume one of the seat's three lifelines for the current position. Repeats on an unchanged position are free. |
 
 Example move:
 
@@ -167,6 +169,8 @@ State fields:
 - `result`: null, or `{reason, winner}`; winner is `w`, `b`, or null
 - `drawOffer`: null, or `{side, offerId}`
 - `rematchOffers`: array of consenting sides
+- `lifelines.w`, `lifelines.b`: remaining lifelines, reset to three each round
+- `lifelineRequests.w`, `lifelineRequests.b`: accepted request counters used to trigger or restore a suggestion
 
 Reasons: `checkmate`, `timeout`, `resignation`, `agreement`, `stalemate`,
 `insufficient_material`, `repetition`, `fifty_move`.
@@ -192,6 +196,8 @@ capture animations do not stop the clock.
    normalized FEN positions. Only a verified capture starts the optional renderer.
 5. Capture presentation is skippable, supports fast/fade-only modes, and never
    changes the server clock. Reconnect/sync gaps do not replay old battles.
+6. Consecutive capture presentations are queued with at least two seconds of
+   unobstructed board time between them.
 
 Display clocks interpolate from each accepted snapshot using a local monotonic
 stopwatch. Reaching zero locally does not declare a winner; only a server result

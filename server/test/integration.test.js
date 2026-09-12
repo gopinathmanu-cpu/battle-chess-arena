@@ -72,7 +72,7 @@ test("health check and lobby heartbeat work without a game", async (t) => {
 
   const response = await fetch(`http://${address}/health`);
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { status: "ok", protocolVersion: 2 });
+  assert.deepEqual(await response.json(), { status: "ok", protocolVersion: 3 });
 
   const lobby = await client(`ws://${address}`);
   lobby.send({ type: "ping" });
@@ -426,9 +426,7 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
   });
   await bob.next((frame) => frame.type === "seat_joined");
   bob.send({ type: "list_games" });
-  const activeGames = await bob.next(
-    (frame) => frame.type === "active_games",
-  );
+  const activeGames = await bob.next((frame) => frame.type === "active_games");
   assert.equal(activeGames.games.length, 1);
   assert.equal(activeGames.games[0].state.players.w.name, "Arena Alice");
 
@@ -489,24 +487,6 @@ test("unique profiles, one open game per opponent, multiple opponents and leader
   assert.equal(points.matches[0].opponentName, "Arena Alice");
   assert.equal(points.matches[0].result, "win");
   assert.equal(points.matches[0].points, 3);
-  const retainedPoints = leaders.leaders[0].points;
-  bob.send({
-    type: "delete_history",
-    commandId: "delete-history",
-    recordId: points.matches[0].recordId,
-  });
-  await bob.next((frame) => frame.type === "history_deleted");
-  bob.send({ type: "points_history" });
-  assert.equal(
-    (await bob.next((frame) => frame.type === "points_history")).matches.length,
-    0,
-  );
-  bob.send({ type: "leaderboard" });
-  assert.equal(
-    (await bob.next((frame) => frame.type === "leaderboard")).leaders[0]
-      .points,
-    retainedPoints,
-  );
   bob.send({
     type: "update_player",
     commandId: "rename-avatar",

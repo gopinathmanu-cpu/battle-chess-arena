@@ -39,6 +39,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   ComputerPlayer? _computer;
   Timer? _clockTimer;
   Timer? _battleTimer;
+  Timer? _computerReplyTimer;
   late BoardAppearance _appearance;
 
   Future<void> _customize() async {
@@ -55,6 +56,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   late bool _fastBattles;
   bool _showTopBar = true;
   bool _computerThinking = false;
+  bool _computerReplyDelay = false;
   bool _hintThinking = false;
   int _lifelinesRemaining = 3;
   String? _hintMessage;
@@ -114,12 +116,14 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     unawaited(_saveOpenGame());
     _clockTimer?.cancel();
     _battleTimer?.cancel();
+    _computerReplyTimer?.cancel();
     _computer?.dispose();
     super.dispose();
   }
 
   bool get _inputLocked =>
       _battle != null ||
+      _computerReplyDelay ||
       _computerThinking ||
       _hintThinking ||
       _flagged != null ||
@@ -271,6 +275,18 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     if (!mounted || _battle == null) return;
     _battleTimer?.cancel();
     setState(() => _battle = null);
+    if (widget.mode == PlayerMode.computer &&
+        _game.position.turn == Side.black &&
+        !_game.position.isGameOver) {
+      _computerReplyTimer?.cancel();
+      setState(() => _computerReplyDelay = true);
+      _computerReplyTimer = Timer(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        setState(() => _computerReplyDelay = false);
+        _finishTurn();
+      });
+      return;
+    }
     _finishTurn();
   }
 
@@ -420,12 +436,14 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     );
     if (!mounted || confirmed != true) return;
     _battleTimer?.cancel();
+    _computerReplyTimer?.cancel();
     setState(() {
       _gameEpoch++;
       _game.reset();
       _selected = null;
       _legalTargets = const {};
       _battle = null;
+      _computerReplyDelay = false;
       _whiteTime = const Duration(minutes: 10);
       _blackTime = const Duration(minutes: 10);
       _flagged = null;

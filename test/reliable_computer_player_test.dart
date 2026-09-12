@@ -43,7 +43,7 @@ void main() {
     expect(ComputerDifficulty.easy.stockfishSkill, 0);
     expect(ComputerDifficulty.medium.stockfishSkill, 5);
     expect(ComputerDifficulty.hard.stockfishSkill, 20);
-    expect(ComputerDifficulty.easy.fallbackDepth, 0);
+    expect(ComputerDifficulty.easy.fallbackDepth, 1);
     expect(ComputerDifficulty.medium.fallbackDepth, 1);
     expect(ComputerDifficulty.hard.fallbackDepth, 3);
     expect(

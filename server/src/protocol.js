@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { MatchError } from "./match.js";
 
-const actions = ["move", "resign", "offer_draw", "respond_draw", "rematch"];
+const actions = [
+  "move",
+  "resign",
+  "offer_draw",
+  "respond_draw",
+  "rematch",
+  "use_lifeline",
+];
 export const isAction = (type) => actions.includes(type);
 const fields = {
   ping: [],
@@ -9,7 +16,6 @@ const fields = {
   update_player: ["commandId", "name", "avatarId", "level"],
   leaderboard: [],
   points_history: [],
-  delete_history: ["commandId", "recordId"],
   find_player: ["query"],
   list_games: [],
   presence: ["names"],
@@ -17,7 +23,13 @@ const fields = {
   list_invites: [],
   delete_invite: ["commandId", "inviteId"],
   respond_invite: ["commandId", "inviteId", "accept"],
-  propose_invite_time: ["commandId", "inviteId", "scheduledAt", "timed", "baseMs"],
+  propose_invite_time: [
+    "commandId",
+    "inviteId",
+    "scheduledAt",
+    "timed",
+    "baseMs",
+  ],
   create_game: ["commandId", "baseMs", "incrementMs"],
   quick_match: ["commandId", "baseMs", "incrementMs"],
   cancel_matchmaking: ["commandId", "gameId"],
@@ -29,6 +41,7 @@ const fields = {
   offer_draw: ["commandId", "gameId", "round"],
   respond_draw: ["commandId", "gameId", "round", "offerId", "accept"],
   rematch: ["commandId", "gameId", "round"],
+  use_lifeline: ["commandId", "gameId", "round"],
 };
 const object = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
@@ -131,7 +144,6 @@ export function validateMessage(message) {
     require(typeof message.accept === "boolean");
   }
   if (message.type === "delete_invite") require(identifier(message.inviteId));
-  if (message.type === "delete_history") require(identifier(message.recordId));
   if (message.type === "propose_invite_time") {
     require(identifier(message.inviteId));
     require(integer(message.scheduledAt));

@@ -1,4 +1,4 @@
-# Battle Chess Arena · 0.7.0
+# Battle Chess Arena · 0.8.0
 
 An Android/iOS Flutter chess game with optional, short, skippable capture battles.
 Original project code and visual assets are **GPL-3.0-or-later**; dependencies
@@ -23,9 +23,9 @@ See [validation results](docs/MILESTONE_4_VALIDATION.md).
   Beginner, Intermediate, or Advanced; Quick Game prefers that level and widens
   the search after 15 seconds.
 - Unique, editable Avatar IDs with eight themed character portraits, multiple open opponents, a
-  ranked leaderboard, and completed-game history cards marked Won, Lost, or Draw.
-  History cards and invitations can be deleted without changing earned points or
-  win/draw/loss totals. Wins award three points and draws award one.
+  ranked leaderboard, and permanent completed-game history cards marked Won,
+  Lost, or Draw. Invitations can be removed from the player's own list. Wins
+  award three points and draws award one.
 - Favourite opponents with online/offline presence, immediate invitations,
   exact date-and-time scheduling, alternating counter-proposals, acceptance
   status, and persistent in-app reminders.
@@ -36,8 +36,14 @@ See [validation results](docs/MILESTONE_4_VALIDATION.md).
 - Copy Game ID for sharing; seat tokens remain private and in memory.
 - Manga Vanguard pawn artwork for committed captures; symbolic fallback elsewhere.
 - Optional, fast, reduced-motion and skippable online capture presentation.
+- Three server-counted lifelines per online rematch round. A lifeline highlights
+  the best move for ten seconds or until the board is tapped. Reopening the same
+  suggestion on an unchanged position does not consume another lifeline.
+- Capture cinematics are sequenced with at least two seconds of clear board time
+  between consecutive battles.
 - Result presentation for local and online games, with full-screen ambient victory
   graphics and a short original applause effect that follows the mute setting.
+- An original crowned battle-knight launcher icon for Android and iOS.
 
 ## Development setup
 

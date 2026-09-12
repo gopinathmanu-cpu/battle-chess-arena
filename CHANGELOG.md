@@ -1,13 +1,26 @@
 # Changelog
 
+## 0.8.0 · 2026-09-12
+
+- Keep completed game history permanent while retaining per-player deletion for
+  invitations.
+- Add three authoritative computer lifelines to every online rematch round. Show
+  source and destination highlights for ten seconds or until the board is tapped.
+  Reopening a suggestion for the unchanged position is free.
+- Queue consecutive online capture cinematics and keep at least two seconds
+  between them. Give the computer the same pause after a player's capture.
+- Rebalance Easy computer play around safe, near-best quiet development moves;
+  keep Medium tactical and Hard at full engine strength.
+- Replace the launcher artwork with an original crowned battle-knight arena icon
+  across Android and iOS, and change Tournaments to “Coming Soon!!!”.
+
 ## 0.7.0 · 2026-09-12
 
 - Add Beginner, Intermediate, and Advanced levels to online avatar profiles,
   profile editing, opponent search, game details, and the leaderboard.
 - Prefer the same player level during Quick Game matchmaking, then expand to
   other levels after 15 seconds so a sparse lobby can still form a match.
-- Present completed games as Won, Lost, or Draw history cards and allow players
-  to delete individual history entries without changing points or W/D/L totals.
+- Present completed games as Won, Lost, or Draw history cards.
 - Allow either player to remove an invitation from their own list without
   cancelling an accepted game or removing the other player's copy.
 - Extend end-of-game presentation to every online result. Add restrained

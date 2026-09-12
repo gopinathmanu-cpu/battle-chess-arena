@@ -5,12 +5,29 @@ import 'package:battle_chess_arena/src/features/online/online_lobby_screen.dart'
 import 'package:battle_chess_arena/src/features/play/capture_battle_overlay.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
 import 'package:battle_chess_arena/src/services/online_match_client.dart';
+import 'package:battle_chess_arena/src/services/computer_player.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/online_fixtures.dart';
+
+class _OnlineHintPlayer implements ComputerPlayer {
+  int calls = 0;
+
+  @override
+  Future<String?> bestMove(
+    String fen, {
+    ComputerDifficulty difficulty = ComputerDifficulty.medium,
+  }) async {
+    calls++;
+    return 'e2e4';
+  }
+
+  @override
+  void dispose() {}
+}
 
 void main() {
   testWidgets(
@@ -39,6 +56,7 @@ void main() {
     String seat = 'w',
     GameSession? game,
     Size size = const Size(400, 900),
+    ComputerPlayer? computerPlayer,
   }) async {
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -51,7 +69,11 @@ void main() {
     await tester.pump();
     await tester.pumpWidget(
       MaterialApp(
-        home: OnlineGameScreen(client: client, pack: piecePacks.first),
+        home: OnlineGameScreen(
+          client: client,
+          pack: piecePacks.first,
+          computerPlayer: computerPlayer,
+        ),
       ),
     );
     return client;
@@ -124,6 +146,73 @@ void main() {
           .pieceAt(Square.e4)
           ?.role,
       Role.pawn,
+    );
+    await tester.pumpWidget(const SizedBox());
+    client.dispose();
+  });
+
+  testWidgets('online lifeline is authoritative and clears on tap or timeout', (
+    tester,
+  ) async {
+    final channel = FakeChannel();
+    final hintPlayer = _OnlineHintPlayer();
+    final client = await showGame(tester, channel, computerPlayer: hintPlayer);
+    final button = find.byKey(const ValueKey('use-online-computer-lifeline'));
+    await tester.scrollUntilVisible(
+      button,
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(button);
+    await tester.pump();
+    final request = channel.sent.last;
+    expect(request['type'], 'use_lifeline');
+
+    channel.receive({
+      'type': 'game_state',
+      'state': stateJson(
+        sequence: 2,
+        whiteLifelines: 2,
+        whiteLifelineRequests: 1,
+      ),
+    });
+    channel.receive({
+      'type': 'command_result',
+      'commandId': request['commandId'],
+      'accepted': true,
+    });
+    await tester.pump();
+    expect(hintPlayer.calls, 1);
+    var board = tester.widget<ChessBoard>(find.byType(ChessBoard));
+    expect(board.suggestedFrom, Square.e2);
+    expect(board.suggestedTo, Square.e4);
+    expect(find.text('Suggest best move (2 left)'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('square-a2')));
+    await tester.pump();
+    board = tester.widget<ChessBoard>(find.byType(ChessBoard));
+    expect(board.suggestedFrom, isNull);
+    expect(board.suggestedTo, isNull);
+
+    final sentCount = channel.sent.length;
+    await tester.scrollUntilVisible(
+      button,
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(button);
+    await tester.pump();
+    expect(channel.sent.length, sentCount);
+    expect(hintPlayer.calls, 1);
+    expect(find.text('Suggest best move (2 left)'), findsOneWidget);
+    expect(
+      tester.widget<ChessBoard>(find.byType(ChessBoard)).suggestedTo,
+      Square.e4,
+    );
+    await tester.pump(const Duration(seconds: 10));
+    expect(
+      tester.widget<ChessBoard>(find.byType(ChessBoard)).suggestedTo,
+      isNull,
     );
     await tester.pumpWidget(const SizedBox());
     client.dispose();
@@ -241,6 +330,61 @@ void main() {
     },
   );
 
+  testWidgets('back-to-back online capture cinematics keep a two-second gap', (
+    tester,
+  ) async {
+    final channel = FakeChannel();
+    final game = GameSession()
+      ..playUci('e2e4')
+      ..playUci('d7d5');
+    final client = await showGame(tester, channel, game: game);
+    game.playUci('e4d5');
+    channel.receive({
+      'type': 'game_state',
+      'state': stateJson(game: game, sequence: 2),
+    });
+    await tester.pump();
+    expect(
+      tester
+          .widget<CaptureBattleOverlay>(find.byType(CaptureBattleOverlay))
+          .battle
+          .move
+          .from,
+      Square.e4,
+    );
+
+    game.playUci('d8d5');
+    channel.receive({
+      'type': 'game_state',
+      'state': stateJson(game: game, sequence: 3),
+    });
+    await tester.pump();
+    expect(
+      tester
+          .widget<CaptureBattleOverlay>(find.byType(CaptureBattleOverlay))
+          .battle
+          .move
+          .from,
+      Square.e4,
+    );
+    await tester.tap(find.text('Skip'));
+    await tester.pump();
+    expect(find.byType(CaptureBattleOverlay), findsNothing);
+    await tester.pump(const Duration(milliseconds: 1999));
+    expect(find.byType(CaptureBattleOverlay), findsNothing);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(
+      tester
+          .widget<CaptureBattleOverlay>(find.byType(CaptureBattleOverlay))
+          .battle
+          .move
+          .from,
+      Square.d8,
+    );
+    await tester.pumpWidget(const SizedBox());
+    client.dispose();
+  });
+
   testWidgets('disconnect disables board input and shows recovery UI', (
     tester,
   ) async {
@@ -339,7 +483,7 @@ void main() {
     client.dispose();
   });
 
-  testWidgets('lobby deletes invitation and completed history cards', (
+  testWidgets('lobby deletes invitations but retains completed history cards', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -394,18 +538,10 @@ void main() {
     await tester.tap(historyButton);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('WON ·'), findsOneWidget);
-    final deleteHistory = find.byKey(
-      const ValueKey('delete-history-history-one'),
-    );
-    await tester.ensureVisible(deleteHistory);
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(deleteHistory);
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-    await tester.pump();
+    expect(find.byTooltip('Delete game history'), findsNothing);
     expect(
       channel.sent.any((frame) => frame['type'] == 'delete_history'),
-      true,
+      false,
     );
     await tester.pumpWidget(const SizedBox());
     client.dispose();

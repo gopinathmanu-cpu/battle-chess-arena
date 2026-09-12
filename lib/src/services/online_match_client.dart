@@ -277,25 +277,14 @@ class OnlineMatchClient extends ChangeNotifier {
 
   void requestRematch() => _action('rematch');
 
+  void useLifeline() => _action('use_lifeline');
+
   void loadLeaderboard() {
     if (connected) _send(const {'type': 'leaderboard'});
   }
 
   void loadPointHistory() {
     if (connected) _send(const {'type': 'points_history'});
-  }
-
-  void deleteHistory(OnlinePointRecord record) {
-    if (!connected) return;
-    pointHistory = List.unmodifiable(
-      pointHistory.where((item) => item.recordId != record.recordId),
-    );
-    _send({
-      'type': 'delete_history',
-      'commandId': _newId(),
-      'recordId': record.recordId,
-    });
-    _notify();
   }
 
   void findPlayer(String avatarId) {
@@ -405,7 +394,7 @@ class OnlineMatchClient extends ChangeNotifier {
       if (type == 'pong') {
         // The frame timestamp above is the heartbeat acknowledgement.
       } else if (type == 'connected') {
-        if (frame['protocolVersion'] != 2) {
+        if (frame['protocolVersion'] != 3) {
           error = 'Update the match server to protocol version 2';
           unawaited(disconnect());
         } else if (_profile != null) {
@@ -477,10 +466,6 @@ class OnlineMatchClient extends ChangeNotifier {
               (item as Map).cast<String, dynamic>(),
             ),
           ),
-        );
-      } else if (type == 'history_deleted') {
-        pointHistory = List.unmodifiable(
-          pointHistory.where((item) => item.recordId != frame['recordId']),
         );
       } else if (type == 'player_found') {
         final player = frame['player'] as Map?;

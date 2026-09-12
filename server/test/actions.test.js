@@ -73,6 +73,20 @@ test("resign finishes once and disallows subsequent actions", () => {
   assert.equal(act(black, "offer_draw").code, "GAME_NOT_ACTIVE");
 });
 
+test("lifelines are limited per round and repeated positions are free", () => {
+  const { game, white, black, act } = setup();
+  assert.equal(act(white, "use_lifeline").accepted, true);
+  assert.deepEqual(game.lifelines, { w: 2, b: 3 });
+  assert.equal(game.lifelineRequests.w, 1);
+  assert.equal(act(white, "use_lifeline").accepted, true);
+  assert.deepEqual(game.lifelines, { w: 2, b: 3 });
+  assert.equal(game.lifelineRequests.w, 2);
+  assert.equal(act(black, "use_lifeline").code, "NOT_YOUR_TURN");
+  act(white, "move", { ply: 0, move: { from: "e2", to: "e4" } });
+  assert.equal(act(black, "use_lifeline").accepted, true);
+  assert.deepEqual(game.snapshot().lifelines, { w: 2, b: 2 });
+});
+
 test("draw offers require the opponent and the current offer ID", () => {
   const { game, white, black, act } = setup();
   const offer = act(white, "offer_draw");
@@ -114,6 +128,7 @@ test("mutual rematch keeps seats, resets clocks and rejects old-round commands",
   assert.equal(after.round, 2);
   assert.equal(after.status, "active");
   assert.deepEqual(after.clocks, { w: 10_000, b: 10_000 });
+  assert.deepEqual(after.lifelines, { w: 3, b: 3 });
   assert.ok(after.sequence > before.sequence);
   assert.equal(game.sideForToken(white), "w");
   assert.equal(act(white, "resign", { round: 1 }, 1400).code, "STALE_ROUND");

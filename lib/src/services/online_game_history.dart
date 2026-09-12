@@ -123,17 +123,6 @@ class OnlineGameHistory {
     return records;
   }
 
-  static Future<List<OnlineGameRecord>> deleteGame(String gameId) async {
-    final records = await loadGames()
-      ..removeWhere((item) => item.gameId == gameId);
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _gamesKey,
-      jsonEncode(records.map((item) => item.toJson()).toList()),
-    );
-    return records;
-  }
-
   static Future<List<OnlineFavorite>> loadFavorites() async {
     final preferences = await SharedPreferences.getInstance();
     final value = preferences.getString(_favoritesKey);

@@ -96,6 +96,8 @@ class ChessBoard extends StatelessWidget {
     this.orientation = Side.white,
     this.appearance,
     this.hiddenPieceSquare,
+    this.suggestedFrom,
+    this.suggestedTo,
     super.key,
   });
   final Position position;
@@ -106,6 +108,8 @@ class ChessBoard extends StatelessWidget {
   final Side orientation;
   final BoardAppearance? appearance;
   final Square? hiddenPieceSquare;
+  final Square? suggestedFrom;
+  final Square? suggestedTo;
 
   @override
   Widget build(BuildContext context) => GridView.builder(
@@ -124,6 +128,8 @@ class ChessBoard extends StatelessWidget {
       final piece = position.board.pieceAt(square);
       final isSelected = selected == square;
       final isTarget = legalTargets.contains(square);
+      final isSuggestedFrom = suggestedFrom == square;
+      final isSuggestedTo = suggestedTo == square;
       final light = (row + col).isEven;
       return Semantics(
         label:
@@ -136,6 +142,8 @@ class ChessBoard extends StatelessWidget {
           child: ColoredBox(
             color: isSelected
                 ? accent.withValues(alpha: .74)
+                : isSuggestedFrom
+                ? Colors.amber.withValues(alpha: .72)
                 : light
                 ? look.board.lightSquare
                 : look.board.darkSquare,
@@ -163,6 +171,20 @@ class ChessBoard extends StatelessWidget {
                       border: piece == null
                           ? null
                           : Border.all(color: accent, width: 4),
+                    ),
+                  ),
+                if (isSuggestedTo)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: .22),
+                          border: Border.all(
+                            color: Colors.amberAccent,
+                            width: 4,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
               ],

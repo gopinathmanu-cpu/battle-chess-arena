@@ -58,6 +58,9 @@ export class Match {
     this.activeSince = null;
     this.sequence = 0;
     this.round = 1;
+    this.lifelines = { w: 3, b: 3 };
+    this.lifelinePositions = { w: null, b: null };
+    this.lifelineRequests = { w: 0, b: 0 };
     this.drawOffer = null;
     this.rematchOffers = new Set();
     // Retain receipts across rematches; never evict and permit old replay.
@@ -175,6 +178,9 @@ export class Match {
         this.chess.reset();
         this.round += 1;
         this.remaining = { w: this.baseMs, b: this.baseMs };
+        this.lifelines = { w: 3, b: 3 };
+        this.lifelinePositions = { w: null, b: null };
+        this.lifelineRequests = { w: 0, b: 0 };
         this.status = "active";
         this.result = null;
         this.drawOffer = null;
@@ -218,6 +224,17 @@ export class Match {
         }
         if (command.accept) this.#finish("agreement", null);
         this.drawOffer = null;
+        break;
+      case "use_lifeline":
+        if (side !== this.chess.turn())
+          throw new MatchError("NOT_YOUR_TURN", "Use a lifeline on your turn");
+        if (this.lifelinePositions[side] !== this.chess.fen()) {
+          if (this.lifelines[side] <= 0)
+            throw new MatchError("NO_LIFELINES", "No lifelines remain");
+          this.lifelines[side] -= 1;
+          this.lifelinePositions[side] = this.chess.fen();
+        }
+        this.lifelineRequests[side] += 1;
         break;
       default:
         throw new MatchError("UNKNOWN_TYPE", "Unsupported action");
@@ -286,6 +303,8 @@ export class Match {
       result: this.result ? { ...this.result } : null,
       drawOffer: this.drawOffer ? { ...this.drawOffer } : null,
       rematchOffers: [...this.rematchOffers],
+      lifelines: { ...this.lifelines },
+      lifelineRequests: { ...this.lifelineRequests },
       players: {
         w: this.#publicPlayer(this.players.w),
         b: this.#publicPlayer(this.players.b),
