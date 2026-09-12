@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/online_player_profile.dart';
 import '../../domain/online_social.dart';
+import '../../domain/online_time_control.dart';
 import '../../domain/piece_pack.dart';
 import '../../services/online_game_history.dart';
 import '../../services/online_match_client.dart';
@@ -29,18 +30,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       defaultValue: 'wss://battle-chess-arena-server.onrender.com',
     ),
   );
-  static const _controls = <_OnlineTimeControl>[
-    _OnlineTimeControl('15 min · Rapid', 900000),
-    _OnlineTimeControl('30 min · Classical', 1800000),
-    _OnlineTimeControl('60 min · Classical', 3600000),
-  ];
-
   late final OnlineMatchClient _client;
   final _avatarName = TextEditingController();
   final _opponentSearch = TextEditingController();
   var _avatarId = onlineAvatarChoices.first.id;
   var _playerLevel = OnlinePlayerLevel.intermediate;
-  var _timeControl = _controls.last;
+  var _timeControl = onlineTimeControls.last;
   var _history = <OnlineGameRecord>[];
   var _favorites = <OnlineFavorite>[];
   var _reminders = <String>{};
@@ -389,55 +384,60 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
 
   Future<_InviteFormat?> _pickInviteFormat({
     bool timed = true,
-    int baseMs = 600000,
-  }) => showDialog<_InviteFormat>(
-    context: context,
-    builder: (context) => StatefulBuilder(
-      builder: (context, setDialogState) => AlertDialog(
-        title: const Text('Game timer'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Timed game'),
-              subtitle: Text(
-                timed ? 'Both players use a clock.' : 'Play without a clock.',
+    int baseMs = 900000,
+  }) {
+    baseMs = closestOnlineTimeControl(baseMs).baseMs;
+    return showDialog<_InviteFormat>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Game timer'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Timed game'),
+                subtitle: Text(
+                  timed ? 'Both players use a clock.' : 'Play without a clock.',
+                ),
+                value: timed,
+                onChanged: (value) => setDialogState(() => timed = value),
               ),
-              value: timed,
-              onChanged: (value) => setDialogState(() => timed = value),
+              if (timed)
+                DropdownButtonFormField<int>(
+                  initialValue: baseMs,
+                  decoration: const InputDecoration(
+                    labelText: 'Time per player',
+                  ),
+                  items: [
+                    for (final control in onlineTimeControls)
+                      DropdownMenuItem(
+                        value: control.baseMs,
+                        child: Text(control.label),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setDialogState(() => baseMs = value);
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            if (timed)
-              DropdownButtonFormField<int>(
-                initialValue: baseMs,
-                decoration: const InputDecoration(labelText: 'Time per player'),
-                items: [
-                  for (final control in _controls)
-                    DropdownMenuItem(
-                      value: control.baseMs,
-                      child: Text(control.label),
-                    ),
-                ],
-                onChanged: (value) {
-                  if (value != null) setDialogState(() => baseMs = value);
-                },
-              ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.pop(context, _InviteFormat(timed, baseMs)),
+              child: const Text('Continue'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(context, _InviteFormat(timed, baseMs)),
-            child: const Text('Continue'),
-          ),
-        ],
       ),
-    ),
-  );
+    );
+  }
 
   Future<void> _editProfile() async {
     final profile = _client.profile;
@@ -732,12 +732,12 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<_OnlineTimeControl>(
+                  child: DropdownButtonFormField<OnlineTimeControl>(
                     key: const ValueKey('online-time-control'),
                     initialValue: _timeControl,
                     decoration: const InputDecoration(labelText: 'Game time'),
                     items: [
-                      for (final control in _controls)
+                      for (final control in onlineTimeControls)
                         DropdownMenuItem(
                           value: control,
                           child: Text(control.label),
@@ -1167,12 +1167,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     'loss' => 'LOST',
     _ => 'DRAW',
   };
-}
-
-class _OnlineTimeControl {
-  const _OnlineTimeControl(this.label, this.baseMs);
-  final String label;
-  final int baseMs;
 }
 
 class _InviteFormat {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.5 · 2026-09-12
+
+- Prevent invitation timer dropdown failures when an existing invitation uses
+  an old or unsupported duration such as 6,000,000 milliseconds.
+- Normalize unsupported invitation durations to the closest current 15, 30, or
+  60 minute option before opening the timer dialog.
+
 ## 0.8.4 · 2026-09-12
 
 - Route every mobile difficulty through Stockfish with a direct skill mapping:
