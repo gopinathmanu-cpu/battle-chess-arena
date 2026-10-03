@@ -1,11 +1,20 @@
 import 'package:battle_chess_arena/src/domain/game_session.dart';
 import 'package:battle_chess_arena/src/domain/online_game_session.dart';
 import 'package:battle_chess_arena/src/domain/online_game_state.dart';
+import 'package:battle_chess_arena/src/domain/online_player_profile.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/online_fixtures.dart';
 
 void main() {
+  test('avatar voices use portrait gender with male fallback', () {
+    expect(avatarVoice('avatar-01'), AvatarVoice.female);
+    expect(avatarVoice('avatar-02'), AvatarVoice.male);
+    expect(avatarVoice('bot_mei'), AvatarVoice.female);
+    expect(avatarVoice('bot_lucas'), AvatarVoice.male);
+    expect(avatarVoice('crown'), AvatarVoice.male);
+  });
   test('parses FEN, clocks, result and draw/rematch fields', () {
     final json = stateJson(
       status: 'complete',
@@ -139,6 +148,7 @@ void main() {
         stateJson(game: game, sequence: 2),
       );
       expect(detectCommittedCapture(before, after)?.defender?.role, Role.pawn);
+      expect(detectCommittedMove(before, after)?.move.from, Square.e4);
       final session = OnlineGameSession()..apply(before);
       session.apply(after, animate: false);
       expect(session.committedCapture, isNull);
@@ -168,6 +178,18 @@ void main() {
       );
     },
   );
+
+  test('non-capturing committed moves are detected and recorded', () {
+    final before = OnlineGameState.fromJson(stateJson());
+    final game = GameSession()..playUci('e2e4');
+    final after = OnlineGameState.fromJson(stateJson(game: game, sequence: 2));
+    final session = OnlineGameSession()..apply(before);
+
+    expect(session.apply(after), isTrue);
+    expect(session.committedMove?.move.from, Square.e2);
+    expect(session.committedMove?.move.to, Square.e4);
+    expect(session.committedCapture, isNull);
+  });
 
   test(
     'en passant and promotion captures are detected, castling is not a capture',

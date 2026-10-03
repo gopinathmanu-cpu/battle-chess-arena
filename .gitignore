@@ -5,6 +5,8 @@
 .packages
 build/
 coverage/
+__pycache__/
+*.py[cod]
 
 # Node dependencies and local configuration
 node_modules/

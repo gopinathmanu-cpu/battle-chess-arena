@@ -5,6 +5,7 @@ import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 import '../../domain/game_session.dart';
 import 'board_appearance.dart';
+import '../../domain/custom_chess_set.dart';
 import '../../domain/piece_pack.dart';
 import '../../services/theme_music.dart';
 
@@ -208,6 +209,12 @@ class CaptureBattleOverlayState extends State<CaptureBattleOverlay>
                             useCharacterAsset: widget.useCharacterAsset,
                             victorious: true,
                             progress: cinematic,
+                            standard:
+                                widget.appearance?.standardPieces ?? false,
+                            classicStyle:
+                                widget.appearance?.classicStyle ??
+                                ClassicPieceStyle.magneticTeaching,
+                            customSet: widget.appearance?.customSet,
                           ),
                         ),
                         Transform.scale(
@@ -240,6 +247,12 @@ class CaptureBattleOverlayState extends State<CaptureBattleOverlay>
                               useCharacterAsset: widget.useCharacterAsset,
                               victorious: false,
                               progress: cinematic,
+                              standard:
+                                  widget.appearance?.standardPieces ?? false,
+                              classicStyle:
+                                  widget.appearance?.classicStyle ??
+                                  ClassicPieceStyle.magneticTeaching,
+                              customSet: widget.appearance?.customSet,
                             ),
                           ),
                         ),
@@ -356,6 +369,11 @@ class _BoardCaptureFlight extends StatelessWidget {
                 child: CharacterPiece(
                   piece: battle.defender!,
                   pack: defenderPack,
+                  standard: appearance?.standardPieces ?? false,
+                  classicStyle:
+                      appearance?.classicStyle ??
+                      ClassicPieceStyle.magneticTeaching,
+                  customSet: appearance?.customSet,
                 ),
               ),
             ),
@@ -382,7 +400,15 @@ class _BoardCaptureFlight extends StatelessWidget {
                   ),
                   child: Transform.scale(
                     scale: 1 + math.sin(progress * math.pi) * .18,
-                    child: CharacterPiece(piece: battle.attacker, pack: pack),
+                    child: CharacterPiece(
+                      piece: battle.attacker,
+                      pack: pack,
+                      standard: appearance?.standardPieces ?? false,
+                      classicStyle:
+                          appearance?.classicStyle ??
+                          ClassicPieceStyle.magneticTeaching,
+                      customSet: appearance?.customSet,
+                    ),
                   ),
                 ),
               ),
@@ -425,6 +451,9 @@ class _Fighter extends StatelessWidget {
     required this.useCharacterAsset,
     required this.victorious,
     required this.progress,
+    required this.standard,
+    required this.classicStyle,
+    this.customSet,
   });
   final Piece piece;
   final PiecePack pack;
@@ -432,6 +461,9 @@ class _Fighter extends StatelessWidget {
   final bool useCharacterAsset;
   final bool victorious;
   final double progress;
+  final bool standard;
+  final ClassicPieceStyle classicStyle;
+  final CustomChessSet? customSet;
 
   IconData get _roleIcon => switch (piece.role) {
     Role.king => Icons.workspace_premium,
@@ -456,7 +488,8 @@ class _Fighter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roleColor = _roleAccent;
-    final art = useCharacterAsset && pack.id == PiecePackId.anime
+    final art =
+        customSet == null && useCharacterAsset && pack.id == PiecePackId.anime
         ? ClipRect(
             child: Align(
               alignment: piece.color == Side.white
@@ -473,7 +506,13 @@ class _Fighter extends StatelessWidget {
           )
         : SizedBox.square(
             dimension: 88,
-            child: CharacterPiece(piece: piece, pack: pack),
+            child: CharacterPiece(
+              piece: piece,
+              pack: pack,
+              standard: standard,
+              classicStyle: classicStyle,
+              customSet: customSet,
+            ),
           );
     return Transform.scale(
       scale: victorious ? 1 + math.sin(progress * math.pi).abs() * .055 : 1,

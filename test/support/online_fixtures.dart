@@ -16,6 +16,7 @@ Map<String, dynamic> stateJson({
   String blackName = 'Black Hero',
   String whiteAvatar = 'sun',
   String blackAvatar = 'moon',
+  bool blackComputer = false,
   bool timed = true,
   int whiteLifelines = 3,
   int blackLifelines = 3,
@@ -43,7 +44,11 @@ Map<String, dynamic> stateJson({
     },
     'players': {
       'w': {'name': whiteName, 'avatarId': whiteAvatar},
-      'b': {'name': blackName, 'avatarId': blackAvatar},
+      'b': {
+        'name': blackName,
+        'avatarId': blackAvatar,
+        'computer': blackComputer,
+      },
     },
   };
 }

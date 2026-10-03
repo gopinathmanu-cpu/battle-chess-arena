@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:dartchess/dartchess.dart';
 import 'computer_player_contract.dart';
+import 'app_diagnostics.dart';
 import 'stockfish_computer_player_web.dart'
     if (dart.library.io) 'stockfish_computer_player_native.dart';
 
@@ -25,14 +26,16 @@ class ReliableComputerPlayer implements ComputerPlayer {
   Future<String?> bestMove(
     String fen, {
     ComputerDifficulty difficulty = ComputerDifficulty.medium,
+    int? botLevel,
   }) async {
+    final bot = botLevel == null ? null : BotStrength(botLevel);
     if (_disposed) return null;
     final position = Chess.fromSetup(Setup.parseFen(fen));
     if (position.isGameOver) return null;
     if (!reducedStrength) {
       try {
         final move = await _primary
-            .bestMove(fen, difficulty: difficulty)
+            .bestMove(fen, difficulty: difficulty, botLevel: botLevel)
             .timeout(const Duration(seconds: 12));
         if (_disposed) return null;
         final parsed = move == null ? null : Move.parse(move);
@@ -42,7 +45,18 @@ class ReliableComputerPlayer implements ComputerPlayer {
       }
       if (_disposed) return null;
       reducedStrength = true;
+      AppDiagnostics.instance.record(
+        DiagnosticSource.engineFallback,
+        StateError('Native engine fallback'),
+      );
       _primary.dispose();
+    }
+    if (bot != null) {
+      final moves = _moves(position).toList();
+      if (_random.nextDouble() < bot.mistakeChance) {
+        return moves[_random.nextInt(moves.length)].uci;
+      }
+      return _bestFallback(position, bot.fallbackDepth)?.uci;
     }
     return switch (difficulty) {
       ComputerDifficulty.easy => _easyMove(position, fen)?.uci,

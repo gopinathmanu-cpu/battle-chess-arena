@@ -1,15 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'dart:async';
+import '../../services/match_appearance_storage.dart';
+
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
+import '../../domain/capture_threat.dart';
+import '../play/threat_scan.dart';
+import '../play/play_assist_style.dart';
+
 import '../play/board_appearance.dart';
+import '../../services/custom_chess_sets.dart';
+import '../../services/custom_set_actions.dart';
+
 import 'package:flutter/services.dart';
 
 import '../../domain/game_session.dart';
 import '../../domain/game_result_analysis.dart';
 import '../../domain/online_player_profile.dart';
+import '../../domain/online_credits.dart';
 import '../../domain/piece_pack.dart';
+import '../../domain/player_progress.dart';
 import '../../services/computer_player.dart';
+import '../../services/game_display_settings.dart';
+import '../../services/player_progress_controller.dart';
+import '../../services/arena_credit_controller.dart';
+import '../credits/credit_balance_chip.dart';
+import '../credits/arena_credit_header.dart';
+import '../settings/game_settings_sheet.dart';
+import '../settings/board_color_settings.dart';
+import '../play/captured_pieces_panel.dart';
 import '../../services/theme_music.dart';
 import '../../services/online_match_client.dart';
 import '../play/chess_widgets.dart';
@@ -22,11 +41,15 @@ class OnlineGameScreen extends StatefulWidget {
     required this.client,
     required this.pack,
     this.computerPlayer,
+    this.initialClassicPieces = false,
+    this.initialClassicStyle = ClassicPieceStyle.magneticTeaching,
     super.key,
   });
   final OnlineMatchClient client;
   final PiecePack pack;
   final ComputerPlayer? computerPlayer;
+  final bool initialClassicPieces;
+  final ClassicPieceStyle initialClassicStyle;
 
   @override
   State<OnlineGameScreen> createState() => _OnlineGameScreenState();
@@ -35,10 +58,268 @@ class OnlineGameScreen extends StatefulWidget {
 class _OnlineGameScreenState extends State<OnlineGameScreen>
     with WidgetsBindingObserver {
   late BoardAppearance _appearance = BoardAppearance.forPack(widget.pack);
+  late bool _classicPieces = widget.initialClassicPieces;
+  late ClassicPieceStyle _classicStyle = widget.initialClassicStyle;
+  final _threats = ThreatScanController();
+  final _threatBoardKey = GlobalKey();
+  final _boardScroll = ScrollController();
+  final _displaySettings = GameDisplaySettings();
+  ArenaCreditController? _creditHeader;
+  OnlineCreditAccount? _publishedCreditAccount;
+
+  void _refreshThreats() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _creditHeader = ArenaCreditScope.maybeOf(context);
+    _syncCreditHeader();
+    _threats.setReducedMotion(
+      _reduceMotion || MediaQuery.disableAnimationsOf(context),
+    );
+  }
+
+  void _syncCreditHeader() {
+    final header = _creditHeader;
+    final profileToken = _client.profile?.playerToken;
+    final account = _client.creditAccount;
+    if (header == null || profileToken == null || profileToken.isEmpty) return;
+    if (!_client.connected) {
+      header.markDisconnected(profileToken: profileToken);
+      return;
+    }
+    if (!_client.supportsCredits || account == null) return;
+    if (identical(account, _publishedCreditAccount)) return;
+    _publishedCreditAccount = account;
+    header.acceptServerAccount(
+      profileToken: profileToken,
+      account: account,
+      policy: _client.creditPolicy,
+    );
+  }
+
+  void _analyseThreats() {
+    final state = _client.state;
+    if (!_inputEnabled || state == null) return;
+    _clearLifelineHint();
+    setState(() {
+      _selected = null;
+      _targets = const {};
+    });
+    final defender = _client.seat == 'b' ? Side.black : Side.white;
+    _threats.start(
+      immediateCaptureThreats(state.position, defender: defender),
+      reducedMotion: _reduceMotion || MediaQuery.disableAnimationsOf(context),
+    );
+  }
+
+  BoardAppearance get _displayAppearance {
+    final base = BoardAppearance(
+      white: _appearance.white,
+      black: _appearance.black,
+      board: _appearance.board,
+      standardPieces: _classicPieces,
+      classicStyle: _classicStyle,
+    );
+    var result = base.withCustomSet(
+      CustomChessSetScope.maybeOf(context)?.active,
+    );
+    if (_displaySettings.customBoardColorsEnabled) {
+      result = result.withBoardColors(
+        _displaySettings.boardLightSquare,
+        _displaySettings.boardDarkSquare,
+      );
+    }
+    return result;
+  }
+
+  void _toggleBoardColors() => unawaited(_displaySettings.toggleBoardColors());
+
+  Future<void> _togglePieceStyle() async {
+    if (!await restoreBuiltInChessSet(context) || !mounted) return;
+    _threats.stop();
+    setState(() => _classicPieces = !_classicPieces);
+    await _rememberAppearance();
+  }
+
+  int _appearanceRevision = 0;
+  Future<void> _loadAppearance() async {
+    final id = _client.gameId;
+    final seat = _client.seat;
+    final revision = _appearanceRevision;
+    if (id == null || seat == null) return;
+    try {
+      final saved = await MatchAppearanceStorage.load(id, seat);
+      if (!mounted ||
+          saved == null ||
+          revision != _appearanceRevision ||
+          id != _client.gameId) {
+        return;
+      }
+      setState(() {
+        _appearance = saved;
+        _classicPieces = saved.standardPieces;
+        _classicStyle = saved.classicStyle;
+      });
+    } catch (_) {
+      /* A corrupt preference must not block a game. */
+    }
+  }
+
+  Future<void> _rememberAppearance() async {
+    ++_appearanceRevision;
+    final id = _client.gameId;
+    final seat = _client.seat;
+    if (id == null || seat == null) return;
+    try {
+      await MatchAppearanceStorage.save(id, seat, _displayAppearance);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Chess set changed, but could not save it. Please try again.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _swipeChessSet(int direction) async {
+    if (_battle != null || _battleQueue.isNotEmpty) return;
+    if (!await restoreBuiltInChessSet(context) || !mounted) return;
+    _threats.stop();
+    setState(() {
+      if (_classicPieces) {
+        const styles = ClassicPieceStyle.values;
+        _classicStyle =
+            styles[(styles.indexOf(_classicStyle) + direction) % styles.length];
+      } else {
+        final index = piecePacks.indexWhere(
+          (p) => p.id == _appearance.white.id,
+        );
+        _appearance = BoardAppearance.forPack(
+          piecePacks[(index + direction) % piecePacks.length],
+        );
+      }
+    });
+    await _rememberAppearance();
+  }
 
   Future<void> _customize() async {
-    final next = await chooseBoardAppearance(context, _appearance);
-    if (mounted && next != null) setState(() => _appearance = next);
+    _threats.stop();
+    final next = await chooseBoardAppearance(context, _displayAppearance);
+    if (mounted && next != null) {
+      if (!await restoreBuiltInChessSet(context) || !mounted) return;
+      setState(() {
+        _appearance = next;
+        _classicPieces = next.standardPieces;
+        _classicStyle = next.classicStyle;
+      });
+      await _rememberAppearance();
+    }
+  }
+
+  void _openSettings() {
+    _threats.stop();
+    unawaited(
+      showGameSettings(
+        context: context,
+        display: _displaySettings,
+        onCustomize: _customize,
+        onReset: () async {
+          if (!mounted) return;
+          setState(() {
+            _appearance = BoardAppearance.forPack(piecePacks.first);
+            _classicPieces = false;
+            _classicStyle = ClassicPieceStyle.magneticTeaching;
+            _battlesEnabled = true;
+            _fastBattles = false;
+            _showTopBar = true;
+            _reduceMotion = false;
+            _threats.setReducedMotion(MediaQuery.disableAnimationsOf(context));
+          });
+          await _rememberAppearance();
+        },
+        controls: (refresh) => [
+          ListTile(
+            leading: const Icon(Icons.copy),
+            title: const Text('Copy Game ID'),
+            onTap: () => copyGameId(context, _client.gameId),
+          ),
+          SwitchListTile(
+            key: const ValueKey('online-classic-pieces-toggle'),
+            value: _classicPieces,
+            onChanged: (value) async {
+              if (!await restoreBuiltInChessSet(context) || !mounted) return;
+              setState(() => _classicPieces = value);
+              await _rememberAppearance();
+              refresh();
+            },
+            secondary: const Icon(Icons.castle_outlined),
+            title: const Text('Classic chess pieces'),
+            subtitle: Text(_classicStyle.label),
+          ),
+          if (_classicPieces)
+            SettingsChoiceTile<ClassicPieceStyle>(
+              key: const ValueKey('online-classic-piece-style-selector'),
+              title: 'Classic set',
+              icon: Icons.castle_outlined,
+              value: _classicStyle,
+              values: ClassicPieceStyle.values,
+              optionLabel: (style) => style.label,
+              optionDescription: (style) => style.subtitle,
+              onSelected: (style) async {
+                if (!await restoreBuiltInChessSet(context) || !mounted) {
+                  return;
+                }
+                setState(() => _classicStyle = style);
+                await _rememberAppearance();
+                refresh();
+              },
+            ),
+          SwitchListTile(
+            value: _battlesEnabled,
+            title: const Text('Capture battles'),
+            onChanged: (value) {
+              setState(() => _battlesEnabled = value);
+              if (!value) {
+                _battleQueue.clear();
+                _battleGapTimer?.cancel();
+                _battleGapActive = false;
+                _finishBattle(showNext: false);
+              }
+              refresh();
+            },
+          ),
+          SwitchListTile(
+            value: _fastBattles,
+            title: const Text('Fast battles'),
+            onChanged: (value) {
+              setState(() => _fastBattles = value);
+              refresh();
+            },
+          ),
+          SwitchListTile(
+            value: _reduceMotion || MediaQuery.disableAnimationsOf(context),
+            title: const Text('Reduced motion'),
+            subtitle: const Text('Fade only. Game clocks always keep running.'),
+            onChanged: MediaQuery.disableAnimationsOf(context)
+                ? null
+                : (value) {
+                    setState(() {
+                      _reduceMotion = value;
+                      _threats.setReducedMotion(value);
+                    });
+                    refresh();
+                  },
+          ),
+        ],
+      ),
+    );
   }
 
   Square? _selected;
@@ -66,6 +347,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   Square? _hintFrom;
   Square? _hintTo;
   String? _hintMessage;
+  Square? _lastOpponentFrom;
+  Square? _lastOpponentTo;
   String? _cachedHintFen;
   Square? _cachedHintFrom;
   Square? _cachedHintTo;
@@ -81,17 +364,32 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       !_hintThinking &&
       !_promotionOpen;
 
+  int _rematchCreditCost(OnlineGameState state) {
+    final againstComputer =
+        state.whitePlayer.computer || state.blackPlayer.computer;
+    return againstComputer
+        ? _client.creditPolicy.computerRoundCost
+        : _client.creditPolicy.humanRoundCost(
+            daily: state.clockMode == 'daily',
+          );
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _threats.addListener(_refreshThreats);
+    _displaySettings.addListener(_refreshThreats);
     _computer = widget.computerPlayer ?? ReliableComputerPlayer();
     _lastCapture = _client.session.captureSequence;
     _lastFen = _client.state?.fen;
     _round = _client.state?.round;
     _lastLifelineRequests =
         _client.state?.lifelineRequestsFor(_client.seat) ?? 0;
+    final initialState = _client.state;
+    if (initialState != null) _restoreOpponentMove(initialState);
     _client.addListener(_refresh);
+    unawaited(_loadAppearance());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = _client.state;
       if (state != null) _scheduleResult(state);
@@ -101,8 +399,32 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     });
   }
 
+  void _restoreOpponentMove(OnlineGameState state) {
+    if (state.san.isEmpty || state.turn != _client.seat) return;
+    final replay = GameSession();
+    NormalMove? lastMove;
+    for (final san in state.san) {
+      final move = replay.position.parseSan(san);
+      if (move is! NormalMove ||
+          replay.play(
+                move.from,
+                move.to,
+                promotion: move.promotion ?? Role.queen,
+              ) ==
+              null) {
+        return;
+      }
+      lastMove = move;
+    }
+    if (lastMove != null && replay.position.fen == state.position.fen) {
+      _lastOpponentFrom = lastMove.from;
+      _lastOpponentTo = lastMove.to;
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) _threats.stop();
     if (state == AppLifecycleState.resumed) {
       if (_client.connected) {
         _client.sync();
@@ -115,6 +437,11 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _threats.removeListener(_refreshThreats);
+    _threats.dispose();
+    _boardScroll.dispose();
+    _displaySettings.removeListener(_refreshThreats);
+    _displaySettings.dispose();
     _client.removeListener(_refresh);
     _displayTimer?.cancel();
     _battleTimer?.cancel();
@@ -126,9 +453,21 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
 
   void _refresh() {
     if (!mounted) return;
+    _syncCreditHeader();
     final state = _client.state;
     final roundChanged = _round != state?.round;
     final fenChanged = _lastFen != state?.fen;
+    final enteredActiveCheck =
+        fenChanged &&
+        !roundChanged &&
+        state?.status == 'active' &&
+        state?.position.isCheck == true;
+    if (fenChanged ||
+        roundChanged ||
+        state?.status != 'active' ||
+        !_client.canAct) {
+      _threats.stop();
+    }
     if (_lastFen != state?.fen || !_client.connected || roundChanged) {
       _selected = null;
       _targets = const {};
@@ -149,6 +488,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         state != null && !roundChanged && requests > _lastLifelineRequests;
     _lastLifelineRequests = requests;
     if (roundChanged) {
+      _lastOpponentFrom = null;
+      _lastOpponentTo = null;
       _battleQueue.clear();
       _battleGapTimer?.cancel();
       _battleGapActive = false;
@@ -158,6 +499,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     _round = state?.round;
     _lastFen = state?.fen;
     final capture = _client.session.committedCapture;
+    final committedMove = _client.session.committedMove;
+    final playerSide = _client.seat == 'b' ? Side.black : Side.white;
+    if (committedMove != null && committedMove.attacker.color != playerSide) {
+      _lastOpponentFrom = committedMove.move.from;
+      _lastOpponentTo = committedMove.move.to;
+    }
     if (_client.session.captureSequence != _lastCapture) {
       _lastCapture = _client.session.captureSequence;
       if (_battlesEnabled && capture != null) {
@@ -165,13 +512,27 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       }
     }
     setState(() {});
+    if (enteredActiveCheck && state != null) {
+      unawaited(
+        MusicScope.of(context)?.announceCheck(
+          voice: avatarVoice(state.opponentFor(_client.seat ?? 'w').avatarId),
+        ),
+      );
+    }
     if (lifelineRequested) unawaited(_generateLifelineHint(state));
     if (state != null) _scheduleResult(state);
   }
 
   Future<void> _generateLifelineHint(OnlineGameState requestedState) async {
+    _threats.stop();
     final fen = requestedState.fen;
     final round = requestedState.round;
+    if (_cachedHintFen == fen &&
+        _cachedHintFrom != null &&
+        _cachedHintTo != null) {
+      _displayHint(_cachedHintFrom!, _cachedHintTo!, fen);
+      return;
+    }
     final requestEpoch = ++_hintRequestEpoch;
     setState(() {
       _hintThinking = true;
@@ -182,7 +543,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     try {
       final suggestion = await _computer.bestMove(
         fen,
-        difficulty: ComputerDifficulty.hard,
+        difficulty: suggestionDifficulty,
       );
       if (!mounted ||
           requestEpoch != _hintRequestEpoch ||
@@ -233,14 +594,8 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   }
 
   void _useOnlineLifeline() {
-    final state = _client.state;
-    if (state == null) return;
-    if (_cachedHintFen == state.fen &&
-        _cachedHintFrom != null &&
-        _cachedHintTo != null) {
-      _displayHint(_cachedHintFrom!, _cachedHintTo!, state.fen);
-      return;
-    }
+    if (!_inputEnabled) return;
+    _threats.stop();
     _client.useLifeline();
   }
 
@@ -388,17 +743,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             comment:
                 'Review the decisive position, regroup, and challenge your opponent again.',
           );
+    final voice = avatarVoice(state.opponentFor(_client.seat ?? 'w').avatarId);
     unawaited(
-      MusicScope.of(context)?.playEffect(
-        userWon ? CinematicSound.victoryApplause : CinematicSound.finalStrike,
-      ),
+      userWon
+          ? MusicScope.of(context)?.announceVictory(
+              voice: voice,
+              checkmate: state.resultReason == 'checkmate',
+            )
+          : state.resultReason == 'checkmate'
+          ? MusicScope.of(context)?.announceCheckmateLoss(voice: voice)
+          : MusicScope.of(context)?.playEffect(CinematicSound.finalStrike),
     );
+    final progressAward = await _recordProgress(state, userWon);
+    if (!mounted) return;
     final startNew = await showGameResultDialog(
       context: context,
       outcome: outcome,
       heading: heading,
       title: draw ? 'Game Drawn' : (userWon ? 'You Win!' : 'You Lost'),
       message: message,
+      progressAward: progressAward,
     );
     if (mounted && startNew) {
       await _client.startAnotherGame();
@@ -406,7 +770,26 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     }
   }
 
+  Future<ProgressAward?> _recordProgress(
+    OnlineGameState state,
+    bool won,
+  ) async {
+    final controller = PlayerProgressScope.maybeOf(context);
+    if (controller == null) return null;
+    final credits = ArenaCreditScope.maybeOf(context);
+    final award = await controller.recordCompletion(
+      completionId: 'online:${state.gameId}:${state.round}',
+      moveCount: state.san.length,
+      won: won,
+    );
+    final unlocked = award.unlockedBadge;
+    if (unlocked == null || credits == null) return award;
+    final reward = await credits.grantBadgeUpgradeCredits(unlocked);
+    return award.withBadgeCredits(reward);
+  }
+
   Future<void> _tapSquare(Square square) async {
+    _threats.stop();
     _clearLifelineHint();
     if (!_inputEnabled) return;
     final state = _client.state!;
@@ -449,7 +832,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                                 color: state.position.turn,
                                 role: role,
                               ),
-                              pack: _appearance.army(state.position.turn),
+                              pack: _displayAppearance.army(
+                                state.position.turn,
+                              ),
+                              standard: _displayAppearance.standardPieces,
+                              classicStyle: _displayAppearance.classicStyle,
+                              customSet: _displayAppearance.customSet,
                             ),
                           ),
                         ),
@@ -478,6 +866,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
   }
 
   Future<void> _resign() async {
+    _threats.stop();
     final round = _client.state?.round;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -509,48 +898,96 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     OnlineGameState state,
     Side side,
     Color accent,
-  ) => ClipRRect(
-    borderRadius: BorderRadius.circular(14),
-    child: Stack(
-      children: [
-        ChessBoard(
-          appearance: _appearance,
-          position: state.position,
-          selected: _selected,
-          legalTargets: _targets,
-          accent: accent,
-          orientation: side,
-          hiddenPieceSquare: _battle?.move.to,
-          suggestedFrom: _hintFrom,
-          suggestedTo: _hintTo,
-          onSquareTap: _tapSquare,
+  ) {
+    return ZoomableChessBoard(
+      key: _threatBoardKey,
+      builder: (context, zoomed) => ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            ChessBoard(
+              onSetSwipe: zoomed ? null : _swipeChessSet,
+              appearance: _displayAppearance,
+              position: state.position,
+              selected: _selected,
+              legalTargets: _targets,
+              accent: accent,
+              orientation: side,
+              hiddenPieceSquare: _battle?.move.to,
+              suggestedFrom: _hintFrom,
+              suggestedTo: _hintTo,
+              lastMoveFrom: _lastOpponentFrom,
+              lastMoveTo: _lastOpponentTo,
+              threatFrom: _threats.current?.from,
+              threatTarget: _threats.current?.targetSquare,
+              threatLanding: _threats.current?.enPassant == true
+                  ? _threats.current?.to
+                  : null,
+              threatLit: _threats.lit,
+              onSquareTap: _tapSquare,
+            ),
+            if (_battle != null)
+              CaptureBattleOverlay(
+                appearance: _displayAppearance,
+                key: ValueKey(_lastCapture),
+                battle: _battle!,
+                accent: accent,
+                orientation: side,
+                reduced:
+                    _reduceMotion || MediaQuery.disableAnimationsOf(context),
+                fast: _fastBattles,
+                useCharacterAsset:
+                    !_classicPieces &&
+                    _appearance.white.id == PiecePackId.anime &&
+                    _appearance.black.id == PiecePackId.anime &&
+                    _battle!.attacker.role == Role.pawn &&
+                    _battle!.defender?.role == Role.pawn,
+                onSkip: _finishBattle,
+              ),
+          ],
         ),
-        if (_battle != null)
-          CaptureBattleOverlay(
-            appearance: _appearance,
-            key: ValueKey(_lastCapture),
-            battle: _battle!,
-            accent: accent,
-            orientation: side,
-            reduced: _reduceMotion || MediaQuery.disableAnimationsOf(context),
-            fast: _fastBattles,
-            useCharacterAsset:
-                widget.pack.id == PiecePackId.anime &&
-                _battle!.attacker.role == Role.pawn &&
-                _battle!.defender?.role == Role.pawn,
-            onSkip: _finishBattle,
-          ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   List<Widget> _buildStatus(OnlineGameState state, Side side, Color accent) => [
     if (!_showTopBar)
       Align(
         alignment: Alignment.centerRight,
-        child: TopBarRestoreButton(
-          accent: accent,
-          onPressed: () => setState(() => _showTopBar = true),
+        child: Wrap(
+          alignment: WrapAlignment.end,
+          children: [
+            PieceStyleToggleButton(
+              key: const ValueKey('online-quick-piece-style-toggle'),
+              classic: _classicPieces,
+              themedPack: _appearance.white,
+              onPressed: _togglePieceStyle,
+            ),
+            IconButton(
+              key: const ValueKey('online-quick-board-color-toggle'),
+              tooltip: _displaySettings.customBoardColorsEnabled
+                  ? 'Use chess set board colours'
+                  : 'Use saved board colours',
+              onPressed: _toggleBoardColors,
+              icon: ChessboardPaintIcon(
+                active: _displaySettings.customBoardColorsEnabled,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Game settings',
+              onPressed: _openSettings,
+              icon: const Icon(
+                Icons.settings_outlined,
+                color: Color(0xFF64D8CB),
+              ),
+            ),
+            const MusicButton(compact: true),
+            TopBarRestoreButton(
+              accent: accent,
+              onPressed: () => setState(() => _showTopBar = true),
+            ),
+            const ArenaCreditHeader(compact: true),
+          ],
         ),
       ),
     if (!_showTopBar) const SizedBox(height: 4),
@@ -575,13 +1012,27 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           ),
         ),
       ),
+    if (state.tossForColors)
+      Text(
+        'Colour toss: You play ${_client.seat == 'b' ? 'Black' : 'White'} · White moves first',
+        key: const ValueKey('colour-toss-result'),
+        textAlign: TextAlign.center,
+      ),
     MatchHeader(
-      status: state.statusLabel,
+      status: state.clockMode == 'daily'
+          ? 'Daily · 24h per move · ${state.statusLabel}'
+          : state.statusLabel,
       whiteTime: Duration(milliseconds: _client.session.clockMs('w')),
       blackTime: Duration(milliseconds: _client.session.clockMs('b')),
       turn: state.position.turn,
       accent: accent,
       timed: state.timed,
+    ),
+    const SizedBox(height: 12),
+    TurnIndicator(
+      isPlayerTurn: state.turn == _client.seat,
+      playerLabel: 'YOUR TURN · PLAY NOW',
+      opponentLabel: 'OPPONENT’S TURN · PLEASE WAIT',
     ),
     const SizedBox(height: 12),
     Builder(
@@ -596,12 +1047,24 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
             subtitle: Text(
-              '${onlinePlayerLevel(opponent.level).label} · ${state.timed ? 'Timed game' : 'No timer'}',
+              '${onlinePlayerLevel(opponent.level).label}${opponent.computer && opponent.botLevel != null ? ' · Level ${opponent.botLevel}' : ''} · ${opponent.computer ? 'Computer' : 'Online player'} · ${state.timed ? 'Timed game' : 'No timer'}',
             ),
           ),
         );
       },
     ),
+    Text(
+      'You are ${side == Side.white ? 'White' : 'Black'} · Round ${state.round}',
+      key: const ValueKey('assigned-seat'),
+      textAlign: TextAlign.center,
+    ),
+    if (_client.busy)
+      const Padding(
+        padding: EdgeInsets.all(8),
+        child: Text('Confirming move…', textAlign: TextAlign.center),
+      ),
+    if (_client.error != null)
+      Text(_client.error!, style: const TextStyle(color: Colors.redAccent)),
     const SizedBox(height: 8),
   ];
 
@@ -611,70 +1074,65 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
     Side side,
     Color accent,
   ) => [
-    Text(
-      'You are ${side == Side.white ? 'White' : 'Black'} · Round ${state.round}',
-      key: const ValueKey('assigned-seat'),
-      textAlign: TextAlign.center,
-    ),
-    if (_client.busy)
-      const Padding(
-        padding: EdgeInsets.all(8),
-        child: Text(
-          'Waiting for server confirmation…',
-          textAlign: TextAlign.center,
-        ),
-      ),
-    if (_client.error != null)
-      Text(_client.error!, style: const TextStyle(color: Colors.redAccent)),
-    if (state.status == 'active')
+    if (state.status == 'active' &&
+        (state.whitePlayer.computer || state.blackPlayer.computer))
       Card(
         key: const ValueKey('online-computer-lifelines'),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           child: Column(
             children: [
               Row(
                 children: [
                   const Expanded(
                     child: Text(
-                      'Computer Lifelines',
+                      'Play assists',
                       style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
-                  for (var index = 0; index < 3; index++)
-                    Icon(
-                      Icons.lightbulb,
-                      color: index < state.lifelinesFor(_client.seat)
-                          ? Colors.amberAccent
-                          : Colors.white24,
-                    ),
+                  CreditCostBadge(
+                    key: const ValueKey('online-suggestion-credit-cost'),
+                    cost: _client.creditPolicy.onlineMoveSuggestionCost,
+                    compact: true,
+                  ),
                 ],
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'Highlights the best move for 10 seconds. You still make the move.',
-              ),
               const SizedBox(height: 8),
-              FilledButton.tonalIcon(
-                key: const ValueKey('use-online-computer-lifeline'),
-                onPressed:
-                    _inputEnabled &&
-                        (state.lifelinesFor(_client.seat) > 0 ||
-                            (_cachedHintFen == state.fen &&
-                                _cachedHintFrom != null &&
-                                _cachedHintTo != null))
-                    ? _useOnlineLifeline
-                    : null,
-                icon: _hintThinking
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.psychology),
-                label: Text(
-                  state.lifelinesFor(_client.seat) == 0
-                      ? 'No lifelines remaining'
-                      : 'Suggest best move (${state.lifelinesFor(_client.seat)} left)',
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        key: const ValueKey('use-online-computer-lifeline'),
+                        style: playAssistButtonStyle,
+                        onPressed: _inputEnabled ? _useOnlineLifeline : null,
+                        icon: _hintThinking
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const MoveSuggestionIcon(),
+                        label: const Text(
+                          'Suggest move',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.fade,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ThreatScanButton(
+                        scan: _threats,
+                        enabled: _inputEnabled,
+                        onScan: _analyseThreats,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (_hintMessage != null)
@@ -692,6 +1150,12 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
             ],
           ),
         ),
+      ),
+    if (_displaySettings.showCapturedPieces)
+      CapturedPiecesPanel(
+        pieces: state.capturedPieces,
+        appearance: _displayAppearance,
+        playerSide: side,
       ),
     if (state.drawOfferSide != null)
       Card(
@@ -744,44 +1208,31 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
         ],
       ),
     if (state.status == 'complete')
-      FilledButton(
-        onPressed: _client.canAct && !state.rematchOffers.contains(_client.seat)
-            ? _client.requestRematch
-            : null,
-        child: Text(
-          state.rematchOffers.contains(_client.seat)
-              ? 'Waiting for opponent’s rematch agreement'
-              : state.rematchOffers.isEmpty
-              ? 'Request rematch'
-              : 'Accept rematch',
-        ),
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FilledButton(
+            onPressed:
+                _client.canAct && !state.rematchOffers.contains(_client.seat)
+                ? _client.requestRematch
+                : null,
+            child: Text(
+              state.rematchOffers.contains(_client.seat)
+                  ? 'Waiting for opponent’s rematch agreement'
+                  : state.rematchOffers.isEmpty
+                  ? 'Request rematch'
+                  : 'Accept rematch',
+            ),
+          ),
+          const SizedBox(height: 6),
+          CreditCostBadge(
+            key: const ValueKey('online-rematch-credit-cost'),
+            cost: _rematchCreditCost(state),
+            label: 'New round',
+            compact: true,
+          ),
+        ],
       ),
-    SwitchListTile(
-      value: _battlesEnabled,
-      title: const Text('Capture battles'),
-      onChanged: (value) {
-        setState(() => _battlesEnabled = value);
-        if (!value) {
-          _battleQueue.clear();
-          _battleGapTimer?.cancel();
-          _battleGapActive = false;
-          _finishBattle(showNext: false);
-        }
-      },
-    ),
-    SwitchListTile(
-      value: _fastBattles,
-      title: const Text('Fast battles'),
-      onChanged: (value) => setState(() => _fastBattles = value),
-    ),
-    SwitchListTile(
-      value: _reduceMotion || MediaQuery.disableAnimationsOf(context),
-      title: const Text('Reduced motion'),
-      subtitle: const Text('Fade only. Game clocks always keep running.'),
-      onChanged: MediaQuery.disableAnimationsOf(context)
-          ? null
-          : (value) => setState(() => _reduceMotion = value),
-    ),
     MoveStrip(moves: state.san, accent: accent),
   ];
 
@@ -794,24 +1245,44 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
       backgroundColor: _appearance.board.backdrop,
       appBar: _showTopBar
           ? AppBar(
-              title: const Text('Online Match'),
+              title: null,
               actions: [
-                const MusicButton(),
-                IconButton(
-                  tooltip: 'Armies & board',
-                  onPressed: _customize,
-                  icon: const Icon(Icons.palette_outlined),
+                PieceStyleToggleButton(
+                  key: const ValueKey('online-quick-piece-style-toggle'),
+                  classic: _classicPieces,
+                  themedPack: _appearance.white,
+                  compact: true,
+                  onPressed: _togglePieceStyle,
                 ),
                 IconButton(
-                  tooltip: 'Copy Game ID',
-                  icon: const Icon(Icons.copy),
-                  onPressed: () => copyGameId(context, _client.gameId),
+                  key: const ValueKey('online-quick-board-color-toggle'),
+                  tooltip: _displaySettings.customBoardColorsEnabled
+                      ? 'Use chess set board colours'
+                      : 'Use saved board colours',
+                  onPressed: _toggleBoardColors,
+                  visualDensity: VisualDensity.compact,
+                  icon: ChessboardPaintIcon(
+                    active: _displaySettings.customBoardColorsEnabled,
+                  ),
                 ),
+                IconButton(
+                  tooltip: 'Game settings',
+                  onPressed: _openSettings,
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: Color(0xFF64D8CB),
+                  ),
+                ),
+                const MusicButton(compact: true),
                 IconButton(
                   tooltip: 'Hide top bar',
                   onPressed: () => setState(() => _showTopBar = false),
-                  icon: const Icon(Icons.keyboard_arrow_up),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_up,
+                    color: Color(0xFFBA8CFF),
+                  ),
                 ),
+                const ArenaCreditHeader(compact: true),
               ],
             )
           : null,
@@ -819,6 +1290,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
           ? const Center(child: Text('Waiting for game state…'))
           : WorldBackdrop(
               pack: _appearance.board,
+              customSet: _displayAppearance.customSet,
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -858,6 +1330,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                                       .clamp(280.0, 440.0)
                                       .toDouble(),
                                   child: ListView(
+                                    key: const ValueKey(
+                                      'landscape-online-match-scroll',
+                                    ),
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 4,
                                     ),
@@ -873,6 +1348,10 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 600),
                             child: ListView(
+                              key: const ValueKey(
+                                'portrait-online-match-scroll',
+                              ),
+                              controller: _boardScroll,
                               padding: EdgeInsets.fromLTRB(
                                 _showTopBar ? 16 : 8,
                                 _showTopBar ? 16 : 8,
@@ -895,6 +1374,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen>
                                     accent,
                                   ),
                                 ),
+                                ThreatScanBanner(scan: _threats),
                                 SizedBox(height: _showTopBar ? 8 : 4),
                                 Padding(
                                   padding: EdgeInsets.symmetric(

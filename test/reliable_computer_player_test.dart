@@ -11,13 +11,16 @@ class StubPlayer implements ComputerPlayer {
   int calls = 0;
   bool disposed = false;
   ComputerDifficulty? lastDifficulty;
+  int? lastBotLevel;
   @override
   Future<String?> bestMove(
     String fen, {
     ComputerDifficulty difficulty = ComputerDifficulty.medium,
+    int? botLevel,
   }) {
     calls++;
     lastDifficulty = difficulty;
+    lastBotLevel = botLevel;
     return answer();
   }
 
@@ -29,6 +32,42 @@ class StubPlayer implements ComputerPlayer {
 
 void main() {
   const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+  test('fixed bot level reaches the native engine', () async {
+    final primary = StubPlayer(() async => 'e7e5');
+    final player = ReliableComputerPlayer(primary: primary);
+    await player.bestMove(
+      fen,
+      difficulty: ComputerDifficulty.easy,
+      botLevel: 20,
+    );
+    expect(primary.lastBotLevel, 20);
+    player.dispose();
+  });
+  test('fallback bot strength ignores the user preset', () async {
+    // Small legal endgame keeps fallback search verification fast.
+    const endgame = '8/8/8/8/8/2k5/7p/K7 b - - 0 1';
+    for (final level in [1, 7, 8, 14, 15, 20]) {
+      String? expected;
+      for (final difficulty in ComputerDifficulty.values) {
+        final player = ReliableComputerPlayer(
+          primary: StubPlayer(() async => null),
+          random: Random(42),
+        );
+        final move = await player.bestMove(
+          endgame,
+          difficulty: difficulty,
+          botLevel: level,
+        );
+        expected ??= move;
+        expect(move, expected);
+        expect(
+          Chess.fromSetup(Setup.parseFen(endgame)).isLegal(Move.parse(move!)!),
+          true,
+        );
+        player.dispose();
+      }
+    }
+  });
   test('preserves a legal native reply', () async {
     final primary = StubPlayer(() async => 'e7e5');
     final player = ReliableComputerPlayer(primary: primary);
@@ -41,8 +80,8 @@ void main() {
     player.dispose();
   });
   test('difficulty settings increase engine and backup strength', () {
-    expect(ComputerDifficulty.easy.stockfishSkill, 5);
-    expect(ComputerDifficulty.medium.stockfishSkill, 10);
+    expect(ComputerDifficulty.easy.stockfishSkill, 0);
+    expect(ComputerDifficulty.medium.stockfishSkill, 6);
     expect(ComputerDifficulty.hard.stockfishSkill, 20);
     expect(ComputerDifficulty.easy.fallbackDepth, 1);
     expect(ComputerDifficulty.medium.fallbackDepth, 2);

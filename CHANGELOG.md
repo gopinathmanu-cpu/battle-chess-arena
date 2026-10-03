@@ -1,5 +1,258 @@
 # Changelog
 
+## 0.9.0-beta.36+51 — First Google Play release
+
+Released to Google Play; source checked in on 2026-10-03.
+
+- Package Android beta 36 (build 51). Add a visual App icon selector under
+  Settings > Appearance. New installations default to the Light Purple icon;
+  users can switch between Light Purple and Classic Gold, with the selection
+  persisted across restarts.
+- Package Android beta 33 (build 48). Restore invitations and connected-player
+  browsing against the currently deployed capability-less protocol-v4 service.
+  Invitations now default to a supported 30-minute live clock instead of a
+  disabled Daily format. Connected-player browsing falls back to leaderboard
+  presence data, still showing 10 at a time with Show 10 more, while newer
+  services retain exact available-player filtering.
+- Package Android beta 32 (build 47) with server beta 7. Add a complete
+  user-facing credit guide covering every cost, earning path, free action,
+  badge reward, fairness rule and planned pack. Protect real-player online
+  games from move suggestions and add a server-authoritative low-balance grant
+  that restores balances below 2 to 5 after a rolling 24-hour cooldown.
+- Package Android beta 31 (build 46). Apply the same 5-credit immediate retry
+  or free retry after a persisted 15-minute cooldown to Conquests. Preserve the
+  roadmap and conquered rounds, and prevent the bottom action from bypassing
+  the retry choice.
+- Package Android beta 30 (build 45). Preview the one-time coin reward beside
+  every tier in the Badge summary. Tournament losses and draws now offer a
+  clearly priced 5-credit immediate rematch or a free retry after a persisted
+  15-minute cooldown.
+- Package Android beta 29 (build 44). Grant one-time animated bonus credits for
+  every badge upgrade: 25 Bronze, 50 Silver, 75 Gold, 100 Platinum, 150 Diamond
+  and 250 Grandmaster. Persist stable badge claims so repeated result screens,
+  reloads and rematches cannot duplicate rewards, and celebrate the coin grant
+  with the badge unlock.
+- Package Android beta 28 (build 43). Make My Themes use the same full-board
+  swipe-and-arrow carousel as built-in chess sets, with no custom-set dropdown.
+  Classic/Themed selection now exits My Themes reliably. Separate Create and
+  Edit actions open the relevant Studio editor directly. Rename testing credit
+  credit addition to Top-up Credits and stop displaying the private Top-up code anywhere
+  in Settings.
+- Package Android beta 27 (build 42). Remove the chessboard zoom overlay
+  controls so they never cover a piece or square. Use unobstructed two-finger
+  pinch zoom instead; pan with one finger while enlarged, then pinch fully out
+  to restore 100% chess-set swiping.
+- Package Android beta 26 (build 41). Show the complete “Scroll left or right
+  to select chess set” Home-board guidance without ellipsis, allowing a second
+  line on narrow or large-text displays while retaining the matching quick-game
+  typography.
+- Package Android beta 25 (build 40). Add zoom controls to every playable
+  chessboard. At 100%, horizontal swipes continue to browse chess sets; after
+  zooming in up to 300%, disable set switching and use drag/pinch gestures to
+  inspect and pan around the board. Restoring 100% re-enables chess-set swiping.
+- Package Android beta 24 (build 39). Replace every dropdown shown in the Game
+  Settings sheet with a consistent, compact settings row and checked-choice
+  panel. Preserve application palette, music, Home chess set, computer
+  difficulty and offline/online Classic-set choices without form-field boxes or
+  dropdown arrows.
+- Package Android beta 23 (build 38). Match the two Home carousel guidance
+  labels in size and weight with clearer spacing; place Play assists directly
+  below the board in computer, tournament, conquest and online games; and keep
+  return/resign controls below captured pieces. Remove redundant manual-save
+  wording because matches autosave, while retaining failure-only save recovery.
+  Make the Classic family card follow the selected application colour scheme.
+- Package Android beta 22 (build 37). Keep the first-time Play Online
+  **Save & Enter Arena** action in a persistent safe-area footer so it remains
+  visible below the Avatar ID and image selector on small phones. Make the
+  player-level selector responsive to prevent narrow-screen overflow. Apply a
+  consistent warm-gold default to menus, cards, dialogs and navigation surfaces,
+  with five predefined application colour schemes selectable and persisted from
+  Settings.
+- Package Android beta 21 (build 36). Standardize all 27 Historical and
+  Legendary atlases to a canonical near-front/viewer-left source orientation
+  for elephants, horses and directional chariots. Preserve the original pixels
+  through lossless per-cell mirroring; Black remains mirrored at render time so
+  opposing armies face one another consistently.
+- Package Android beta 18 (build 33). Show an opponent identity/details card
+  before the board in local, computer, tournament and Conquest play, matching
+  the online-game presentation. In Conquests, keep the round opponent's Black
+  themed army locked across swipes, settings and resume; let the player change
+  only White or temporarily use Classic pieces. Show the guaranteed 300-credit
+  welcome balance immediately, synchronize the game screen directly with the
+  wallet, and attach the full authoritative ledger entry to every server credit
+  response so deductions, rewards, labels and animations remain exact-once.
+- Rebuild Chess Set Studio around complete, compatible themed formations instead
+  of independently layered body parts. Keep Horse/Elephant/Chariot riders,
+  orientation, lighting and contact points locked as one fitted unit; provide
+  four formation choices per role and a whole-army apply action; mirror Black as
+  a complete sprite and remove arbitrary scaling that caused visual misfits.
+- Arm every previously unarmed kingdom Queen with a connected, theme-appropriate
+  staff, sword, bow, mace, trident or spear. Preserve all non-Queen atlas pixels
+  and leave already-armed Queens unchanged.
+- Use a filled yellow bulb for Move suggestion, a red radar for header Threat
+  scan, a clearer target-style chess-piece toggle, and one consistent outlined
+  gear for settings entry points.
+- Let the main-page chessboard selection fill the complete width of its
+  responsive chooser column, keeping the preview square and the pieces large.
+- Rename the four-set user-facing `Original` theme category to `Fantasy` while
+  retaining its stable internal identifier for saved-selection compatibility.
+- Give all 31 themed chess sets distinct, sample-free synthesized soundtracks,
+  including dedicated Arab, Chinese, Japanese and other setting-led palettes.
+  Use compact mono PCM, quiet loop seams and an enforced 12 MiB total budget.
+- Refresh Home with a bright bordered welcome card, remove the repeated app
+  icon, add clearer chess-set/play section cues and lift selector/action-card
+  contrast while retaining full-width board previews and compact scrolling.
+- Replace the flat online Favourites row with a collapsible **Your Chess
+  Circle** card at the bottom of Play Online. Organize saved players as Family,
+  Friends or Professionals; show their refreshed online/offline status; invite,
+  move or remove them from their player menu. Existing favourites migrate to
+  Friends automatically and the categorized list remains private on-device.
+- Simplify credits to one clearly labelled, server-authoritative total in the
+  global header. Remove the duplicate Play Online balance and player-facing
+  accounting-bucket split; replace ambiguous double-ring/`AC` marks with a gold
+  star coin and plain numbers. Play one original, mute-aware coin chime for each
+  exact-once confirmed increase or decrease.
+- Package Android beta 17 (build 32) with brighter face-scale character detail
+  and persistent board-only colour customization. Add a chessboard/paintbrush
+  quick toggle, separate light/dark colour pickers, vivid presets, live preview
+  and a minimum-contrast guard without changing pieces or scenery.
+- Package Android beta 16 (build 31) with the themed-piece visibility and
+  per-set board-contrast pass.
+- Enlarge every themed character to a common near-full-square height, keep
+  pawns deliberately lean, and add side-aware silhouette edging plus selective
+  colour contrast so Black costumes remain black while gold, silver and accent
+  details stay visible. Give every chess set its own complementary high-contrast
+  board palette so pieces remain distinct on both light and dark squares.
+- Package Android beta 15 (build 30) with paged real-player discovery,
+  respectful Avatar-ID validation, mobile invitation/game reminders, three
+  conquest lengths and roadmaps, server-backed Arena Credits, move-suggestion
+  costs, persistent XP/trophies/badges, and optional local nickname wording.
+  Keep avatar creation limited to online play and allow users to remain unnamed.
+- Add server-authoritative Arena Credits with a 300-credit welcome balance,
+  capped daily Top-ups and completion rewards, per-round online costs,
+  one-credit online Move suggestions, idempotent bonus/purchased ledgers,
+  balance history, an always-visible animated balance, coin cost badges on
+  every charged action, exact spend feedback and stronger reward celebrations.
+  Keep every local mode and non-match online operation free; leave real-money
+  checkout disabled until secure store verification and production accounts exist.
+- Expand the built-in catalogue to 31 themed sets, grouped into Original,
+  Historical and Legendary; preserve all four Classic sets and saved IDs.
+  Add full-board previews and a compact group filter. All themed bishops ride
+  elephants and rooks use chariots; smaller pawns and a shared baseline make
+  kings/queens visually taller. Keep historical inspiration distinct from
+  fictional/epic interpretations. Record generation prompts, source crops and
+  copyright-risk safeguards; do not claim blanket legal clearance.
+- Add a custom multiplayer avatar builder with live vector portraits, four
+  starter looks, adjustable age/face/skin, twelve hairstyles, ten hair colours,
+  independent moustaches/beards, glasses/shades, outfits and backgrounds.
+  Keep preset portraits and bots unchanged. Persist compact designs with player
+  profiles and share through the optional `custom_avatars` service capability;
+  older services use a preset without deleting the local custom design.
+- Add Chess Set Studio: independently customize White/Black roles with fitted
+  themed formations; choose board
+  colours/finishes and backgrounds; save, use, edit, duplicate and delete local
+  sets. Integrate custom appearances into computer, tournament and online play,
+  promotions, capture animations and captured-piece displays without changing rules.
+- Package Android beta 14 (build 29) with full-board Home previews, artwork-led
+  Themed/Classic selection, saved set choices, and responsive play actions.
+- Upgrade the home Themed/Classic selector to knight-artwork cards with
+  colour-matched gradients, selection borders, and accessible checked states.
+- Replace home piece strips with full starting-board previews for all four
+  themed and four classic chess sets. Swipe or use left/right arrows to select,
+  remember both families' choices across launches, and use a compact responsive
+  landing page with side-by-side selection and play actions on wider screens.
+- Package Android beta 13 (build 28) with matching 14-point assist-button text,
+  wrapping instead of shrinking, and equal button heights in computer/online play.
+- Package Android beta 12 (build 27) for ARM64 testing with colour selection,
+  optional toss, HTTPS WhatsApp invitations, revocation, and automatic expiry.
+  Online features require the matching server deployment.
+- Restore WhatsApp direct invites as revocable HTTPS links with Avatar-name
+  fallback instructions, Android App Link association, and browser fallback.
+  Add Delete invitation link and explicit deleted/expired messages. Links expire
+  after 24 hours; unstarted scheduled invitations remain valid until at least
+  15 minutes after their scheduled start. Started games and history are preserved.
+- Share WhatsApp invitations using the player's Avatar name and search/invite
+  instructions, without creating a room or including a non-clickable game link.
+- Add optional authoritative colour tosses for online matches and local bot
+  tournaments. Remember the assigned colour on resume. Let ordinary computer
+  players choose White or Black, with correct board orientation, hints and results.
+- Correct avatar overlap using measured portrait bounds for all 50 human and
+  20 bot images. Enlarge selection thumbnails and add a 120-pixel selected
+  portrait preview in the new-profile and edit-profile pickers.
+- Package Android beta 10 (build 25) with fixed bot levels 1–20, retuned ordinary
+  computer difficulty, eight music choices with saved selection, and settings reset.
+- Add eight background music choices (unchanged Original plus seven original
+  synthesized moods), remember the selection across launches, and add a game
+  settings reset that keeps saved games, profiles, progress, and bot levels.
+- Assign all 20 named bots fixed levels 1–20 within their existing proficiency
+  tiers. Use persona strength independently of user difficulty in tournaments,
+  native/fallback play, and online server move selection; display level labels.
+- Retune native computer difficulty to Skill 0/6/20 with depth limits 2/7/18.
+  Negotiate supported Elo targets (800/1400/2500); use skill-based play when
+  a target is unsupported, and reset strength limits between searches.
+- Prepare Android beta 9 (build 24): use a friend-facing About page without
+  diagnostics or implementation notes, simplify all online-play wording, add a
+  unified in-game Themed/Classic set picker, place Suggest Move and Threat Scan
+  together, improve avatar crop safety, expand the victory fanfare, and add
+  WhatsApp invitations that deep-link friends directly into a shared game.
+- Prepare Android beta 8 (build 23): introduce a circle-safe launcher icon with
+  one single-notch lightning divider between an ivory Classic knight and the
+  Black Manga Vanguard mounted knight. Ship against the clean protocol-v4
+  Firebase server revision with all 20 built-in opponents available.
+- Prepare Android beta 7 (build 22): add a compact Home Themed/Classic selector,
+  place white and black previews on separate rows, offer four aligned Classic
+  sets (Magnetic 3D, Wooden 3D, Flat Club, and Flat Teaching), persist the
+  selection through saved games, and re-isolate all themed sprites to eliminate
+  neighboring-piece overlap around elephant Bishops.
+- Replace the single-character launcher artwork with a gold lightning-split icon
+  in which an ivory Classic knight and Black Manga Vanguard mounted knight face
+  each other.
+- Prepare Android beta 6 (build 21): replace chess-character profile icons with
+  a scrollable catalog of 50 diverse human face portraits. Give computer
+  opponents human portraits too, retain legacy avatar rendering, and advance
+  the online protocol to v4 so stale servers fail clearly.
+- Prepare Android beta 5 (build 20): widen the move-number column for better
+  table spacing and rename the beginner tournament to Rising Knights Cup
+  without changing its stable save identifier.
+- Prepare Android beta 4 (build 19): replace irregular character crops with a
+  sharp, shadow-cleaned 6 x 8 atlas of isolated, centered 256 px sprites. Remove
+  the distracting full-board turn border/glow while retaining compact status,
+  and mirror black character art so opposing armies face one another.
+- Prepare Android beta 3 (build 18): add free, cancellable three-second capture
+  threat scans with red source/victim highlights and reduced-motion support.
+- Track actual captured pieces, including en passant and promoted victims, with
+  correct undo, resume, reconnect, and rematch behavior. Persist panel visibility.
+- Consolidate in-game settings into a dismissible, accessible gear-menu sheet;
+  keep gameplay actions outside it and clocks running while it is open.
+- Replace the dark launcher artwork with a bright anime icon based on Manga
+  Vanguard's White Knight. Regenerate and validate all 20 native icon sizes.
+- Prepare Android beta 2 (build 17): add About/feedback with installed metadata,
+  bounded local diagnostics, opt-out/clear controls, reviewed report copying,
+  and bundled licence notices. No cloud telemetry or Firebase SDK is added.
+- Retire beta-1 startup data deletion so upgrades preserve older saves, history,
+  settings, and tournament points, even without the legacy marker.
+- Package only referenced character images; retain unused source assets in the
+  repository. Refresh physical-device and signed-APK testing checklists.
+- Add visual tournament trophy trails, championship ceremonies with replay,
+  reduced-motion support, and persistent player totals of 100/200/300 points per
+  proficiency-tier round win. Replays and duplicate saves never duplicate points.
+- Replace the Tournaments placeholder with three proficiency-based bot cups,
+  seeded knockout brackets, saved rounds and trophies, and unlimited rematches
+  for lost or drawn rounds. Keep each cup separate from ordinary saved games.
+- Add twenty clearly identified built-in computer avatars with globally varied
+  names and three proficiency levels as an authoritative online fallback when
+  no real opponent is available.
+- Replace the Render multiplayer option with a single Firebase-project Cloud Run
+  path behind **Play Online**, configured by `ONLINE_SERVER_URL`.
+- Add a Standard Chess Set toggle backed by a dedicated Staunton image atlas,
+  tabular move history, restored opponent-move highlighting, and stronger
+  visual turn indicators for local, computer, and online matches.
+- Increase the Standard Chess Set's on-board scale and update only the themed
+  armies so bishops ride elephants and rooks ride matching chariots.
+- Remove the Royal Classic theme while retaining the independent Standard
+  Staunton chess-set toggle unchanged. Legacy Royal Classic saves migrate to
+  Manga Vanguard without losing their game state.
+
 ## 0.9.0-beta.1 · 2026-09-12
 
 - Load the authoritative active-game list behind a compact progress state and

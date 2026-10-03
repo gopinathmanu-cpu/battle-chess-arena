@@ -38,6 +38,8 @@ for package in config['packages']:
         license_id = 'MIT'
     elif 'Apache License' in text:
         license_id = 'Apache-2.0'
+    elif 'Mozilla Public License Version 2.0' in text:
+        license_id = 'MPL-2.0'
     elif 'Neither the name' in text or 'neither the name' in text:
         license_id = 'BSD-3-Clause'
     else:
@@ -57,7 +59,7 @@ for name in ['chess.js', 'ws']:
     rows.append((name, metadata['version'], metadata['license'], source_url.replace('git+', ''), filename, hashlib.sha256(data).hexdigest()))
 header = '''# Installed dependency licence inventory
 
-Collected from the resolved packages for Milestone 4 on 2026-09-05.
+Collected from the project's resolved dependency packages.
 Full upstream copyright and licence texts are preserved in `licenses/`.
 Regenerate with `python3 tool/collect_licenses.py` after installing dependencies.
 The collector identifies common licence text; human review remains required.

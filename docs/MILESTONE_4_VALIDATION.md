@@ -1,5 +1,9 @@
 # Milestone 4 validation · 2026-09-05
 
+Historical snapshot only. For current Android beta checks and limitations, see
+[Beta 2 validation](BETA_2_VALIDATION.md) and the
+[current device checklist](DEVICE_VALIDATION_CHECKLIST.md).
+
 Status: implementation and automated verification complete; native two-device
 acceptance is blocked by missing platform toolchains. No APK/IPA was verified.
 No authentication, matchmaking, tournaments or public deployment were started.

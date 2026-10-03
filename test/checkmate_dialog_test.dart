@@ -8,6 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    AnimationLabScreen.debugClockFactory = () =>
+        TestWidgetsFlutterBinding.ensureInitialized().clock.stopwatch();
+  });
+  tearDown(() => AnimationLabScreen.debugClockFactory = null);
   testWidgets('checkmate move opens the animated result popup once', (
     tester,
   ) async {
@@ -37,7 +42,10 @@ void main() {
     expect(find.text('New Game'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Review Board'));
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    // The game clock intentionally remains periodic behind the closing dialog,
+    // so bounded pumps are more accurate than waiting for global quiescence.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
     expect(find.byKey(const ValueKey('checkmate-heading')), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });

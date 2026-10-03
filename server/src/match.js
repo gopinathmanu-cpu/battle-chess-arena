@@ -18,11 +18,18 @@ export class Match {
     incrementMs = 0,
     timed = true,
     whitePlayer = null,
+    creatorSide = 'w',
+    tossForColors = false,
+    clockMode = 'live',
   } = {}) {
+    if (!['live', 'daily'].includes(clockMode) ||
+        (clockMode === 'daily' && (!timed || baseMs !== 86400000 || incrementMs !== 0))) {
+      throw new MatchError('INVALID_CLOCK', 'Daily games require 24 hours per move, with no increment');
+    }
     if (typeof timed !== "boolean") {
       throw new MatchError("INVALID_CLOCK", "timed must be a boolean");
     }
-    if (!Number.isInteger(baseMs) || baseMs < 10_000 || baseMs > 10_800_000) {
+    if (!Number.isInteger(baseMs) || baseMs < 10_000 || baseMs > (clockMode === 'daily' ? 86400000 : 10_800_000)) {
       throw new MatchError(
         "INVALID_CLOCK",
         "baseMs must be between 10 seconds and 3 hours",
@@ -43,6 +50,7 @@ export class Match {
     this.baseMs = baseMs;
     this.incrementMs = incrementMs;
     this.timed = timed;
+    this.clockMode = clockMode;
     this.remaining = { w: baseMs, b: baseMs };
     this.tokens = { w: randomUUID(), b: null };
     this.players = {
@@ -53,6 +61,15 @@ export class Match {
       },
       b: null,
     };
+    if (!['w', 'b'].includes(creatorSide)) throw new MatchError('INVALID_SIDE', 'Invalid creator side');
+    this.creatorSide = creatorSide;
+    this.tossForColors = tossForColors;
+    if (creatorSide === 'b') {
+      this.tokens.b = this.tokens.w;
+      this.tokens.w = null;
+      this.players.b = this.players.w;
+      this.players.w = null;
+    }
     this.status = "waiting";
     this.result = null;
     this.activeSince = null;
@@ -71,19 +88,24 @@ export class Match {
     return this.tokens.w;
   }
 
+  get creatorToken() { return this.tokens[this.creatorSide]; }
+  get creatorPlayer() { return this.players[this.creatorSide]; }
+
+  // Historical API name: after a colour toss the vacant seat may be White.
   joinBlack(now = performance.now(), blackPlayer = null) {
     this.settleClock(now);
-    if (this.tokens.b)
+    const side = this.creatorSide === 'w' ? 'b' : 'w';
+    if (this.tokens[side])
       throw new MatchError("GAME_FULL", "Both seats are already claimed");
-    this.tokens.b = randomUUID();
-    this.players.b = blackPlayer ?? {
+    this.tokens[side] = randomUUID();
+    this.players[side] = blackPlayer ?? {
       id: `guest-${randomUUID()}`,
-      name: "Black player",
+      name: side === 'w' ? 'White player' : 'Black player',
       avatarId: "knight",
     };
     this.status = "active";
     this.activeSince = this.timed ? now : null;
-    return this.tokens.b;
+    return this.tokens[side];
   }
 
   hasPlayer(playerId) {
@@ -229,9 +251,7 @@ export class Match {
         if (side !== this.chess.turn())
           throw new MatchError("NOT_YOUR_TURN", "Use a lifeline on your turn");
         if (this.lifelinePositions[side] !== this.chess.fen()) {
-          if (this.lifelines[side] <= 0)
-            throw new MatchError("NO_LIFELINES", "No lifelines remain");
-          this.lifelines[side] -= 1;
+          // Suggestions are unlimited. Retain legacy fields for v4 clients.
           this.lifelinePositions[side] = this.chess.fen();
         }
         this.lifelineRequests[side] += 1;
@@ -267,7 +287,12 @@ export class Match {
         "ILLEGAL_MOVE",
         "Move is not legal in the authoritative position",
       );
-    this.remaining[side] += this.incrementMs;
+    if (this.clockMode === 'daily') {
+      // Each turn receives a fresh allowance, never an accumulating bank.
+      this.remaining = { w: this.baseMs, b: this.baseMs };
+    } else if (this.timed) {
+      this.remaining[side] += this.incrementMs;
+    }
     this.activeSince = this.timed ? now : null;
     // Moving declines an opponent's offer. Your offer survives your own move.
     if (this.drawOffer?.side !== side) this.drawOffer = null;
@@ -295,7 +320,13 @@ export class Match {
       sequence: ++this.sequence,
       round: this.round,
       status: this.status,
+      tossForColors: this.tossForColors,
       timed: this.timed,
+      clockMode: this.clockMode,
+      baseMs: this.baseMs,
+      incrementMs: this.incrementMs,
+      turnDeadlineEpochMs: this.clockMode === 'daily' && this.activeSince !== null
+        ? this.activeSince + this.remaining[this.chess.turn()] : null,
       fen: this.chess.fen(),
       turn: this.chess.turn(),
       san: this.chess.history(),
@@ -319,6 +350,8 @@ export class Match {
           avatarId: player.avatarId,
           level: player.level ?? "intermediate",
           points: player.points ?? 0,
+          computer: player.computer === true,
+          ...(player.computer === true ? { botLevel: player.botLevel } : {}),
         }
       : null;
   }
@@ -333,5 +366,28 @@ export class Match {
     this.activeSince = Math.max(now, this.activeSince);
     if (this.remaining[active] === 0)
       this.#finish("timeout", active === "w" ? "b" : "w");
+  }
+
+  // Private server-only checkpoint; never expose tokens or receipts in snapshots.
+  checkpoint() {
+    const { chess, players, commands, rematchOffers, ...state } = this;
+    return { ...state, moves: chess.history(),
+      playerIds: { w: players.w?.id ?? null, b: players.b?.id ?? null },
+      commands: [...commands], rematchOffers: [...rematchOffers] };
+  }
+
+  static restore(saved, players) {
+    const match = new Match(saved);
+    const { moves, playerIds, commands, rematchOffers, ...state } = saved;
+    Object.assign(match, state);
+    for (const move of moves) match.chess.move(move);
+    match.players = { w: players.get(playerIds.w) ?? null,
+      b: players.get(playerIds.b) ?? null };
+    if ((match.tokens.w && !match.players.w) || (match.tokens.b && !match.players.b)) {
+      throw new Error('Checkpoint has a missing player');
+    }
+    match.commands = new Map(commands);
+    match.rematchOffers = new Set(rematchOffers);
+    return match;
   }
 }

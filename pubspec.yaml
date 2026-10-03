@@ -1,7 +1,7 @@
 name: battle_chess_arena
 description: GPL-licensed animated multi-theme chess platform.
 publish_to: "none"
-version: 0.9.0-beta.1+16
+version: 0.9.0-beta.36+51
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
@@ -15,7 +15,9 @@ dependencies:
     path: third_party/stockfish
   web_socket_channel: ^3.0.3
   audioplayers: ^6.8.1
+  app_links: ^7.2.1
   shared_preferences: ^2.5.5
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -25,6 +27,43 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/branding/battle_chess_arena_icon_v7.png
+    - assets/branding/icon-options/battle-chess-arena-light-purple.png
     - assets/concepts/
-    - assets/characters/
+    - assets/avatars/human-face-atlas.png
+    - assets/avatars/human-face-atlas-v2.png
+    - assets/avatars/bot-personality-atlas.png
+    - assets/characters/themed-piece-atlas-fantasy-vivid-v5.png
+    - assets/characters/kingdoms/japanese-v3.png
+    - assets/characters/kingdoms/chinese-v3.png
+    - assets/characters/kingdoms/mongolian-v3.png
+    - assets/characters/kingdoms/egyptian-v3.png
+    - assets/characters/kingdoms/arab-v3.png
+    - assets/characters/kingdoms/persian-v3.png
+    - assets/characters/kingdoms/english-v3.png
+    - assets/characters/kingdoms/french-v3.png
+    - assets/characters/kingdoms/sparta-v3.png
+    - assets/characters/kingdoms/macedonian-v3.png
+    - assets/characters/kingdoms/roman-v3.png
+    - assets/characters/kingdoms/achaemenid-v3.png
+    - assets/characters/kingdoms/ottoman-v3.png
+    - assets/characters/kingdoms/chola-v3.png
+    - assets/characters/kingdoms/maratha-v3.png
+    - assets/characters/kingdoms/zulu-v3.png
+    - assets/characters/kingdoms/aztec-v3.png
+    - assets/characters/kingdoms/inca-v3.png
+    - assets/characters/kingdoms/mewar-v3.png
+    - assets/characters/kingdoms/lanka-v3.png
+    - assets/characters/kingdoms/ayodhya-v3.png
+    - assets/characters/kingdoms/hastinapura-v3.png
+    - assets/characters/kingdoms/kishkindha-v3.png
+    - assets/characters/kingdoms/asgard-v3.png
+    - assets/characters/kingdoms/camelot-v3.png
+    - assets/characters/kingdoms/atlantis-v3.png
+    - assets/characters/kingdoms/troy-v3.png
+    - assets/characters/classic-piece-variations-atlas.png
+    - assets/characters/manga-vanguard-pawn-duel.png
     - assets/audio/
+    - LICENSE
+    - THIRD_PARTY_NOTICES.md
+    - third_party/stockfish/LICENSE

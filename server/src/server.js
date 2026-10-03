@@ -1,17 +1,59 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { WebSocketServer, WebSocket } from "ws";
 import { createServer } from "node:http";
-import { randomUUID } from "node:crypto";
-import { performance } from "node:perf_hooks";
+import { randomUUID, randomInt } from "node:crypto";
+import { checkpoint, restoreCheckpoint } from './durable-state.js';
 import { Match, MatchError } from "./match.js";
 import { isAction, validateMessage } from "./protocol.js";
+import { SharedInvites, serveInvitePage, inviteExpiresAt, expiredInviteMessage, deletedInviteMessage } from './shared-invites.js';
+import {
+  chooseComputerMove,
+  computerOpponents,
+  computerProfile,
+} from "./computer-opponents.js";
+import {
+  canAffordRound,
+  chargeOnlineMoveSuggestion,
+  chargeRound,
+  creditPolicy,
+  ensureCreditAccount,
+  grantCompletionReward,
+  grantDailyLogin,
+  grantLowBalanceRecovery,
+  publicCreditAccount,
+  requireOnlineMoveSuggestionCredit,
+  requireRoundCredits,
+  roundCost,
+} from './credits.js';
 
 export function createMatchServer({
   port = 8080,
   host = "0.0.0.0",
   tickMs = 1000,
-  now = () => performance.now(),
+  now = Date.now,
+  random = Math.random,
+  toss = () => randomInt(2) === 0 ? 'w' : 'b',
+  computerThinkMs = 450,
+  inviteNow = Date.now,
+  creditNow = Date.now,
+  stateStore = null,
+  initialState = null,
+  securityLimits = {},
 } = {}) {
+  const limits = Object.freeze({
+    maxConnections: securityLimits.maxConnections ?? 100,
+    maxConnectionsPerIp: securityLimits.maxConnectionsPerIp ?? 10,
+    connectionAttemptsPerMinute:
+      securityLimits.connectionAttemptsPerMinute ?? 30,
+    messagesPerTenSeconds: securityLimits.messagesPerTenSeconds ?? 40,
+    newProfilesPerHourPerIp:
+      securityLimits.newProfilesPerHourPerIp ?? 10,
+    maxProfiles: securityLimits.maxProfiles ?? 1000,
+    invalidMessagesPerConnection:
+      securityLimits.invalidMessagesPerConnection ?? 5,
+  });
+  const capabilities = ['available_players', 'color_toss', 'shared_invites', 'custom_avatars', 'invite_clocks', 'credits',
+    ...(stateStore ? ['daily_games'] : [])];
   const startedAt = Date.now();
   const games = new Map();
   const peers = new Map();
@@ -19,14 +61,57 @@ export function createMatchServer({
   const profiles = new Map();
   const awardedResults = new Set();
   const invites = new Map();
+  const sharedInvites = new SharedInvites({ now: inviteNow });
+  const computerTimers = new Map();
+  const connectionsByIp = new Map();
+  const connectionAttempts = new Map();
+  const profileCreations = new Map();
+  const durable = { games, profiles, invites, sharedInvites, awardedResults };
+  restoreCheckpoint(initialState, durable, { creditNow });
+  let persistenceFailed = false;
+  let closing = false;
+  let outbox = null;
+  let work = Promise.resolve();
+  let lastCheckpoint = initialState ? JSON.stringify(initialState) : null;
+  const serialize = (action) => {
+    if (!stateStore) return action();
+    work = work.then(async () => {
+      if (persistenceFailed) return;
+      outbox = [];
+      try {
+        action();
+        const saved = checkpoint(durable);
+        const encoded = JSON.stringify(saved);
+        if (encoded !== lastCheckpoint) {
+          await stateStore.save(saved);
+          lastCheckpoint = encoded;
+        }
+        const pending = outbox;
+        outbox = null;
+        for (const deliver of pending) deliver();
+      } catch {
+        // No success acknowledgement may escape for a non-durable move.
+        // Stop serving this authority; restart must load the last committed state.
+        persistenceFailed = true;
+        outbox = null;
+        console.error('Durable state unavailable; refusing further game requests');
+        for (const socket of server.clients) socket.close(1011, 'Game storage unavailable; reconnect later');
+      }
+    });
+    return work;
+  };
   const httpServer = createServer((request, response) => {
+    if (persistenceFailed) { response.writeHead(503); response.end('Game storage unavailable'); return; }
+    if (serveInvitePage(request, response, sharedInvites)) return;
     if (request.method === "GET" && request.url === "/health") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(
         JSON.stringify({
           status: "ok",
-          protocolVersion: 3,
-          serverVersion: "0.9.0-beta.1",
+          protocolVersion: 4,
+          capabilities,
+          durableStorage: stateStore !== null,
+          serverVersion: "0.9.0-beta.8",
           startedAt,
         }),
       );
@@ -40,8 +125,36 @@ export function createMatchServer({
     maxPayload: 16 * 1024,
     perMessageDeflate: false,
   });
+
+  const remoteIp = (request) => {
+    const forwarded = request.headers['x-forwarded-for'];
+    const candidate = Array.isArray(forwarded)
+      ? forwarded[0]
+      : forwarded?.split(',')[0];
+    return candidate?.trim().slice(0, 64) ||
+      request.socket.remoteAddress?.slice(0, 64) || 'unknown';
+  };
+  const allowInWindow = (buckets, key, maximum, windowMs, instant) => {
+    if (buckets.size >= 5000) {
+      for (const [bucketKey, candidate] of buckets) {
+        if (instant - candidate.startedAt >= windowMs) buckets.delete(bucketKey);
+      }
+    }
+    const previous = buckets.get(key);
+    const bucket = !previous || instant - previous.startedAt >= windowMs
+      ? { startedAt: instant, count: 0 }
+      : previous;
+    bucket.count += 1;
+    buckets.set(key, bucket);
+    return bucket.count <= maximum;
+  };
   httpServer.listen(port, host);
   const send = (socket, type, payload = {}) => {
+    if (outbox) {
+      const frame = JSON.stringify({ type, ...payload });
+      outbox.push(() => { if (socket.readyState === WebSocket.OPEN) socket.send(frame); });
+      return;
+    }
     if (socket.readyState === WebSocket.OPEN)
       socket.send(JSON.stringify({ type, ...payload }));
   };
@@ -52,20 +165,49 @@ export function createMatchServer({
       }
     }
   };
+  const creditFields = (profile) => {
+    const account = publicCreditAccount(profile, creditNow());
+    return {
+      // Keep every balance transition and its ledger reason in one envelope.
+      // This prevents clients from observing a number-only change before the
+      // authoritative transaction ID arrives on a later frame.
+      account,
+      credits: account.credits,
+      bonusCredits: account.bonusCredits,
+      purchasedCredits: account.purchasedCredits,
+      creditPolicy,
+    };
+  };
+  const sendCreditBalance = (profile) => sendToPlayer(
+    profile.id,
+    'credit_balance',
+    () => ({ account: publicCreditAccount(profile, creditNow()), creditPolicy }),
+  );
+  const publishCreditChanges = (changes) => {
+    for (const { profile, duplicate } of changes) {
+      if (!duplicate) sendCreditBalance(profile);
+    }
+  };
   const publicInvite = (invite, viewerId) => {
     const sender = invite.sender;
     const recipient = invite.recipient;
-    const side = viewerId === sender.id ? "w" : "b";
+    const side = invite.game
+      ? (invite.game.match.players.w?.id === viewerId ? 'w' : 'b')
+      : null;
     return {
       inviteId: invite.id,
       sender: { name: sender.name, avatarId: sender.avatarId },
       recipient: { name: recipient.name, avatarId: recipient.avatarId },
       scheduledAt: invite.scheduledAt,
       createdAt: invite.createdAt,
+      expiresAt: invite.expiresAt,
       status: invite.status,
       awaitingResponseFromName: invite.awaiting?.name ?? null,
       timed: invite.timed,
       baseMs: invite.baseMs,
+      incrementMs: invite.incrementMs ?? 0,
+      clockMode: invite.clockMode ?? 'live',
+      tossForColors: invite.tossForColors,
       ...(invite.game
         ? {
             game: {
@@ -86,20 +228,47 @@ export function createMatchServer({
       }));
     }
   };
-  const createInviteGame = (invite) => {
-    if (invite.game || invite.status !== "accepted") return;
+  const createInviteGame = (invite, { creditRequiredOnFailure = false } = {}) => {
+    if (invite.game || !['accepted', 'credit_required'].includes(invite.status)) return false;
+    const cost = invite.clockMode === 'daily'
+      ? creditPolicy.costs.dailyHumanRound
+      : creditPolicy.costs.liveHumanRound;
+    try {
+      requireRoundCredits([invite.sender, invite.recipient], cost, creditNow());
+    } catch (error) {
+      if (!creditRequiredOnFailure || error.code !== 'INSUFFICIENT_CREDITS') throw error;
+      if (invite.status !== 'credit_required') {
+        invite.status = 'credit_required';
+        publishInvite(invite);
+      }
+      return false;
+    }
     const match = new Match({
       whitePlayer: invite.sender,
+      creatorSide: invite.tossForColors ? toss() : 'w',
+      tossForColors: invite.tossForColors,
       timed: invite.timed,
       baseMs: invite.baseMs,
+      incrementMs: invite.incrementMs ?? 0,
+      clockMode: invite.clockMode ?? 'live',
     });
-    const blackToken = match.joinBlack(now(), invite.recipient);
+    match.joinBlack(now(), invite.recipient);
+    const changes = chargeRound(Object.values(match.players), {
+      gameId: match.id,
+      round: match.round,
+      cost,
+      reason: invite.clockMode === 'daily' ? 'daily_human_round' : 'live_human_round',
+      now: creditNow(),
+    });
     games.set(match.id, match);
+    invite.status = 'accepted';
     invite.game = {
       match,
-      tokens: { w: match.whiteToken, b: blackToken },
+      tokens: { ...match.tokens },
     };
+    publishCreditChanges(changes);
     publishInvite(invite);
+    return true;
   };
   const activateDueInvites = () => {
     const wallTime = Date.now();
@@ -109,8 +278,31 @@ export function createMatchServer({
         !invite.game &&
         (invite.scheduledAt === null || invite.scheduledAt <= wallTime)
       ) {
-        createInviteGame(invite);
+        createInviteGame(invite, { creditRequiredOnFailure: true });
       }
+    }
+  };
+  const reactivateCreditInvitesFor = (playerId) => {
+    const wallTime = Date.now();
+    for (const invite of invites.values()) {
+      if (
+        invite.status === 'credit_required' &&
+        !invite.game &&
+        [invite.sender.id, invite.recipient.id].includes(playerId) &&
+        (invite.scheduledAt === null || invite.scheduledAt <= wallTime)
+      ) createInviteGame(invite, { creditRequiredOnFailure: true });
+    }
+  };
+  const expireInvitations = () => {
+    for (const invite of invites.values()) {
+      if (!invite.game && ['pending', 'accepted', 'credit_required'].includes(invite.status) && inviteNow() >= invite.expiresAt) {
+        invite.status = 'expired';
+        invite.awaiting = null;
+        publishInvite(invite);
+      }
+    }
+    for (const invite of sharedInvites.expire()) {
+      sendToPlayer(invite.owner.id, 'shared_invite_updated', () => ({ invite: sharedInvites.public(invite) }));
     }
   };
   const broadcast = (gameId, state) => {
@@ -118,14 +310,42 @@ export function createMatchServer({
       if (peer.gameId === gameId) send(socket, "game_state", { state });
     }
   };
+  const scheduleComputerMove = (game) => {
+    if (
+      closing ||
+      game.status !== "active" ||
+      game.players[game.chess.turn()]?.computer !== true ||
+      computerTimers.has(game.id)
+    ) return;
+    const timer = setTimeout(() => serialize(() => {
+      computerTimers.delete(game.id);
+      const side = game.chess.turn();
+      if (game.status !== "active" || game.players[side]?.computer !== true) return;
+      const move = chooseComputerMove(game.chess, game.players[side], random);
+      if (!move) return;
+      game.play(game.tokens[side], {
+        from: move.from,
+        to: move.to,
+        promotion: move.promotion ?? "q",
+      }, now());
+      awardCompletedRound(game);
+      broadcast(game.id, game.snapshot(now()));
+    }), computerThinkMs);
+    timer.unref?.();
+    computerTimers.set(game.id, timer);
+  };
   const awardCompletedRound = (game) => {
     if (game.status !== "complete") return;
     const key = `${game.id}:${game.round}`;
     if (awardedResults.has(key)) return;
-    awardedResults.add(key);
     const white = game.players.w;
     const black = game.players.b;
     if (!white || !black) return;
+    const creditTime = creditNow();
+    for (const player of [white, black]) {
+      if (player.computer !== true) ensureCreditAccount(player, creditTime);
+    }
+    awardedResults.add(key);
     let whitePoints = 1;
     let blackPoints = 1;
     let whiteResult = "draw";
@@ -171,30 +391,102 @@ export function createMatchServer({
       points: blackPoints,
       completedAt,
     });
-  };
-  const tick = () => {
-    activateDueInvites();
-    for (const game of games.values()) {
-      if (game.status === "active") {
-        game.settleClock(now());
-        awardCompletedRound(game);
-        broadcast(game.id, game.snapshot(now()));
+    if (game.chess.history().length >= 2) {
+      for (const player of [white, black]) {
+        if (player.computer === true) continue;
+        const reward = grantCompletionReward(player, {
+          gameId: game.id,
+          round: game.round,
+          now: creditTime,
+        });
+        if (reward.changed) {
+          sendCreditBalance(player);
+          reactivateCreditInvitesFor(player.id);
+        }
       }
     }
   };
+
+  const tick = () => serialize(() => {
+    if (closing) return;
+    expireInvitations();
+    activateDueInvites();
+    for (const game of games.values()) {
+      if (game.status === "active") {
+        // Client clocks interpolate locally. Daily rooms need a durable write
+        // only for an action or expiry, not 86,400 writes per idle day.
+        if (game.clockMode === 'daily' && game.activeSince !== null &&
+            now() < game.activeSince + game.remaining[game.chess.turn()]) continue;
+        game.settleClock(now());
+        awardCompletedRound(game);
+        broadcast(game.id, game.snapshot(now()));
+        scheduleComputerMove(game);
+      }
+    }
+  });
   const timer = setInterval(tick, tickMs);
   timer.unref();
   server.on("close", () => clearInterval(timer));
 
-  server.on("connection", (socket) => {
-    const peer = { setupReceipts: new Map() };
+  server.on("connection", (socket, request) => {
+    if (persistenceFailed || closing) { socket.close(1011, 'Game service unavailable'); return; }
+    const ip = remoteIp(request);
+    const connectedFromIp = connectionsByIp.get(ip) ?? 0;
+    const accepted =
+      peers.size < limits.maxConnections &&
+      connectedFromIp < limits.maxConnectionsPerIp &&
+      allowInWindow(
+        connectionAttempts,
+        ip,
+        limits.connectionAttemptsPerMinute,
+        60_000,
+        Date.now(),
+      );
+    if (!accepted) {
+      socket.close(1013, 'Connection limit reached. Try again later.');
+      return;
+    }
+    connectionsByIp.set(ip, connectedFromIp + 1);
+    const peer = {
+      setupReceipts: new Map(),
+      ip,
+      messageWindowStartedAt: Date.now(),
+      messageCount: 0,
+      invalidMessages: 0,
+    };
     peers.set(socket, peer);
     socket.on("error", () => {}); // A transport failure must not crash other rooms.
-    send(socket, "connected", { protocolVersion: 3 });
+    send(socket, "connected", { protocolVersion: 4, capabilities });
     socket.on("message", (raw, binary) => {
-      let message;
-      let game;
-      try {
+      const instant = Date.now();
+      if (instant - peer.messageWindowStartedAt >= 10_000) {
+        peer.messageWindowStartedAt = instant;
+        peer.messageCount = 0;
+      }
+      peer.messageCount += 1;
+      if (peer.messageCount > limits.messagesPerTenSeconds) {
+        socket.close(1008, 'Message rate limit exceeded.');
+        return;
+      }
+      // Heartbeats are intentionally answered before durable serialization so
+      // idle connections cannot force repeated Firestore checkpoint work.
+      if (!binary) {
+        try {
+          const heartbeat = JSON.parse(raw.toString());
+          if (heartbeat?.type === 'ping') {
+            validateMessage(heartbeat);
+            send(socket, 'pong');
+            return;
+          }
+        } catch {
+          // The normal protocol error path below counts malformed frames.
+        }
+      }
+      serialize(() => {
+        if (closing) return;
+        let message;
+        let game;
+        try {
         const seatedGame = games.get(peer.gameId);
         seatedGame?.settleClock(now());
         if (seatedGame) awardCompletedRound(seatedGame);
@@ -210,9 +502,8 @@ export function createMatchServer({
           );
         }
         message = validateMessage(parsed);
-        if (message.type === "ping") {
-          send(socket, "pong");
-          return;
+        if (message.clockMode === 'daily' && !stateStore) {
+          throw new MatchError('DAILY_UNAVAILABLE', 'Daily games are unavailable until durable game storage is enabled. Choose Rapid or Classical.');
         }
         if (message.type === "register_player") {
           const normalizedName = message.name
@@ -225,6 +516,26 @@ export function createMatchServer({
                 (profile) => profile.token === message.playerToken,
               )
             : null;
+          if (!tokenProfile && !existing) {
+            if (profiles.size >= limits.maxProfiles) {
+              throw new MatchError(
+                'PROFILE_LIMIT',
+                'New online profiles are temporarily unavailable.',
+              );
+            }
+            if (!allowInWindow(
+              profileCreations,
+              peer.ip,
+              limits.newProfilesPerHourPerIp,
+              3_600_000,
+              Date.now(),
+            )) {
+              throw new MatchError(
+                'PROFILE_RATE_LIMIT',
+                'Too many profiles were created from this network. Try again later.',
+              );
+            }
+          }
           if (
             existing &&
             existing !== tokenProfile &&
@@ -249,6 +560,8 @@ export function createMatchServer({
               pointHistory: [],
               sockets: new Set(),
             };
+          const loginCredits = grantDailyLogin(profile, creditNow());
+          const recoveryCredits = grantLowBalanceRecovery(profile, creditNow());
           profile.sockets ??= new Set();
           profile.pointHistory ??= [];
           profile.avatarId = message.avatarId;
@@ -270,7 +583,11 @@ export function createMatchServer({
             wins: profile.wins,
             draws: profile.draws,
             losses: profile.losses,
+            ...creditFields(profile),
           });
+          sendCreditBalance(profile);
+          if (loginCredits.changed || recoveryCredits.changed)
+            reactivateCreditInvitesFor(profile.id);
           return;
         }
         if (!peer.player) {
@@ -279,6 +596,7 @@ export function createMatchServer({
             "Choose an Avatar Name and icon before playing online",
           );
         }
+        expireInvitations();
         if (message.type === "update_player") {
           const nextKey = message.name
             .trim()
@@ -305,7 +623,65 @@ export function createMatchServer({
             avatarId: peer.player.avatarId,
             level: peer.player.level,
             playerToken: peer.player.token,
+            ...creditFields(peer.player),
           });
+          return;
+        }
+        if (message.type === 'create_shared_invite') {
+          const invite = sharedInvites.create(peer.player, message);
+          send(socket, 'shared_invite_created', { commandId: message.commandId, invite: sharedInvites.public(invite) });
+          return;
+        }
+        if (message.type === 'list_shared_invites') {
+          send(socket, 'shared_invites', { invites: sharedInvites.list(peer.player.id) });
+          return;
+        }
+        if (message.type === 'delete_shared_invite') {
+          const invite = sharedInvites.remove(message.inviteId, peer.player.id);
+          sendToPlayer(peer.player.id, 'shared_invite_updated', () => ({ invite: sharedInvites.public(invite) }));
+          send(socket, 'command_result', { commandId: message.commandId, accepted: true });
+          return;
+        }
+        if (message.type === 'open_shared_invite') {
+          const invite = sharedInvites.requireAvailable(message.inviteId);
+          if (peer.gameId && peer.gameId !== invite.match?.id)
+            throw new MatchError('ALREADY_SEATED', 'Return to the lobby before opening another invitation.');
+          if (!invite.match) {
+            if (invite.owner.id === peer.player.id)
+              throw new MatchError('SELF_INVITE', 'This is your invitation. Share it with a friend to play.');
+            if (games.size >= 1000) throw new MatchError('ROOM_LIMIT', 'Game limit reached. Please try again later.');
+            if ([...games.values()].some((game) => game.status !== 'complete' && game.isPair(invite.owner.id, peer.player.id)))
+              throw new MatchError('OPPONENT_GAME_EXISTS', 'You already have an open game with this friend. Open it from Active games.');
+            const cost = invite.clockMode === 'daily'
+              ? creditPolicy.costs.dailyHumanRound
+              : creditPolicy.costs.liveHumanRound;
+            requireRoundCredits([invite.owner, peer.player], cost, creditNow());
+            const match = new Match({ whitePlayer: invite.owner, baseMs: invite.baseMs,
+              incrementMs: invite.incrementMs, clockMode: invite.clockMode,
+              tossForColors: invite.tossForColors, creatorSide: invite.tossForColors ? toss() : 'w' });
+            match.joinBlack(now(), peer.player);
+            const changes = chargeRound(Object.values(match.players), {
+              gameId: match.id,
+              round: match.round,
+              cost,
+              reason: invite.clockMode === 'daily' ? 'daily_human_round' : 'live_human_round',
+              now: creditNow(),
+            });
+            games.set(match.id, match);
+            invite.match = match;
+            invite.status = 'accepted';
+            publishCreditChanges(changes);
+            sendToPlayer(invite.owner.id, 'shared_invite_updated', () => ({ invite: sharedInvites.public(invite) }));
+          }
+          const match = invite.match;
+          if (!match.hasPlayer(peer.player.id))
+            throw new MatchError('INVITE_USED', 'This invitation has already been used. Ask your friend for a new invite.');
+          const side = match.players.w.id === peer.player.id ? 'w' : 'b';
+          peer.gameId = match.id;
+          peer.token = match.tokens[side];
+          send(socket, 'seat_joined', { commandId: message.commandId, gameId: match.id,
+            seat: side, seatToken: peer.token, state: match.snapshot(now()),
+            ...creditFields(peer.player) });
           return;
         }
         if (message.type === "leaderboard") {
@@ -335,6 +711,29 @@ export function createMatchServer({
           });
           return;
         }
+        if (message.type === 'list_available_players') {
+          const occupied = new Set();
+          for (const game of games.values()) {
+            if (game.status === 'active') {
+              for (const player of Object.values(game.players)) {
+                if (player) occupied.add(player.id);
+              }
+            }
+          }
+          const candidates = [...profiles.values()].filter(player =>
+            player.id !== peer.player.id && !player.computer &&
+            [...player.sockets].some(s => s.readyState === WebSocket.OPEN) &&
+            !occupied.has(player.id) && (!message.after || player.id > message.after)
+          ).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+          const page = candidates.slice(0, 10);
+          send(socket, 'available_players', {
+            requestId: message.requestId,
+            players: page.map(player => ({name: player.name, avatarId: player.avatarId,
+              level: player.level, online: true})),
+            nextCursor: candidates.length > 10 ? page.at(-1).id : null,
+          });
+          return;
+        }
         if (message.type === "find_player") {
           const found = profiles.get(
             message.query
@@ -356,6 +755,12 @@ export function createMatchServer({
           return;
         }
         if (message.type === "list_games") {
+          for (const candidate of games.values()) {
+            if (candidate.hasPlayer(peer.player.id)) {
+              candidate.settleClock(now());
+              awardCompletedRound(candidate);
+            }
+          }
           const activeGames = [...games.values()]
             .filter(
               (candidate) =>
@@ -439,11 +844,15 @@ export function createMatchServer({
             sender: peer.player,
             recipient: opponent,
             scheduledAt,
-            createdAt: Date.now(),
+            createdAt: inviteNow(),
+            expiresAt: inviteExpiresAt(inviteNow(), scheduledAt),
             status: "pending",
             awaiting: opponent,
             timed: message.timed ?? true,
             baseMs: message.baseMs ?? 600_000,
+            incrementMs: message.incrementMs ?? 0,
+            clockMode: message.clockMode ?? 'live',
+            tossForColors: message.tossForColors ?? false,
             game: null,
             hiddenFor: new Set(),
           };
@@ -480,6 +889,11 @@ export function createMatchServer({
               "Invitation is unavailable",
             );
           invite.hiddenFor ??= new Set();
+          if (!invite.game && ['pending', 'accepted', 'credit_required'].includes(invite.status)) {
+            invite.status = 'deleted';
+            invite.awaiting = null;
+            publishInvite(invite);
+          }
           invite.hiddenFor.add(peer.player.id);
           send(socket, "invite_deleted", {
             commandId: message.commandId,
@@ -489,6 +903,10 @@ export function createMatchServer({
         }
         if (message.type === "respond_invite") {
           const invite = invites.get(message.inviteId);
+          if (invite && [invite.sender.id, invite.recipient.id].includes(peer.player.id)) {
+            if (invite.status === 'expired') throw new MatchError('INVITE_EXPIRED', expiredInviteMessage);
+            if (invite.status === 'deleted') throw new MatchError('INVITE_DELETED', deletedInviteMessage);
+          }
           if (!invite || invite.awaiting?.id !== peer.player.id)
             throw new MatchError(
               "INVITE_NOT_FOUND",
@@ -499,6 +917,15 @@ export function createMatchServer({
               "INVITE_ALREADY_ANSWERED",
               "Invitation already has a response",
             );
+          if (
+            message.accept &&
+            (invite.scheduledAt === null || invite.scheduledAt <= Date.now())
+          ) {
+            const cost = invite.clockMode === 'daily'
+              ? creditPolicy.costs.dailyHumanRound
+              : creditPolicy.costs.liveHumanRound;
+            requireRoundCredits([invite.sender, invite.recipient], cost, creditNow());
+          }
           invite.status = message.accept ? "accepted" : "declined";
           invite.awaiting = null;
           if (
@@ -512,6 +939,7 @@ export function createMatchServer({
           send(socket, "command_result", {
             commandId: message.commandId,
             accepted: true,
+            ...creditFields(peer.player),
           });
           return;
         }
@@ -532,9 +960,17 @@ export function createMatchServer({
               "INVALID_SCHEDULE",
               "Proposed time must be at least one minute in the future",
             );
+          // Validate the merged proposal before changing any invitation fields.
+          new Match({ timed: message.timed ?? invite.timed,
+            baseMs: message.baseMs ?? invite.baseMs,
+            incrementMs: message.incrementMs ?? invite.incrementMs ?? 0,
+            clockMode: message.clockMode ?? invite.clockMode ?? 'live' });
           invite.scheduledAt = message.scheduledAt;
+          invite.expiresAt = inviteExpiresAt(inviteNow(), message.scheduledAt);
           invite.timed = message.timed ?? invite.timed;
           invite.baseMs = message.baseMs ?? invite.baseMs;
+          invite.incrementMs = message.incrementMs ?? invite.incrementMs ?? 0;
+          invite.clockMode = message.clockMode ?? invite.clockMode ?? 'live';
           invite.awaiting =
             peer.player.id === invite.sender.id
               ? invite.recipient
@@ -549,9 +985,11 @@ export function createMatchServer({
         if (
           message.type === "create_game" ||
           message.type === "join_game" ||
-          message.type === "quick_match"
+          message.type === "quick_match" ||
+          message.type === "start_computer_game"
         ) {
           const fingerprint = JSON.stringify(message);
+          let setupCreditChanges = [];
           const previous = peer.setupReceipts.get(message.commandId);
           if (previous) {
             if (previous.fingerprint !== fingerprint)
@@ -565,12 +1003,40 @@ export function createMatchServer({
               send(socket, "game_state", { state: current.snapshot(now()) });
             return;
           }
+          const requestedComputer =
+            message.type === "start_computer_game"
+              ? computerOpponents.find((item) => item.id === message.opponentId)
+              : null;
+          if (message.type === "start_computer_game" && !requestedComputer)
+            throw new MatchError(
+              "COMPUTER_NOT_FOUND",
+              "Computer opponent is unavailable",
+            );
+          if (message.type === 'start_computer_game')
+            requireRoundCredits([peer.player], creditPolicy.costs.computerRound, creditNow());
+          if (message.type === "start_computer_game" && peer.gameId) {
+            const queued = games.get(peer.gameId);
+            if (
+              queued?.status !== "waiting" ||
+              queued.creatorPlayer?.id !== peer.player.id
+            )
+              throw new MatchError(
+                "ALREADY_SEATED",
+                "Finish the current game before starting another",
+              );
+            if (peer.queueKey && matchmaking.get(peer.queueKey) === queued.id)
+              matchmaking.delete(peer.queueKey);
+            games.delete(queued.id);
+            peer.gameId = null;
+            peer.token = null;
+            peer.queueKey = null;
+          }
           if (peer.gameId)
             throw new MatchError(
               "ALREADY_SEATED",
               "Reconnect to a new lobby connection before joining another room",
             );
-          if (message.type === "create_game") {
+          if (message.type === "start_computer_game") {
             if (games.size >= 1000)
               throw new MatchError(
                 "ROOM_LIMIT",
@@ -580,10 +1046,41 @@ export function createMatchServer({
               baseMs: message.baseMs,
               incrementMs: message.incrementMs,
               whitePlayer: peer.player,
+              creatorSide: message.tossForColors ? toss() : 'w',
+              tossForColors: message.tossForColors ?? false,
+            });
+            game.joinBlack(now(), computerProfile(requestedComputer));
+            setupCreditChanges = chargeRound(Object.values(game.players), {
+              gameId: game.id,
+              round: game.round,
+              cost: creditPolicy.costs.computerRound,
+              reason: 'server_computer_round',
+              now: creditNow(),
             });
             games.set(game.id, game);
             peer.gameId = game.id;
-            peer.token = game.whiteToken;
+            peer.token = game.creatorToken;
+          } else if (message.type === "create_game") {
+            if (games.size >= 1000)
+              throw new MatchError(
+                "ROOM_LIMIT",
+                  "Development server room limit reached",
+                );
+            requireRoundCredits(
+              [peer.player],
+              creditPolicy.costs.liveHumanRound,
+              creditNow(),
+            );
+            game = new Match({
+              baseMs: message.baseMs,
+              incrementMs: message.incrementMs,
+              whitePlayer: peer.player,
+              creatorSide: message.tossForColors ? toss() : 'w',
+              tossForColors: message.tossForColors ?? false,
+            });
+            games.set(game.id, game);
+            peer.gameId = game.id;
+            peer.token = game.creatorToken;
           } else if (message.type === "join_game") {
             game = games.get(message.gameId);
             if (!game)
@@ -597,7 +1094,7 @@ export function createMatchServer({
               [...games.values()].some(
                 (match) =>
                   match.status !== "complete" &&
-                  match.isPair(game.players.w.id, peer.player.id),
+                  match.isPair(game.creatorPlayer.id, peer.player.id),
               )
             ) {
               throw new MatchError(
@@ -605,24 +1102,60 @@ export function createMatchServer({
                 "You already have an open game with this opponent",
               );
             }
+            requireRoundCredits(
+              [...Object.values(game.players), peer.player],
+              creditPolicy.costs.liveHumanRound,
+              creditNow(),
+            );
             peer.token = game.joinBlack(now(), peer.player);
+            setupCreditChanges = chargeRound(Object.values(game.players), {
+              gameId: game.id,
+              round: game.round,
+              cost: creditPolicy.costs.liveHumanRound,
+              reason: 'live_human_round',
+              now: creditNow(),
+            });
             peer.gameId = game.id;
           } else {
             const baseMs = message.baseMs ?? 600_000;
             const incrementMs = message.incrementMs ?? 0;
-            const queueKey = `${baseMs}:${incrementMs}:${peer.player.level}`;
+            const queueKey = `${baseMs}:${incrementMs}:${peer.player.level}:${message.tossForColors === true}`;
             const eligible = [...games.values()].filter(
               (match) =>
                 match.status === "waiting" &&
                 match.baseMs === baseMs &&
                 match.incrementMs === incrementMs &&
+                match.tossForColors === (message.tossForColors ?? false) &&
                 !match.hasPlayer(peer.player.id) &&
                 ![...games.values()].some(
                   (other) =>
                     other.status !== "complete" &&
-                    other.isPair(match.players.w.id, peer.player.id),
-                ),
+                    other.isPair(match.creatorPlayer.id, peer.player.id),
+                  ),
             );
+            for (let index = eligible.length - 1; index >= 0; index--) {
+              const candidate = eligible[index];
+              if (canAffordRound(candidate.creatorPlayer, creditPolicy.costs.liveHumanRound, creditNow()))
+                continue;
+              eligible.splice(index, 1);
+              if (candidate.matchmakingStartedAt == null) continue;
+              for (const [key, gameId] of matchmaking) {
+                if (gameId === candidate.id) matchmaking.delete(key);
+              }
+              games.delete(candidate.id);
+              for (const [waitingSocket, waitingPeer] of peers) {
+                if (waitingPeer.gameId !== candidate.id) continue;
+                waitingPeer.gameId = null;
+                waitingPeer.token = null;
+                waitingPeer.queueKey = null;
+                send(waitingSocket, 'matchmaking_cancelled', {
+                  commandId: null,
+                  gameId: candidate.id,
+                  reason: 'insufficient_credits',
+                  ...creditFields(waitingPeer.player),
+                });
+              }
+            }
             const matchTime = now();
             const waiting =
               eligible.find(
@@ -635,14 +1168,31 @@ export function createMatchServer({
               );
             if (waiting) {
               game = waiting;
+              requireRoundCredits(
+                [...Object.values(game.players), peer.player],
+                creditPolicy.costs.liveHumanRound,
+                creditNow(),
+              );
               for (const [key, gameId] of matchmaking) {
                 if (gameId === game.id) matchmaking.delete(key);
               }
               game.matchmakingLevel = null;
               game.matchmakingStartedAt = null;
               peer.token = game.joinBlack(now(), peer.player);
+              setupCreditChanges = chargeRound(Object.values(game.players), {
+                gameId: game.id,
+                round: game.round,
+                cost: creditPolicy.costs.liveHumanRound,
+                reason: 'live_human_round',
+                now: creditNow(),
+              });
               peer.gameId = game.id;
             } else {
+              requireRoundCredits(
+                [peer.player],
+                creditPolicy.costs.liveHumanRound,
+                creditNow(),
+              );
               matchmaking.delete(queueKey);
               if (games.size >= 1000)
                 throw new MatchError(
@@ -653,18 +1203,22 @@ export function createMatchServer({
                 baseMs,
                 incrementMs,
                 whitePlayer: peer.player,
+                creatorSide: message.tossForColors ? toss() : 'w',
+                tossForColors: message.tossForColors ?? false,
               });
               games.set(game.id, game);
               game.matchmakingLevel = peer.player.level;
               game.matchmakingStartedAt = matchTime;
               matchmaking.set(queueKey, game.id);
               peer.gameId = game.id;
-              peer.token = game.whiteToken;
+              peer.token = game.creatorToken;
               peer.queueKey = queueKey;
             }
           }
           const type =
-            message.type === "create_game"
+            message.type === "start_computer_game"
+              ? "computer_match_found"
+              : message.type === "create_game"
               ? "game_created"
               : message.type === "join_game"
                 ? "seat_joined"
@@ -678,6 +1232,7 @@ export function createMatchServer({
             seat: game.sideForToken(peer.token),
             seatToken: peer.token,
             state,
+            ...creditFields(peer.player),
           };
           peer.setupReceipts.set(message.commandId, {
             fingerprint,
@@ -686,13 +1241,15 @@ export function createMatchServer({
           });
           send(socket, type, payload);
           broadcast(game.id, state);
+          publishCreditChanges(setupCreditChanges);
+          scheduleComputerMove(game);
           return;
         }
         if (message.type === "cancel_matchmaking") {
           game = games.get(message.gameId);
           if (!game)
             throw new MatchError("GAME_NOT_FOUND", "Game does not exist");
-          if (peer.gameId !== game.id || game.sideForToken(peer.token) !== "w")
+          if (peer.gameId !== game.id || game.sideForToken(peer.token) !== game.creatorSide)
             throw new MatchError(
               "UNAUTHORIZED_SEAT",
               "Only the waiting player can cancel matchmaking",
@@ -711,6 +1268,7 @@ export function createMatchServer({
           send(socket, "matchmaking_cancelled", {
             commandId: message.commandId,
             gameId: game.id,
+            ...creditFields(peer.player),
           });
           return;
         }
@@ -741,6 +1299,7 @@ export function createMatchServer({
             gameId: game.id,
             seat: side,
             state: game.snapshot(now()),
+            ...creditFields(peer.player),
           });
           return;
         }
@@ -749,33 +1308,123 @@ export function createMatchServer({
             "UNAUTHORIZED_SEAT",
             "Join or resume the game first",
           );
-        game.requireSeat(peer.token);
+        const actingSide = game.requireSeat(peer.token);
         if (message.type === "sync") {
           send(socket, "game_state", {
             state: game.snapshot(now()),
             synced: true,
           });
         } else if (isAction(message.type)) {
+          const computerSide = ['w', 'b'].find((side) => game.players[side]?.computer === true);
+          const existingReceipt = game.commands.has(`${actingSide}:${message.commandId}`);
+          const activatesHumanRematch =
+            !computerSide &&
+            message.type === 'rematch' &&
+            game.status === 'complete' &&
+            !game.rematchOffers.has(actingSide) &&
+            game.rematchOffers.size === 1;
+          const activatesComputerRematch =
+            computerSide &&
+            message.type === 'rematch' &&
+            game.status === 'complete' &&
+            !game.rematchOffers.has(actingSide);
+          if (!existingReceipt && (activatesHumanRematch || activatesComputerRematch))
+            requireRoundCredits(Object.values(game.players), roundCost(game), creditNow());
+          const chargeableSuggestion =
+            !existingReceipt &&
+            message.type === 'use_lifeline' &&
+            message.round === game.round &&
+            game.status === 'active' &&
+            actingSide === game.chess.turn();
+          if (chargeableSuggestion && !computerSide)
+            throw new MatchError(
+              'ASSIST_NOT_AVAILABLE',
+              'Move suggestions are available only against the server computer.',
+            );
+          if (chargeableSuggestion)
+            requireOnlineMoveSuggestionCredit(peer.player, creditNow());
+          const roundBefore = game.round;
           const receipt = game.command(peer.token, message, now());
+          if (receipt.accepted && computerSide) {
+            if (
+              message.type === "offer_draw" &&
+              game.drawOffer?.side !== computerSide
+            ) {
+              game.command(game.tokens[computerSide], {
+                type: "respond_draw",
+                commandId: `computer-draw-${game.round}-${game.sequence}`,
+                round: game.round,
+                offerId: game.drawOffer.offerId,
+                accept: false,
+              }, now());
+            } else if (message.type === "rematch" && game.status === "complete") {
+              game.command(game.tokens[computerSide], {
+                type: "rematch",
+                commandId: `computer-rematch-${game.round}-${game.sequence}`,
+                round: game.round,
+              }, now());
+            }
+          }
+          let rematchCreditChanges = [];
+          if (receipt.accepted && !receipt.duplicate && game.round > roundBefore) {
+            const cost = roundCost(game);
+            rematchCreditChanges = chargeRound(Object.values(game.players), {
+              gameId: game.id,
+              round: game.round,
+              cost,
+              reason: computerSide
+                ? 'server_computer_round'
+                : game.clockMode === 'daily'
+                  ? 'daily_human_round'
+                  : 'live_human_round',
+              now: creditNow(),
+            });
+          }
+          const suggestionCreditChanges = [];
+          if (
+            message.type === 'use_lifeline' &&
+            receipt.accepted &&
+            !receipt.duplicate
+          ) {
+            suggestionCreditChanges.push(chargeOnlineMoveSuggestion(peer.player, {
+              gameId: game.id,
+              round: game.round,
+              commandId: message.commandId,
+              now: creditNow(),
+            }));
+          }
           awardCompletedRound(game);
           broadcast(game.id, game.snapshot(now()));
-          send(socket, "command_result", receipt);
+          send(socket, "command_result", { ...receipt, ...creditFields(peer.player) });
+          publishCreditChanges(rematchCreditChanges);
+          publishCreditChanges(suggestionCreditChanges);
+          scheduleComputerMove(game);
         }
       } catch (error) {
         const known = error instanceof MatchError;
+        if (!known || error.code === 'INVALID_MESSAGE') {
+          peer.invalidMessages += 1;
+        }
         send(socket, "error", {
           ...(message?.commandId ? { commandId: message.commandId } : {}),
           code: known ? error.code : "SERVER_ERROR",
           message: known
             ? error.message
             : "The server could not process the request",
+          ...(known && error.code === 'INSUFFICIENT_CREDITS' && peer.player
+            ? creditFields(peer.player)
+            : {}),
         });
         // A rejected request can still have settled a timeout.
         const seatedGame = games.get(peer.gameId);
         if (seatedGame) broadcast(seatedGame.id, seatedGame.snapshot(now()));
+        if (peer.invalidMessages >= limits.invalidMessagesPerConnection) {
+          socket.close(1008, 'Too many invalid messages.');
+        }
       }
+      });
     });
-    socket.on("close", () => {
+    socket.on("close", () => serialize(() => {
       peer.player?.sockets?.delete(socket);
       if (peer.queueKey) {
         const waiting = games.get(peer.gameId);
@@ -786,7 +1435,10 @@ export function createMatchServer({
         }
       }
       peers.delete(socket);
-    });
+      const remaining = (connectionsByIp.get(peer.ip) ?? 1) - 1;
+      if (remaining > 0) connectionsByIp.set(peer.ip, remaining);
+      else connectionsByIp.delete(peer.ip);
+    }));
   });
   return {
     server,
@@ -797,12 +1449,18 @@ export function createMatchServer({
     awardedResults,
     invites,
     tick,
+    sharedInvites,
     async close() {
+      closing = true;
       clearInterval(timer);
+      for (const computerTimer of computerTimers.values())
+        clearTimeout(computerTimer);
+      await work;
       for (const socket of server.clients) socket.terminate();
       await new Promise((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       );
+      await work; // Flush disconnect/queue cleanup before the next authority loads.
       await new Promise((resolve, reject) =>
         httpServer.close((error) => (error ? reject(error) : resolve())),
       );

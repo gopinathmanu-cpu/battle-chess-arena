@@ -31,6 +31,25 @@ or field-of-use-restricted licenses must not be included.
 - Project source files for production animations must be included whenever the
   license requires the preferred form for modification.
 
+### Generated artwork safeguards
+
+- Generate original project-directed designs, not copies of existing game,
+  film, comic or television characters, branded costumes, actor likenesses,
+  logos, stock pictures or museum photographs.
+- Historical facts and traditional stories may inform descriptions. Do not
+  reproduce a modern adaptation's distinctive visual expression or assume
+  that an online image is reusable because its subject is ancient.
+- Keep prompts, generator/mode, source sheets, selected outputs and local
+  preparation records beside each asset family. Disclose unavailable records
+  rather than inventing provenance.
+- Review selected output for recognizable protected designs, signatures,
+  watermarks and accidental likenesses; replace questionable output or obtain
+  documented permission before shipping it.
+- AI generation is not proof of non-infringement, public-domain status or
+  copyright ownership. Our GPL notice applies only to rights we can grant; it
+  does not clear third-party rights or establish copyright in AI-only material.
+- See [artwork provenance and release review](docs/ARTWORK_PROVENANCE.md).
+
 ## Optional services
 
 The mobile app may connect to independently operated services, but the client

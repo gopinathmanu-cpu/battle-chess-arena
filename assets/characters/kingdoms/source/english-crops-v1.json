@@ -1,0 +1,119 @@
+{
+  "sourceSize": [
+    1536,
+    1024
+  ],
+  "bounds": [
+    [
+      27,
+      0,
+      303,
+      442
+    ],
+    [
+      303,
+      5,
+      546,
+      442
+    ],
+    [
+      546,
+      33,
+      742,
+      442
+    ],
+    [
+      748,
+      30,
+      1080,
+      442
+    ],
+    [
+      1090,
+      140,
+      1320,
+      442
+    ],
+    [
+      1330,
+      122,
+      1522,
+      442
+    ],
+    [
+      12,
+      490,
+      280,
+      910
+    ],
+    [
+      280,
+      510,
+      526,
+      910
+    ],
+    [
+      533,
+      510,
+      734,
+      910
+    ],
+    [
+      738,
+      508,
+      1088,
+      910
+    ],
+    [
+      1100,
+      600,
+      1316,
+      910
+    ],
+    [
+      1335,
+      606,
+      1528,
+      910
+    ]
+  ],
+  "allowedEdgeContacts": {
+    "0": [
+      "bottom"
+    ],
+    "1": [
+      "bottom"
+    ],
+    "2": [
+      "bottom"
+    ],
+    "3": [
+      "bottom"
+    ],
+    "4": [
+      "bottom"
+    ],
+    "5": [
+      "bottom"
+    ],
+    "6": [
+      "bottom"
+    ],
+    "7": [
+      "bottom"
+    ],
+    "8": [
+      "bottom"
+    ],
+    "9": [
+      "bottom"
+    ],
+    "10": [
+      "bottom"
+    ],
+    "11": [
+      "bottom"
+    ]
+  },
+  "edgeReview": "Bottom bounds deliberately exclude the labeled pedestal at each full figure's feet or garment hem. Top, left, and right remain strict. Review normalized silhouettes before use."
+}

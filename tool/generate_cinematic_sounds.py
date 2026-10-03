@@ -49,11 +49,30 @@ def final_strike():
     return boom + shimmer * .32
 
 
+def credit_coin():
+    """A short original two-strike gold-coin chime for wallet changes."""
+    duration = .52
+    t = np.arange(round(duration * RATE)) / RATE
+    samples = np.zeros_like(t)
+    for start, fundamental, amplitude in ((0.0, 1480, .72), (.115, 1975, .48)):
+        local = t - start
+        active = local >= 0
+        ring = (
+            np.sin(2 * np.pi * fundamental * local)
+            + .52 * np.sin(2 * np.pi * fundamental * 1.51 * local)
+            + .24 * np.sin(2 * np.pi * fundamental * 2.18 * local)
+        )
+        envelope = np.exp(-local * 10.5) * active
+        samples += ring * envelope * amplitude
+    attack = np.exp(-t * 85) * np.sin(2 * np.pi * 3120 * t) * .2
+    return samples + attack
+
+
 def victory_applause():
-    duration = 3.4
+    duration = 5.2
     samples = np.zeros(round(duration * RATE))
-    # Many short, filtered-noise handclaps create a compact arena ovation.
-    for clap_time in np.sort(RNG.uniform(.05, 3.15, 82)):
+    # A denser arena ovation, with clustered claps instead of flat white noise.
+    for clap_time in np.sort(RNG.uniform(.05, 4.85, 138)):
         length = round(RATE * RNG.uniform(.045, .105))
         start = round(clap_time * RATE)
         end = min(len(samples), start + length)
@@ -65,17 +84,52 @@ def victory_applause():
     t = np.arange(len(samples)) / RATE
     crowd = RNG.normal(0, 1, len(samples))
     crowd = np.convolve(crowd, np.ones(150) / 150, mode='same')
-    swell = np.sin(np.pi * np.minimum(t / .7, 1)) * np.exp(-np.maximum(0, t - 2.4) * 1.7)
-    fanfare = (
-        np.sin(2 * np.pi * 392 * t) +
-        .7 * np.sin(2 * np.pi * 523.25 * t) +
-        .45 * np.sin(2 * np.pi * 659.25 * t)
-    ) * np.exp(-t * .75) * .055
-    return samples + crowd * swell * 1.8 + fanfare
+    swell = np.sin(np.pi * np.minimum(t / .8, 1)) * np.exp(-np.maximum(0, t - 4.0) * 1.9)
+
+    # Original four-phrase brass fanfare: G, C-major lift, E-major sparkle,
+    # then a held C-major finish. Layered harmonics keep it warm on phones.
+    fanfare = np.zeros_like(samples)
+    phrases = [
+        (.08, .48, (392.00, 493.88, 587.33)),
+        (.62, .55, (523.25, 659.25, 783.99)),
+        (1.27, .62, (659.25, 830.61, 987.77)),
+        (2.02, 2.35, (523.25, 659.25, 783.99, 1046.50)),
+    ]
+    for start, note_length, chord in phrases:
+        begin = round(start * RATE)
+        end = min(len(samples), begin + round(note_length * RATE))
+        note_t = np.arange(end - begin) / RATE
+        attack_env = np.minimum(note_t / .035, 1)
+        release_env = np.minimum((note_length - note_t) / .24, 1)
+        envelope = np.maximum(0, attack_env * release_env)
+        brass = np.zeros_like(note_t)
+        for frequency in chord:
+            brass += (
+                np.sin(2 * np.pi * frequency * note_t)
+                + .32 * np.sin(2 * np.pi * frequency * 2 * note_t)
+                + .12 * np.sin(2 * np.pi * frequency * 3 * note_t)
+            ) / len(chord)
+        fanfare[begin:end] += brass * envelope * .21
+
+    # Low ceremonial drum hits and a bright final shimmer add a clear finish.
+    drums = np.zeros_like(samples)
+    for hit in (.02, .60, 1.25, 2.00):
+        begin = round(hit * RATE)
+        hit_t = np.arange(min(round(.55 * RATE), len(samples) - begin)) / RATE
+        drums[begin:begin + len(hit_t)] += (
+            np.sin(2 * np.pi * (72 - 24 * hit_t) * hit_t)
+            * np.exp(-hit_t * 8) * .32
+        )
+    shimmer_noise = RNG.normal(0, 1, len(samples))
+    shimmer = (
+        shimmer_noise - np.convolve(shimmer_noise, np.ones(30) / 30, mode='same')
+    ) * np.exp(-np.maximum(0, t - 2.0) * 1.25) * (t >= 2.0) * .035
+    return samples + crowd * swell * 1.65 + fanfare + drums + shimmer
 
 
 if __name__ == '__main__':
     OUT.mkdir(parents=True, exist_ok=True)
+    save('creditCoin', credit_coin())
     save('attack', attack())
     save('lightImpact', impact(.42, 118, .25))
     save('heavyImpact', impact(.62, 62, .9))

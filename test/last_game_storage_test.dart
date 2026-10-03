@@ -15,6 +15,8 @@ import 'theme_music_test.dart' show FakeMusicOutput;
 SavedGame savedGame({
   PlayerMode mode = PlayerMode.local,
   List<String> moves = const ['e2e4', 'e7e5', 'g1f3'],
+  bool classicPieces = false,
+  ClassicPieceStyle classicStyle = ClassicPieceStyle.magneticTeaching,
 }) => SavedGame(
   mode: mode,
   homePack: PiecePackId.greek,
@@ -25,9 +27,11 @@ SavedGame savedGame({
   fastBattles: true,
   whitePack: PiecePackId.greek,
   blackPack: PiecePackId.futuristic,
-  boardPack: PiecePackId.classic,
+  boardPack: PiecePackId.anime,
   updatedAtEpochMs: 123456789,
   lifelinesRemaining: 2,
+  classicPieces: classicPieces,
+  classicStyle: classicStyle,
 );
 
 void main() {
@@ -37,13 +41,18 @@ void main() {
   });
 
   test('saved game round trip restores legal history and settings', () async {
-    final original = savedGame();
+    final original = savedGame(
+      classicPieces: true,
+      classicStyle: ClassicPieceStyle.metal,
+    );
     await LastGameStorage.save(original);
     final restored = await LastGameStorage.load();
     expect(restored?.moves, original.moves);
     expect(restored?.difficulty, ComputerDifficulty.hard);
     expect(restored?.blackPack, PiecePackId.futuristic);
     expect(restored?.lifelinesRemaining, 2);
+    expect(restored?.classicPieces, isTrue);
+    expect(restored?.classicStyle, ClassicPieceStyle.metal);
     final session = GameSession.fromMoves(
       mode: restored!.mode,
       moves: restored.moves,
@@ -59,13 +68,38 @@ void main() {
     expect(SavedGame.fromJson(json).lifelinesRemaining, 3);
   });
 
-  testWidgets('home prompts and resumes the unfinished game', (tester) async {
-    await LastGameStorage.save(savedGame());
+  test('saved Royal Classic selections migrate to Manga Vanguard', () {
+    final json = savedGame().toJson()
+      ..['homePack'] = 'classic'
+      ..['whitePack'] = 'classic'
+      ..['blackPack'] = 'classic'
+      ..['boardPack'] = 'classic';
+    final migrated = SavedGame.fromJson(json);
+    expect(migrated.homePack, PiecePackId.anime);
+    expect(migrated.whitePack, PiecePackId.anime);
+    expect(migrated.blackPack, PiecePackId.anime);
+    expect(migrated.boardPack, PiecePackId.anime);
+  });
+
+  testWidgets('home prompts only after Play Computer and resumes the game', (
+    tester,
+  ) async {
+    await LastGameStorage.save(savedGame(mode: PlayerMode.computer));
     await tester.pumpWidget(
       BattleChessArenaApp(musicOutput: FakeMusicOutput()),
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Resume last game?'), findsNothing);
+    expect(find.byType(AnimationLabScreen), findsNothing);
+
+    final playComputer = find.byKey(const ValueKey('play-computer-button'));
+    await tester.ensureVisible(playComputer);
+    await tester.pumpAndSettle();
+    await tester.tap(playComputer);
+    await tester.pumpAndSettle();
+
     expect(find.text('Resume last game?'), findsOneWidget);
     expect(find.text('Resume Last Game'), findsOneWidget);
     expect(find.text('New Game'), findsOneWidget);
@@ -80,12 +114,15 @@ void main() {
     expect(board.position.turn, Side.black);
     expect(board.position.board.pieceAt(Square.f3)?.role, Role.knight);
     await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 13));
   });
 
-  testWidgets('home does not prompt when no move has been played', (
+  testWidgets('Play Computer asks difficulty when no game can be resumed', (
     tester,
   ) async {
-    await LastGameStorage.save(savedGame(moves: const []));
+    await LastGameStorage.save(
+      savedGame(mode: PlayerMode.computer, moves: const []),
+    );
     await tester.pumpWidget(
       BattleChessArenaApp(musicOutput: FakeMusicOutput()),
     );
@@ -95,6 +132,51 @@ void main() {
     expect(find.text('Resume last game?'), findsNothing);
     expect(find.byType(AnimationLabScreen), findsNothing);
     expect(await LastGameStorage.load(), isNull);
+
+    final playComputer = find.byKey(const ValueKey('play-computer-button'));
+    await tester.ensureVisible(playComputer);
+    await tester.pumpAndSettle();
+    await tester.tap(playComputer);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Resume last game?'), findsNothing);
+    expect(find.byType(AnimationLabScreen), findsNothing);
+    expect(find.text('Choose computer difficulty'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('computer-difficulty-medium')));
+    await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AnimationLabScreen), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('discarding a saved game asks difficulty for the new game', (
+    tester,
+  ) async {
+    await LastGameStorage.save(savedGame(mode: PlayerMode.computer));
+    await tester.pumpWidget(
+      BattleChessArenaApp(musicOutput: FakeMusicOutput()),
+    );
+    await tester.pumpAndSettle();
+
+    final playComputer = find.byKey(const ValueKey('play-computer-button'));
+    await tester.ensureVisible(playComputer);
+    await tester.pumpAndSettle();
+    await tester.tap(playComputer);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New Game'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose computer difficulty'), findsOneWidget);
+    expect(find.byType(AnimationLabScreen), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('computer-difficulty-easy')));
+    await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+    await tester.pumpAndSettle();
+
+    final match = tester.widget<AnimationLabScreen>(
+      find.byType(AnimationLabScreen),
+    );
+    expect(match.difficulty, ComputerDifficulty.easy);
+    expect(match.savedGame, isNull);
     await tester.pumpWidget(const SizedBox());
   });
 

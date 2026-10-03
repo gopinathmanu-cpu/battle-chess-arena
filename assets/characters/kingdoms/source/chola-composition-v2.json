@@ -1,0 +1,65 @@
+{
+  "cells": [
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 0,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 1,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/chola-mounted-prepared-v2.png",
+      "column": 0,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/chola-mounted-prepared-v2.png",
+      "column": 1,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 4,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 5,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 0,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 1,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/chola-mounted-prepared-v2.png",
+      "column": 0,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/chola-mounted-prepared-v2.png",
+      "column": 1,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 4,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/chola-base-for-repair-v1.png",
+      "column": 5,
+      "row": 1
+    }
+  ],
+  "note": "Preserve original prepared K/Q/R/P pixel-for-pixel; replace only four B/N cells with separately generated and measured non-overlapping mounted pieces. Reproduce base from chola-source-v1.png + chola-crops-v1.json; prepare mounted source/crops v2 with --columns 2 --rows 2, then assemble."
+}

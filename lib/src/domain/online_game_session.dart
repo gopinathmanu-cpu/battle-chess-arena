@@ -12,12 +12,14 @@ class OnlineGameSession {
   }
   late final int Function() _nowMs;
   OnlineGameState? state;
+  MoveResolution? committedMove;
   MoveResolution? committedCapture;
   int captureSequence = -1;
   int _receivedAt = 0;
 
   void clear() {
     state = null;
+    committedMove = null;
     committedCapture = null;
     captureSequence = -1;
     _receivedAt = 0;
@@ -30,9 +32,10 @@ class OnlineGameSession {
             next.sequence <= previous.sequence)) {
       return false;
     }
-    committedCapture = animate && previous != null
-        ? detectCommittedCapture(previous, next)
+    committedMove = animate && previous != null
+        ? detectCommittedMove(previous, next)
         : null;
+    committedCapture = committedMove?.isCapture == true ? committedMove : null;
     if (committedCapture != null) captureSequence = next.sequence;
     state = next;
     _receivedAt = _nowMs();
@@ -73,7 +76,8 @@ class OnlineGameSession {
     final value = state;
     if (value == null) return 0;
     final base = side == 'w' ? value.whiteMs : value.blackMs;
-    final elapsed = value.status == 'active' && value.turn == side
+    final elapsed =
+        value.timed && value.status == 'active' && value.turn == side
         ? (_nowMs() - _receivedAt).clamp(0, base)
         : 0;
     return base - elapsed;
@@ -82,6 +86,15 @@ class OnlineGameSession {
 
 /// Only animate a single verified transition; reconnect gaps never replay battles.
 MoveResolution? detectCommittedCapture(
+  OnlineGameState previous,
+  OnlineGameState next,
+) {
+  final move = detectCommittedMove(previous, next);
+  return move?.isCapture == true ? move : null;
+}
+
+/// Returns a move only when two authoritative states prove one legal ply.
+MoveResolution? detectCommittedMove(
   OnlineGameState previous,
   OnlineGameState next,
 ) {
@@ -102,7 +115,7 @@ MoveResolution? detectCommittedCapture(
     move.to,
     promotion: move.promotion ?? Role.queen,
   );
-  if (result == null || !result.isCapture) return null;
+  if (result == null) return null;
   // Compare the authoritative positions, not just a capture marker in SAN.
   // FENs are normalized through the same rules engine before comparison.
   if (game.position.fen != next.position.fen) return null;

@@ -1,0 +1,488 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-09-26",
+  "researchPurpose": "Reference text facts only; no source images copied. Original independently invented interpretations, not named artist styles or modern adaptations. Elephant bishops and chariot rooks are game adaptations, not historical assertions. Source context is not legal clearance.",
+  "entries": [
+    {
+      "id": "lanka",
+      "title": "Lanka",
+      "sources": [
+        "https://www.metmuseum.org/art/collection/search/454358",
+        "https://www.metmuseum.org/exhibitions/listings/2019/sita-and-rama-ramayana-indian-painting"
+      ],
+      "note": "Original Ramayana-inspired court, not exact canonical portraits.",
+      "specific": "Realm: legendary Lanka from Ramayana-inspired storytelling, presented as an original dignified royal court, not real historical reconstruction and not portraits of named sacred characters. South Asian court dress with sophisticated gold jewellery, long layered silk garments, tapering multi-tier crowns, ruby and emerald ornament, elegant leaf and lotus motifs. King a proud regal warrior with a single readable human face and fine moustache, tall tiered crown, covered torso armour and ceremonial curved sword. Queen an adult regal woman in a fully draped long silk sari, tasteful crown and jewels, composed and powerful. Court warriors wear decorated cuirasses over layered cloth; elephant decorative caparison, horse rider with matching armour, compact gilded chariot. Foot guard plain helmet, modest tunic/trousers and spear. Rich red-gold accents on ivory and charcoal armies. No demonic caricatures, fangs, grotesque faces, horns, or sexualized costumes. Treat the epic tradition respectfully.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: legendary Lanka from Ramayana-inspired storytelling, presented as an original dignified royal court, not real historical reconstruction and not portraits of named sacred characters. South Asian court dress with sophisticated gold jewellery, long layered silk garments, tapering multi-tier crowns, ruby and emerald ornament, elegant leaf and lotus motifs. King a proud regal warrior with a single readable human face and fine moustache, tall tiered crown, covered torso armour and ceremonial curved sword. Queen an adult regal woman in a fully draped long silk sari, tasteful crown and jewels, composed and powerful. Court warriors wear decorated cuirasses over layered cloth; elephant decorative caparison, horse rider with matching armour, compact gilded chariot. Foot guard plain helmet, modest tunic/trousers and spear. Rich red-gold accents on ivory and charcoal armies. No demonic caricatures, fangs, grotesque faces, horns, or sexualized costumes. Treat the epic tradition respectfully.",
+      "userReference": {
+        "url": "https://ignca.gov.in/Asi_data/16468.pdf",
+        "access": "Web fetch timed out; contextual museum sources used."
+      },
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-58f85c28-ec83-4f17-b801-bc5a101b4f49.png",
+        "source": "assets/characters/kingdoms/source/lanka-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/lanka-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/lanka-v1.png",
+        "sha256": "8de99cbf9610d97bc548c2c67f4bf307da1fbfaaf0f2d163607bfa68f4cebec5",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      }
+    },
+    {
+      "id": "ayodhya",
+      "title": "Ayodhya",
+      "sources": [
+        "https://searcharchives.bl.uk/catalog/042-003283611",
+        "https://www.metmuseum.org/exhibitions/listings/2019/sita-and-rama-ramayana-indian-painting",
+        "https://en.wikisource.org/wiki/1911_Encyclop%C3%A6dia_Britannica/Ajodhya"
+      ],
+      "note": "Original epic-inspired court and royal archer; not exact depictions of Rama or Sita.",
+      "specific": "Realm: epic-inspired Ayodhya, a dignified original solar royal court rooted in the visual tradition of Ramayana illustrations, not an exact portrait of Rama or Sita. King a graceful adult royal archer wearing a tall gold crown, layered silk drapery with covered torso and light ceremonial armour, elegant long bow and quiver, warm natural skin. Queen an adult dignified royal woman in fully draped long silk sari and shawl, delicate gold crown, pearl and lotus ornament. Sunburst and lotus accents in gold and warm saffron on ivory/charcoal cloth. Noble elephant rider on decorated Asian elephant, horse-mounted cavalry in matching layered armour, two-wheeled ceremonial chariot carrying standing archer. Plain adult foot guard wearing a simple tunic, cloth sash and modest helmet, spear and small shield. Calm heroic mood, respectful sacred-epic inspiration without exact canonical portraits, no theatrical blue skin, no modern costumes.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: epic-inspired Ayodhya, a dignified original solar royal court rooted in the visual tradition of Ramayana illustrations, not an exact portrait of Rama or Sita. King a graceful adult royal archer wearing a tall gold crown, layered silk drapery with covered torso and light ceremonial armour, elegant long bow and quiver, warm natural skin. Queen an adult dignified royal woman in fully draped long silk sari and shawl, delicate gold crown, pearl and lotus ornament. Sunburst and lotus accents in gold and warm saffron on ivory/charcoal cloth. Noble elephant rider on decorated Asian elephant, horse-mounted cavalry in matching layered armour, two-wheeled ceremonial chariot carrying standing archer. Plain adult foot guard wearing a simple tunic, cloth sash and modest helmet, spear and small shield. Calm heroic mood, respectful sacred-epic inspiration without exact canonical portraits, no theatrical blue skin, no modern costumes.",
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-f6f1b576-433c-47cd-959e-1799bba1545c.png",
+        "source": "assets/characters/kingdoms/source/ayodhya-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/ayodhya-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/ayodhya-v1.png",
+        "sha256": "d3eb2a19ed45f05742399c8ba1557f7cad32352de14107dd5e635537325f00df",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      },
+      "repairs": [
+        {
+          "mode": "built-in image_gen / targeted spacing edit",
+          "prompt": "Use case: precise-object-edit. Edit target: supplied Ayodhya chess sprite atlas. Change ONLY the spacing and transparent background extraction of the twelve existing miniatures. Preserve all12 adult characters, costume identity, ivory/charcoal armies, faces, materials and painterly style. Preserve6columns by2rows and role order King,Queen,elephant-riding Bishop,horse-riding Knight,two-wheeled chariot Rook,plain adult Pawn in bothrows. Each sprite MUST be completely isolated and entire. Crucial: separate each elephant's tusks from its neighboring horse's tail, leaving a wide TRANSPARENT gap; reconstruct any previously hidden tail naturally. Make every figure smaller to fit within its own 256px-wide cell: sprite maximum200pxwidth, large40pxclear gutters, full weapons, tails, trunk, all four natural animal legs and feet. Do not enlarge elephant or horse relative to its cell. No touch or overlap between any figures. Canvas1536x1024, truly transparent alpha background, no gradients, no floor, no text, no labels or pedestals. Independently invented art, no actors or modern film/TV/game/comic adaptation costumes or named artist style. Do not change the design or add characters.",
+          "input": "assets/characters/kingdoms/source/ayodhya-source-v1.png",
+          "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-e5a0e798-b1e8-43ef-8db7-322cc4ff5eb9.png",
+          "source": "assets/characters/kingdoms/source/ayodhya-source-v2.png",
+          "crops": "assets/characters/kingdoms/source/ayodhya-crops-v2.json",
+          "composition": "assets/characters/kingdoms/source/ayodhya-composition-v2.json",
+          "usedCells": [
+            "white bishop",
+            "white knight",
+            "black bishop",
+            "black knight"
+          ],
+          "reason": "Original tusks occluded horse tails; generated repair separates complete silhouettes. Original king/queen/rook/pawn cells are retained."
+        }
+      ]
+    },
+    {
+      "id": "hastinapura",
+      "title": "Hastinapura",
+      "sources": [
+        "https://umma.umich.edu/objects/mahabharata-series-warriors-in-conference-1975-2-151/",
+        "https://museumsofindia.gov.in/repository/record/nat_del-58-58-138-38308"
+      ],
+      "note": "Fictional Kuru court inspired by Mahabharata narrative art; no claim to archaeologically reconstructed dress.",
+      "specific": "Realm: Hastinapura in an original Mahabharata-inspired Kuru royal court; epic fantasy rather than archaeologically exact history or named sacred portraits. Regal adult king wearing ornate tiered gold crown, fitted scale breastplate over long layered silk and trousers, broad sash and ceremonial mace. Adult queen in fully draped long sari, substantial jewelled crown, dignified shawl and royal staff. Deep cobalt and gold ornament across ivory-white or charcoal-black clothing. Elephant-mounted warrior with decorated caparison and spear; horse-mounted warrior with bow and cuirass; standing adult chariot warrior holding bow in a clearly two-wheeled compact open chariot. Pawn a practical ordinary adult infantry guard with simple helmet, light scale vest, plain cloth and spear, no crown. Strong disciplined heroic silhouettes; no fantasy bare midriff, no grotesque adversarial coding, no exact depiction of named deities.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: Hastinapura in an original Mahabharata-inspired Kuru royal court; epic fantasy rather than archaeologically exact history or named sacred portraits. Regal adult king wearing ornate tiered gold crown, fitted scale breastplate over long layered silk and trousers, broad sash and ceremonial mace. Adult queen in fully draped long sari, substantial jewelled crown, dignified shawl and royal staff. Deep cobalt and gold ornament across ivory-white or charcoal-black clothing. Elephant-mounted warrior with decorated caparison and spear; horse-mounted warrior with bow and cuirass; standing adult chariot warrior holding bow in a clearly two-wheeled compact open chariot. Pawn a practical ordinary adult infantry guard with simple helmet, light scale vest, plain cloth and spear, no crown. Strong disciplined heroic silhouettes; no fantasy bare midriff, no grotesque adversarial coding, no exact depiction of named deities.",
+      "userReference": {
+        "url": "https://www.britannica.com/topic/Mahabharata",
+        "access": "Official page could not be fetched; museum sources used."
+      },
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-e7161e90-2075-4781-999a-2996125e2d7c.png",
+        "source": "assets/characters/kingdoms/source/hastinapura-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/hastinapura-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/hastinapura-v1.png",
+        "sha256": "28ffe149d176fe47b1eb5fa1f3dce6aad5ec2581413c022ade154d21a4c38882",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      }
+    },
+    {
+      "id": "kishkindha",
+      "title": "Kishkindha",
+      "sources": [
+        "https://www.clevelandart.org/art/1973.103",
+        "https://resources.metmuseum.org/resources/metpublications/pdf/Divine_Pleasures.pdf"
+      ],
+      "note": "Respectful original vanara court inspired by Ramayana; not an exact portrayal of Hanuman, Sugriva or Tara.",
+      "specific": "Realm: legendary Kishkindha, a dignified original VANARA royal court inspired respectfully by the Ramayana, not exact portraits of Hanuman, Sugriva, Vali or Tara. All riders and standing figures are noble adult anthropomorphic monkey-like vanara people, with natural expressive simian faces, modest short fur, humanlike upright posture and neatly contained tails, intelligent calm expressions. NO caricature or savagery. King wears a fine tiered gold crown, fully clothed ceremonial armour over forest-green trimmed drapery, holds a mace. Queen is an adult noble vanara woman in fully draped long royal silks, gold crown and woodland-leaf jewels, graceful and commanding. The bishop is a vanara warrior riding a complete Asian elephant; knight a vanara warrior riding complete horse; rook a vanara standing in two-wheeled chariot; pawn simpler adult vanara guard with modest tunic, helmet, short spear. Forest-leaf and gold details across ivory and charcoal sides, same fur colors on both sides. No enormous tails crossing gutters, no human-only substitute court, no children.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: legendary Kishkindha, a dignified original VANARA royal court inspired respectfully by the Ramayana, not exact portraits of Hanuman, Sugriva, Vali or Tara. All riders and standing figures are noble adult anthropomorphic monkey-like vanara people, with natural expressive simian faces, modest short fur, humanlike upright posture and neatly contained tails, intelligent calm expressions. NO caricature or savagery. King wears a fine tiered gold crown, fully clothed ceremonial armour over forest-green trimmed drapery, holds a mace. Queen is an adult noble vanara woman in fully draped long royal silks, gold crown and woodland-leaf jewels, graceful and commanding. The bishop is a vanara warrior riding a complete Asian elephant; knight a vanara warrior riding complete horse; rook a vanara standing in two-wheeled chariot; pawn simpler adult vanara guard with modest tunic, helmet, short spear. Forest-leaf and gold details across ivory and charcoal sides, same fur colors on both sides. No enormous tails crossing gutters, no human-only substitute court, no children.",
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-b8b83ccc-94dd-4d00-ad5d-8e9bfdc0ed52.png",
+        "source": "assets/characters/kingdoms/source/kishkindha-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/kishkindha-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/kishkindha-v1.png",
+        "sha256": "d70cb3b67e11f847bdd2e679b076607b444c66c03344d90ea4aebb8350f23d9d",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      },
+      "repairs": [
+        {
+          "mode": "built-in image_gen / mounted-only repair edit",
+          "prompt": "Use case: precise-object-edit. Edit target: supplied Kishkindha chess atlas. Create a repair sprite sheet showing ONLY FOUR existing mounted pieces from that atlas, preserving their original character designs, costumes, palette, armor, species, weapons and painterly style. Canvas1024x1024. EXACT2columns and2rows: TOP LEFT ivory/light ELEPHANT with its adult WARRIOR RIDER (bishop); TOP RIGHT ivory/light HORSE with adult WARRIOR RIDER (knight); BOTTOM LEFT charcoal/dark ELEPHANT with rider; BOTTOM RIGHT charcoal/dark HORSE with rider. Copy no other role into this image. No king, queen, chariot or foot guard. Each complete mounted subject must fit inside its own512x512cell with at least50pxclear padding on ALL sides. This means HUGE clear gutters: animals, tails, tusks, weapons and garments from neighboring sprites MUST NOT touch or overlap. Reconstruct the natural complete horse tail where the original elephant tusk previously occluded it. Every elephant has four natural feet, two tusks, full trunk and tail; every horse has four natural legs, full tail and correct anatomy. Generous separate transparent background with genuinely transparent alpha; no gradient, floor, text, labels, bases, plinths or shadow outside silhouettes. Preserve the original Kishkindha realm's independently invented costume motifs; no new modern film/TV/game/comic designs, no actors or named-artist imitation. IMPORTANT: FOUR mounted sprites only, two per row, large transparent gutters, full figures from weapon tip to feet.",
+          "input": "assets/characters/kingdoms/source/kishkindha-source-v1.png",
+          "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-5f538699-39e2-40a0-877a-e94bf073a21f.png",
+          "source": "assets/characters/kingdoms/source/kishkindha-mounted-source-v2.png",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "crops": "assets/characters/kingdoms/source/kishkindha-mounted-crops-v2.json",
+          "composition": "assets/characters/kingdoms/source/kishkindha-composition-v2.json",
+          "prepareFlags": "--columns 2 --rows 2",
+          "usedCells": [
+            "white bishop",
+            "white knight",
+            "black bishop",
+            "black knight"
+          ],
+          "reason": "Original tusks occluded horse tails; four-sprite repair provides complete isolated mounts. Original king/queen/rook/pawn cells are retained."
+        }
+      ]
+    },
+    {
+      "id": "asgard",
+      "title": "Asgard",
+      "sources": [
+        "https://en.wikisource.org/wiki/Encyclop%C3%A6dia_Britannica,_Ninth_Edition/%C3%86sir",
+        "https://en.natmus.dk/historical-knowledge/denmark/prehistoric-period-until-1050-ad/the-viking-age/religion-magic-death-and-rituals/the-old-religion/"
+      ],
+      "note": "Original traditional-Norse-inspired fantasy, not Marvel or an archaeological reconstruction. Elephant mount is a deliberate chess adaptation.",
+      "specific": "Realm: Asgard from traditional Norse mythology, entirely original designs unrelated to modern superhero adaptations. King a dignified older bearded sovereign with a simple intricately knotted metal circlet, long cloak over mail and wool tunic, ceremonial spear, braided trim; NOT a recognizable Odin actor or Marvel costume. Queen an adult regal woman with long woven layered gown, cloak fastened with oval brooches, small intricate circlet, restrained gold jewelry, upright staff; fully clothed. Knotwork, amber and frost-blue accent details. Elephant rider wearing Norse-inspired mail and plain rounded helmet on a normal complete grey elephant with knotwork saddlecloth (intentional chess-fantasy adaptation, not a mammoth); horse rider in mail with round shield and spear; standing warrior in compact two-wheeled carved-wood chariot with iron rimmed wheels. Pawn a simple adult mail-and-wool foot guard, plain helmet, small round shield and spear, no antler/horn helmet. Ivory/light and charcoal/dark armies, same fair-to-brown natural complexion variety on both. No superhero armour, winged helmets, movie hammer design, blue glows or recognizable comic characters.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: Asgard from traditional Norse mythology, entirely original designs unrelated to modern superhero adaptations. King a dignified older bearded sovereign with a simple intricately knotted metal circlet, long cloak over mail and wool tunic, ceremonial spear, braided trim; NOT a recognizable Odin actor or Marvel costume. Queen an adult regal woman with long woven layered gown, cloak fastened with oval brooches, small intricate circlet, restrained gold jewelry, upright staff; fully clothed. Knotwork, amber and frost-blue accent details. Elephant rider wearing Norse-inspired mail and plain rounded helmet on a normal complete grey elephant with knotwork saddlecloth (intentional chess-fantasy adaptation, not a mammoth); horse rider in mail with round shield and spear; standing warrior in compact two-wheeled carved-wood chariot with iron rimmed wheels. Pawn a simple adult mail-and-wool foot guard, plain helmet, small round shield and spear, no antler/horn helmet. Ivory/light and charcoal/dark armies, same fair-to-brown natural complexion variety on both. No superhero armour, winged helmets, movie hammer design, blue glows or recognizable comic characters.",
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-54dca5dd-8b04-40b7-b7b8-8052c4916496.png",
+        "source": "assets/characters/kingdoms/source/asgard-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/asgard-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/asgard-v1.png",
+        "sha256": "d34b7658aecfe49869f505497916e9f322ecb53f1f93dce353295e1861ddeb7b",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      }
+    },
+    {
+      "id": "camelot",
+      "title": "Camelot",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Camelot",
+        "https://www.bl.uk/stories/blogs/posts/king-arthur-fable-fact-and-fiction"
+      ],
+      "note": "Original medieval-literary Arthurian interpretation; clothing inspired by medieval storybook chivalry, not specific modern portrayals.",
+      "specific": "Realm: legendary Camelot from medieval Arthurian storytelling, with original court figures rather than identifiable actors or modern film designs. King a tall mature crowned sovereign in elegant steel plate over mail, long royal surcoat and flowing but contained cloak, holding a straight ceremonial sword point-down. Queen an adult dignified crowned woman in a high-waisted full-length brocade gown with fitted long sleeves and draped mantle, modest neckline, gentle rich embroidery. Sapphire and gold heraldic ornament, use invented simple leaf heraldry rather than known franchise symbols. Bishop an armoured knight RIDING A COMPLETE ELEPHANT in heraldic saddlecloth (deliberate chess fantasy), knight an armoured lance rider on complete horse, rook an armoured standing warrior with sword in a small two-wheeled medieval-fantasy chariot, pawn plain adult spear guard with kettle helmet and simple gambeson. White ivory surcoats and pale steel, black charcoal surcoats and dark steel, both heroic. No castles as pieces, no film armour, no fantasy bikini.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: legendary Camelot from medieval Arthurian storytelling, with original court figures rather than identifiable actors or modern film designs. King a tall mature crowned sovereign in elegant steel plate over mail, long royal surcoat and flowing but contained cloak, holding a straight ceremonial sword point-down. Queen an adult dignified crowned woman in a high-waisted full-length brocade gown with fitted long sleeves and draped mantle, modest neckline, gentle rich embroidery. Sapphire and gold heraldic ornament, use invented simple leaf heraldry rather than known franchise symbols. Bishop an armoured knight RIDING A COMPLETE ELEPHANT in heraldic saddlecloth (deliberate chess fantasy), knight an armoured lance rider on complete horse, rook an armoured standing warrior with sword in a small two-wheeled medieval-fantasy chariot, pawn plain adult spear guard with kettle helmet and simple gambeson. White ivory surcoats and pale steel, black charcoal surcoats and dark steel, both heroic. No castles as pieces, no film armour, no fantasy bikini.",
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-cdc7f9db-d1fe-4039-af80-d7e65ec2ee38.png",
+        "source": "assets/characters/kingdoms/source/camelot-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/camelot-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/camelot-v1.png",
+        "sha256": "c1c1a723472e3b3942813c13cce33a63890e78cdef68f8322d46e25082c088df",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      },
+      "repairs": [
+        {
+          "mode": "built-in image_gen / mounted-only repair edit",
+          "prompt": "Use case: precise-object-edit. Edit target: supplied Camelot chess atlas. Create a repair sprite sheet showing ONLY FOUR existing mounted pieces from that atlas, preserving their original character designs, costumes, palette, armor, species, weapons and painterly style. Canvas1024x1024. EXACT2columns and2rows: TOP LEFT ivory/light ELEPHANT with its adult WARRIOR RIDER (bishop); TOP RIGHT ivory/light HORSE with adult WARRIOR RIDER (knight); BOTTOM LEFT charcoal/dark ELEPHANT with rider; BOTTOM RIGHT charcoal/dark HORSE with rider. Copy no other role into this image. No king, queen, chariot or foot guard. Each complete mounted subject must fit inside its own512x512cell with at least50pxclear padding on ALL sides. This means HUGE clear gutters: animals, tails, tusks, weapons and garments from neighboring sprites MUST NOT touch or overlap. Reconstruct the natural complete horse tail where the original elephant tusk previously occluded it. Every elephant has four natural feet, two tusks, full trunk and tail; every horse has four natural legs, full tail and correct anatomy. Generous separate transparent background with genuinely transparent alpha; no gradient, floor, text, labels, bases, plinths or shadow outside silhouettes. Preserve the original Camelot realm's independently invented costume motifs; no new modern film/TV/game/comic designs, no actors or named-artist imitation. IMPORTANT: FOUR mounted sprites only, two per row, large transparent gutters, full figures from weapon tip to feet.",
+          "input": "assets/characters/kingdoms/source/camelot-source-v1.png",
+          "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-257828ae-f195-4fa6-948b-e1ad49dc4753.png",
+          "source": "assets/characters/kingdoms/source/camelot-mounted-source-v2.png",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "crops": "assets/characters/kingdoms/source/camelot-mounted-crops-v2.json",
+          "composition": "assets/characters/kingdoms/source/camelot-composition-v2.json",
+          "prepareFlags": "--columns 2 --rows 2",
+          "usedCells": [
+            "white bishop",
+            "white knight",
+            "black bishop",
+            "black knight"
+          ],
+          "reason": "Original tusks occluded horse tails; four-sprite repair provides complete isolated mounts. Original king/queen/rook/pawn cells are retained."
+        }
+      ]
+    },
+    {
+      "id": "atlantis",
+      "title": "Atlantis",
+      "sources": [
+        "https://en.wikisource.org/wiki/1911_Encyclop%C3%A6dia_Britannica/Atlantis",
+        "https://www.perseus.tufts.edu/hopper/text?doc=Perseus%3Atext%3A1999.01.0180%3Atext%3DCriti.%3Asection%3D108e"
+      ],
+      "note": "Original fictional oceanic court inspired loosely by Plato's literary Atlantis; not claimed as verified historical culture.",
+      "specific": "Realm: Atlantis, an independently invented oceanic royal court inspired by the ancient literary island, NOT any modern film, comic or game Atlantis. The figures are human adults standing on dry invisible ground, not mermaids or sea monsters. King with original wave-edged gold diadem, pearlescent scale armour over a long woven tunic and contained cloak, ceremonial trident; queen with graceful pearl circlet, fully draped long pleated gown, small shell-like ornaments and a wave sceptre. Aquamarine, coral-red and pearl accents, elegant curving wave motifs, NOT green-gold superhero suit. Bishop is a warrior on an ordinary complete elephant in turquoise-trimmed saddlecloth, knight rides an ordinary complete horse, rook stands in a compact two-wheeled chariot with subtle shell-shaped side panel and visible wheels, pawn a simple adult foot guard in plain tunic and small helmet holding spear and round shield. Ivory/pale silver army and charcoal/dark bronze army. No water scenery, bubbles, coral pedestals, underwater backgrounds, fish tails or recognizable franchise characters.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: Atlantis, an independently invented oceanic royal court inspired by the ancient literary island, NOT any modern film, comic or game Atlantis. The figures are human adults standing on dry invisible ground, not mermaids or sea monsters. King with original wave-edged gold diadem, pearlescent scale armour over a long woven tunic and contained cloak, ceremonial trident; queen with graceful pearl circlet, fully draped long pleated gown, small shell-like ornaments and a wave sceptre. Aquamarine, coral-red and pearl accents, elegant curving wave motifs, NOT green-gold superhero suit. Bishop is a warrior on an ordinary complete elephant in turquoise-trimmed saddlecloth, knight rides an ordinary complete horse, rook stands in a compact two-wheeled chariot with subtle shell-shaped side panel and visible wheels, pawn a simple adult foot guard in plain tunic and small helmet holding spear and round shield. Ivory/pale silver army and charcoal/dark bronze army. No water scenery, bubbles, coral pedestals, underwater backgrounds, fish tails or recognizable franchise characters.",
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-0650b5bc-c9eb-4b8a-ac65-b3de80f77d51.png",
+        "source": "assets/characters/kingdoms/source/atlantis-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/atlantis-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/atlantis-v1.png",
+        "sha256": "47859822cf32f0555de2df050cdd58f58e988cfd16c0a117e167d07bba563151",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      }
+    },
+    {
+      "id": "troy",
+      "title": "Troy",
+      "sources": [
+        "https://www.britishmuseum.org/sites/default/files/2019-12/Large%20print%20guide_Troy.pdf",
+        "https://ashmolean.web.ox.ac.uk/node/2030151"
+      ],
+      "note": "Epic-inspired Bronze-Age-style court associated with the real city of Troy; not a claim that literary heroes or elephant cavalry are historically verified.",
+      "specific": "Realm: Troy, an original epic-inspired court with Bronze-Age-flavoured clothing associated with the REAL ancient city, without claiming named heroic portraits or exact historical reconstruction. King a regal mature adult with fine embossed gold diadem, bronze scale cuirass over a long woven tunic, contained royal mantle, sword; queen an adult royal woman in a long richly patterned draped gown, gold diadem and pendant ornaments, dignified full coverage. Terracotta-red, lapis-blue and gold ornament. Warriors wear simple conical or crested bronze helmets and bronze cuirasses over cloth, woven borders rather than medieval plate armour. Bishop deliberately adapted as a warrior riding a complete elephant with woven saddlecloth (chess fantasy); knight rides a complete horse; rook stands in a compact clearly TWO-WHEELED BRONZE-AGE WOODEN CHARIOT carrying spear and shield; pawn a humble adult spear guard with plain helmet, linen tunic and shield. Ivory light side and charcoal dark side, matching natural complexion diversity. Do not include a wooden Trojan horse, Roman legionaries, modern film costumes, actors or elaborate Corinthian-era uniform as historical claim.",
+      "prompt": "Use case: stylized-concept.\nAsset type: mobile chess game sprite atlas, polished miniature character illustrations, not a poster or board.\nPrimary request: produce ONE image with EXACTLY TWELVE separate complete chess-piece sprites. Canvas 1536x1024 landscape. TWO ROWS, SIX COLUMNS. Top row is WHITE army; bottom row is BLACK army. Both rows must contain SIX sprites, left to right KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN. Twelve figures total, with six in each row. Each row has its own independent duplicate of every role.\nScene/backdrop: genuinely transparent alpha, absolutely no setting or floor. Each sprite floats independently on transparency with no shadow outside its silhouette. No checkerboard drawn into pixels.\nLayout: six equal 256px-wide columns; two 512px-high rows. Keep every sprite entirely within its own column and row, with generous clear gutters and all crowns, weapons, hands, feet, animal tails and wheels fully visible. Do not add grid lines.\nExact six roles: KING is a tall ornate crowned adult sovereign standing, QUEEN a tall ornate crowned adult royal woman standing; BISHOP MUST be an adult warrior RIDING A COMPLETE ELEPHANT (four natural elephant legs, trunk, tusks, rider on its back); KNIGHT MUST be an adult warrior RIDING A COMPLETE HORSE (four natural legs, natural proportions); ROOK MUST be an adult warrior STANDING IN A SMALL TWO-WHEELED CHARIOT (clearly visible wheels and open standing compartment, no horse required, NOT a tower or castle); PAWN MUST be a plain adult foot guard with simpler helmet and spear or shield, visibly less ornate and a little shorter than the royals, never a child.\nStyle: premium semi-realistic hand-painted fantasy game miniatures, refined faces and anatomy, strong readable silhouettes, crisp metallic highlights and richly woven cloth but no excessive microdetail, gentle front three-quarter view, soft neutral studio lighting. King and queen tallest standing figures; pawn modest and simpler. Both armies have the same natural variety of skin tones, NOT color-coded skin. WHITE side identified by ivory/light cloth and pale metal, BLACK side by charcoal/dark cloth and dark metal. Same cultural identity and role design in both rows, no good-versus-evil coding.\nNo text, names, titles, letters, numbers, captions, watermarks, symbols with writing, labels, pedestals, plinths, circular display bases, dioramas, terrain, scenery, extra people or extra animals. Do not omit the bottom row. Every bishop elephant rider and every rook chariot warrior are mandatory.\nOriginality constraints: independently invent every face, costume, ornament and pose. Use only general traditional epic/mythological ideas. Do NOT imitate Marvel, Disney, any modern film, television, game or comic adaptation, actors, celebrities, named artists, logos, stock images, or museum artworks. Do not copy source images; no reference artwork is supplied.\nTheme-specific design:\nRealm: Troy, an original epic-inspired court with Bronze-Age-flavoured clothing associated with the REAL ancient city, without claiming named heroic portraits or exact historical reconstruction. King a regal mature adult with fine embossed gold diadem, bronze scale cuirass over a long woven tunic, contained royal mantle, sword; queen an adult royal woman in a long richly patterned draped gown, gold diadem and pendant ornaments, dignified full coverage. Terracotta-red, lapis-blue and gold ornament. Warriors wear simple conical or crested bronze helmets and bronze cuirasses over cloth, woven borders rather than medieval plate armour. Bishop deliberately adapted as a warrior riding a complete elephant with woven saddlecloth (chess fantasy); knight rides a complete horse; rook stands in a compact clearly TWO-WHEELED BRONZE-AGE WOODEN CHARIOT carrying spear and shield; pawn a humble adult spear guard with plain helmet, linen tunic and shield. Ivory light side and charcoal dark side, matching natural complexion diversity. Do not include a wooden Trojan horse, Roman legionaries, modern film costumes, actors or elaborate Corinthian-era uniform as historical claim.",
+      "originalGeneration": {
+        "mode": "built-in image_gen / text-to-image",
+        "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-acc193a5-af1b-4fc8-8378-d976c1dd672e.png",
+        "source": "assets/characters/kingdoms/source/troy-source-v1.png",
+        "crops": "assets/characters/kingdoms/source/troy-crops-v1.json"
+      },
+      "finalAsset": {
+        "path": "assets/characters/kingdoms/troy-v1.png",
+        "sha256": "b91a5d4706caf92ba32e20de501ad626ede4072efb2845f458f89322f1acafcb",
+        "width": 1536,
+        "height": 512,
+        "columns": 6,
+        "rows": 2,
+        "order": [
+          "white king",
+          "white queen",
+          "white bishop",
+          "white knight",
+          "white rook",
+          "white pawn",
+          "black king",
+          "black queen",
+          "black bishop",
+          "black knight",
+          "black rook",
+          "black pawn"
+        ]
+      },
+      "processing": "User-approved local preservation of existing alpha, removal of low-alpha fringe and explicitly measured neighboring fragments, high-quality aspect-fit normalization to 256px cells and baseline244. No recoloring.",
+      "visualQA": {
+        "completeRoles": 12,
+        "elephantMountedBishops": 2,
+        "twoWheeledChariotRooks": 2,
+        "adultFootGuards": 2,
+        "noVisibleNeighborFragments": true,
+        "noLabelsOrBases": true
+      },
+      "repairs": [
+        {
+          "mode": "built-in image_gen / mounted-only repair edit",
+          "prompt": "Use case: precise-object-edit. Edit target: supplied Troy chess atlas. Create a repair sprite sheet showing ONLY FOUR existing mounted pieces from that atlas, preserving their original character designs, costumes, palette, armor, species, weapons and painterly style. Canvas1024x1024. EXACT2columns and2rows: TOP LEFT ivory/light ELEPHANT with its adult WARRIOR RIDER (bishop); TOP RIGHT ivory/light HORSE with adult WARRIOR RIDER (knight); BOTTOM LEFT charcoal/dark ELEPHANT with rider; BOTTOM RIGHT charcoal/dark HORSE with rider. Copy no other role into this image. No king, queen, chariot or foot guard. Each complete mounted subject must fit inside its own512x512cell with at least50pxclear padding on ALL sides. This means HUGE clear gutters: animals, tails, tusks, weapons and garments from neighboring sprites MUST NOT touch or overlap. Reconstruct the natural complete horse tail where the original elephant tusk previously occluded it. Every elephant has four natural feet, two tusks, full trunk and tail; every horse has four natural legs, full tail and correct anatomy. Generous separate transparent background with genuinely transparent alpha; no gradient, floor, text, labels, bases, plinths or shadow outside silhouettes. Preserve the original Troy realm's independently invented costume motifs; no new modern film/TV/game/comic designs, no actors or named-artist imitation. IMPORTANT: FOUR mounted sprites only, two per row, large transparent gutters, full figures from weapon tip to feet.",
+          "input": "assets/characters/kingdoms/source/troy-source-v1.png",
+          "generatedPath": "/Users/manugopinath/.codex/generated_images/01a0dc7a-b715-7fd2-b33b-5982489f3a6b/exec-03971aad-efbc-4149-8dd0-2e7597bc1f40.png",
+          "source": "assets/characters/kingdoms/source/troy-mounted-source-v2.png",
+          "sourceSize": [
+            1254,
+            1254
+          ],
+          "crops": "assets/characters/kingdoms/source/troy-mounted-crops-v2.json",
+          "composition": "assets/characters/kingdoms/source/troy-composition-v2.json",
+          "prepareFlags": "--columns 2 --rows 2",
+          "usedCells": [
+            "white bishop",
+            "white knight",
+            "black bishop",
+            "black knight"
+          ],
+          "reason": "Original tusks occluded horse tails; four-sprite repair provides complete isolated mounts. Original king/queen/rook/pawn cells are retained."
+        }
+      ]
+    }
+  ],
+  "finalReview": "All eight complete atlases visually inspected on transparency after final composition. Sources used only for context; no source artworks, franchise designs, actors or named artist styles requested. This provenance is not a guarantee of legal clearance."
+}

@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "generationMethod": "Original text-only atlas generation, plus a documented Chola mounted-piece repair referencing only our own generated source. No third-party reference images.",
+  "referenceUse": "Museum and academic URLs inform broad historical clothing facts only. No source images or exact artefacts are reproduced.",
+  "adaptationNote": "Universal elephant bishops, horse knights, and chariot rooks are imaginative chess adaptations and do not assert historical use.",
+  "legalNote": "Prompts avoid existing characters, logos, named artists, actor likenesses and real-person portraits. This records provenance, not a guarantee of legal clearance.",
+  "entries": [
+    {
+      "id": "sparta",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Spartan-inspired ancient Greek army. Restrained bronze cuirasses and greaves, crested Corinthian-style helmets and compact round shields, crimson cloth accents. King wears an original modest royal headband and crimson cloak over bronze armour; queen wears a dignified draped Greek peplos/chiton and simple gold diadem. Adult guards clothed in practical short tunics and bronze protection, not bare movie-warrior abs. Ivory/crimson/bronze light army; charcoal/crimson/bronze dark army.",
+      "references": [
+        "https://www.metmuseum.org/art/collection/search/250922",
+        "https://www.metmuseum.org/art/collection/search/703054"
+      ],
+      "source": "assets/characters/kingdoms/source/sparta-source-v1.png",
+      "runtime": "assets/characters/kingdoms/sparta-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-035fa9ef-758a-4398-9d14-6d64ac12730b.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "c13eea6e04aa7dc30a76a29307e0faa3bd72492644fa861048ff70705b344837",
+      "runtimeSha256": "e107455966ded25a3dbcfbbbe08992074bb46df0d148a8af473175b9f38068ca",
+      "cropManifest": "assets/characters/kingdoms/source/sparta-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/sparta-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "macedonian",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Macedonian/Hellenistic-inspired army, distinct from Sparta. Royal narrow diadems, short draped cloaks, linen-and-bronze cuirasses, riding boots, compact open-faced Hellenistic cavalry helmets with cheek pieces; queen in an elegant draped gown, gold belt and diadem. Spears short enough to fit completely; no giant sarissa. King is an invented court character, NOT Alexander. Ivory/purple/bronze light army; charcoal/plum/bronze dark army.",
+      "references": [
+        "https://resources.metmuseum.org/resources/metpublications/pdf/Pergamon_and_the_Hellenistic_Kingdoms_of_the_Ancient_World.pdf",
+        "https://www.latsis-foundation.org/content/elib/book_18/pella_en.pdf"
+      ],
+      "source": "assets/characters/kingdoms/source/macedonian-source-v1.png",
+      "runtime": "assets/characters/kingdoms/macedonian-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-95369b4f-8820-47cd-a24d-c139565c2c06.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "53c06f2adb06106cb658d267e41074be0557431e51656800aab8d9a6076774db",
+      "runtimeSha256": "1c082a3c95fb6123684837bbd5226890bd19c7b07d71c69162111f8e5cdd1d24",
+      "cropManifest": "assets/characters/kingdoms/source/macedonian-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/macedonian-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "roman",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Roman-imperial-inspired army. Original fictional king wears laurel wreath, ceremonial bronze cuirass and short red cloak; queen wears a fully clothed elegant stola/palla with modest gold diadem. Infantry and riders wear restrained Roman segmented or mail armour and compact rounded helmets with cheek guards. Plain pawn an adult legionary with small rectangular red shield and short gladius, not a standard bearer. Ivory/red/gold light army; charcoal/deep-red/bronze dark army. No imperial eagle logo or readable inscription.",
+      "references": [
+        "https://www.britishmuseum.org/exhibitions/legion-life-roman-army/large-print-guide",
+        "https://www.britishmuseum.org/collection/object/H_1813-0313-1"
+      ],
+      "source": "assets/characters/kingdoms/source/roman-source-v1.png",
+      "runtime": "assets/characters/kingdoms/roman-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-9b6ad93e-f345-43f5-8d66-a54d1ea3f6f9.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "0596f6667dcd4ad195c8746d997f9019951da6a381445742f49193dcde445cd8",
+      "runtimeSha256": "bb8ebbea30ffaee248f3ac2ded596ceb1a2ba32b3088cec9c84a352e8a2b4014",
+      "cropManifest": "assets/characters/kingdoms/source/roman-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/roman-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "achaemenid",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Achaemenid court-inspired army. Royal tall simple cylindrical crown, long pleated Persian court robe, modest rosette trim, lapis and gold accents, original dignified faces. King neatly curled beard; queen long elegant pleated robe and restrained gold crown/soft veil. Mounted warriors in belted riding tunics, trousers and boots with soft low caps or compact pleated headwear. Plain pawn in simple pleated cap and tunic with small shield. Ivory/lapis/gold light army; charcoal/lapis/bronze dark army. Do not use generic later medieval Islamic costumes, crescents or text.",
+      "references": [
+        "https://www.britishmuseum.org/collection/object/W_1818-0509-4",
+        "https://www.iranicaonline.org/articles/clothing-ii/"
+      ],
+      "source": "assets/characters/kingdoms/source/achaemenid-source-v1.png",
+      "runtime": "assets/characters/kingdoms/achaemenid-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-30ba20c4-b8b0-49e9-8a9a-aea9bf712201.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "6e499e316d7b79ed86df660bbcc00d69f74e954c371b4459dc18e2b561f35409",
+      "runtimeSha256": "ba0274b11d22fade60eca6506734be4a928243028055aa6d6f4616b542ef1499",
+      "cropManifest": "assets/characters/kingdoms/source/achaemenid-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/achaemenid-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "ottoman",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Ottoman court-inspired army. Original fictional king in long silk kaftan and restrained jeweled wrapped turban; queen fully clothed in elegant layered long court robe with modest jeweled headpiece, no exotic dancer styling. Mounted guards wear subtle mail-and-plate armour, compact fluted turban-style steel helmets, curved swords kept low. Plain foot guard in simple cloth cap and practical coat. Ivory/teal/gold light army; charcoal/teal/bronze dark army. Original simple textile motifs only; no readable religious script, no real ruler likeness.",
+      "references": [
+        "https://www.metmuseum.org/art/collection/search/21976",
+        "https://www.metmuseum.org/art/collection/search/454043"
+      ],
+      "source": "assets/characters/kingdoms/source/ottoman-source-v1.png",
+      "runtime": "assets/characters/kingdoms/ottoman-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-ec2e0e73-3e1a-4137-aaa5-51c1e0f4d7bc.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "ca499fecc50e932e24777bce06cb2b47061781606f24312aa8db1d336a3ed984",
+      "runtimeSha256": "7209aeb62bffe3976ba14b0324cdb3600af7593201f8fa4bcf8114e31a235177",
+      "cropManifest": "assets/characters/kingdoms/source/ottoman-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/ottoman-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations.",
+      "mountedContourReview": {
+        "method": "Source/runtime silhouette comparison and exact retained foreground-pixel counts after replacing overbroad exclusions with measured neighboring-component rectangles.",
+        "retainedSourcePixels": {
+          "whiteBishop": 82095,
+          "whiteKnight": 53224,
+          "blackBishop": 84325,
+          "blackKnight": 53994
+        },
+        "result": "All original mounted-subject foreground pixels retained; complete tusk tips and horse tails restored. No new generation required."
+      }
+    },
+    {
+      "id": "chola",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Tamil Chola court-inspired army. Fictional adult royals with elegantly tiered gold crowns, pleated silk lower garments, broad jeweled belts and fully covering draped shoulder garments. Queen fully clothed in long layered silk drape with modest tiered head ornament and gold/jade jewelry. Warriors wear practical cloth, compact bronze protection and restrained Tamil court decorative details. Plain adult pawn simple draped tunic and small shield, no crown. Natural South Indian appearance on both sides. Ivory/jade/gold light army; charcoal/jade/bronze dark army. Human characters only, no deity, no halo, no extra arms, no sacred icon copies.",
+      "references": [
+        "https://collections.si.edu/search/detail/edanmdm%3Afsg_F1929.84?print=yes",
+        "https://www.metmuseum.org/-/media/files/learn/for-educators/publications-for-educators/sseasia.pdf"
+      ],
+      "source": "assets/characters/kingdoms/source/chola-source-v1.png",
+      "runtime": "assets/characters/kingdoms/chola-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "Original text-only base; four mounted sprites repaired with own generated source as the only image reference.",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-63487174-9f57-4c5e-bfd9-f5de35fe2033.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "eed9a10379c7d30225884ecfc81c71321f7c2dc707c524dce1fd2a9418630c70",
+      "runtimeSha256": "c8a9f0ccfacf2e7ab05ff0a99591c1d2ea1e393722b4ff02f64c7d68b74518e9",
+      "cropManifest": "assets/characters/kingdoms/source/chola-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/chola-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations.",
+      "mountedRepair": {
+        "reason": "Original black elephant tusk physically overlapped the neighboring horse tail near source (798,829); rectangular cleanup cannot restore occluded anatomy.",
+        "generationTool": "image_gen.imagegen",
+        "prompt": "Create a NEW clean mounted-piece repair sheet for our own original Chola-inspired chess artwork, using the attached own-project source only for matching the illustrated style, ivory/jade/gold versus charcoal/jade/bronze clothing, original human faces and Tamil court-inspired costume vocabulary. Output EXACTLY FOUR independent isolated complete mounted chess sprites, NOT the twelve-piece reference sheet. Landscape 1536x1024 PNG with transparent background. A strict 2x2 layout: TOP LEFT white-side ELEPHANT RIDER bishop; TOP RIGHT white-side HORSE RIDER knight; BOTTOM LEFT black-side ELEPHANT RIDER bishop; BOTTOM RIGHT black-side HORSE RIDER knight. Each subject centered well within its own 768x512 area. Leave a WIDE AT LEAST 160 PIXEL COMPLETELY EMPTY VERTICAL GUTTER between the elephant and horse silhouettes and generous empty horizontal gutter between rows. Full isolated original elephant or horse plus adult rider, every visible foot/hoof, two entire elephant tusks, complete trunk and entire horse tail visible. Absolutely no tusk may touch, overlap or obscure ANY part of a horse or its tail; nothing from one subject may enter another subject's slot. Keep mounts compact and upright, natural anatomy, four legs, elegant walking stance, clean silhouette. Rider gear includes compact gold/jade headwear, draped silk, modest practical armor, compact low sword or spear kept entirely inside the slot. No towering spear crossing slot boundaries. Both armies natural South Indian skin tones; side difference only clothing palette, not skin. Match the source's premium polished hand-painted strategy-game character rendering, subtle sculpted detail, three-quarter view and consistent lighting. Original invented adult people, no named historical person or actor likeness. No copied museum images, no third-party reference, no existing game/movie/TV character, no named artist style, no logos or stock art. Do NOT include kings, queens, chariots, foot pawns, labels, text, decorative frames, pedestal, base, ground patch, shadow, background scene or floating extra objects. EXACTLY FOUR sprites only. This is an imaginative chess adaptation, not a claim of exact historical military equipment.",
+        "referenceImages": [
+          "assets/characters/kingdoms/source/chola-source-v1.png"
+        ],
+        "referenceImageSha256": "eed9a10379c7d30225884ecfc81c71321f7c2dc707c524dce1fd2a9418630c70",
+        "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-a0ed3476-419f-426a-849b-e14b23628070.png",
+        "source": "assets/characters/kingdoms/source/chola-mounted-source-v2.png",
+        "sourceSize": [
+          1536,
+          1024
+        ],
+        "sourceSha256": "2243a8e58b5ac05ed73a6cc8a30694410310f60508df82cd5a8634c78352d578",
+        "crops": "assets/characters/kingdoms/source/chola-mounted-crops-v2.json",
+        "cropsSha256": "b61a74ee446d6a016f18bd3db09861b1855af126a63527e495f4d6c8b7b0ca54",
+        "preparationReport": "assets/characters/kingdoms/source/chola-mounted-prepared-v2.report.json",
+        "composition": "assets/characters/kingdoms/source/chola-composition-v2.json",
+        "compositionSha256": "faf180934738d9e2124ada895f0b4968f02f4b34319ee7c4ccde276cb2c0cefc",
+        "basePreparationReport": "assets/characters/kingdoms/source/chola-base-prepared-v1.report.json",
+        "replacedRuntimeCells": [
+          2,
+          3,
+          8,
+          9
+        ],
+        "preservedRuntimeCells": [
+          0,
+          1,
+          4,
+          5,
+          6,
+          7,
+          10,
+          11
+        ],
+        "preservedCellPixelComparison": "Zero changed RGBA channel values across all eight original K/Q/R/P cells.",
+        "qa": "Four separated complete mounted figures visually reviewed, with full elephant tusks/trunks/feet and horse tails/hooves; preparation passed with no exclusions or edge exceptions."
+      }
+    },
+    {
+      "id": "maratha",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Seventeenth/eighteenth-century Deccani Maratha-inspired court and army. Distinctive neatly wrapped modest turbans, angled wrap coats/angarkha, waist sashes, restrained pearl accents, curved swords. King is an original fictional adult, not Shivaji. Queen in fully clothed elegant Maharashtrian silk drape with modest head covering and refined jewelry. Plain pawn simple low turban, practical tunic and small round shield. Natural South Asian faces on both sides. Ivory/saffron/gold light army; charcoal/rust/bronze dark army. No real monarch portrait or political symbol.",
+      "references": [
+        "https://www.rijksmuseum.nl/en/collection/node/Nicolaes-Cornelisz-Witsen--31d257a85638399a0304ad9bcb5fb79f"
+      ],
+      "source": "assets/characters/kingdoms/source/maratha-source-v1.png",
+      "runtime": "assets/characters/kingdoms/maratha-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-21ddac46-cfd8-49a6-b78f-47ff3b3ede75.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "b91a435053e1a9c8f3bdf819753aba581eb653b3618b3aaae52bbcd716063836",
+      "runtimeSha256": "9a2b3cd4390875294260b9373449872d3f377a7fc66b9f44d04c260c264293f7",
+      "cropManifest": "assets/characters/kingdoms/source/maratha-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/maratha-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "zulu",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Respectful nineteenth-century KwaZulu-Natal/Zulu-inspired fictional royal court and warriors. Dignified Black African adults on BOTH sides, realistic natural diverse skin tones, not caricatures. Compact oval cowhide shields, short leaf-bladed assegai spears, restrained beadwork and waist wraps with modest fur/feather accents for royalty. King wears dignified covered ceremonial layers with small head ornament, queen elegant layered wrap dress and beaded regalia. Plain pawn practical simple wrap/tunic with modest shield, no giant headdress. Distinguish armies through ivory/light cloth vs charcoal/dark cloth, NOT skin. No savage stereotype, no exoticizing. Elephant riders, horse riders, and two-wheel chariots are explicitly an imaginative chess adaptation.",
+      "references": [
+        "https://www.britishmuseum.org/collection/object/E_Af1891-1110-3",
+        "https://files.nms.ac.uk/production/Documents/Research/Material%20encounters/firepower-cld.pdf?dm=1720791623"
+      ],
+      "source": "assets/characters/kingdoms/source/zulu-source-v1.png",
+      "runtime": "assets/characters/kingdoms/zulu-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-84539c30-1833-4673-9ec0-1d148f05d35d.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "0dc3c132bc95540dc8163d4d90c6353c121f6929a509295d46e6cc3ee93509ce",
+      "runtimeSha256": "e9fa334c21d32f4c040493e222f23e3bc1e086f904df3d31cfd151da91faaa83",
+      "cropManifest": "assets/characters/kingdoms/source/zulu-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/zulu-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "aztec",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Respectful Mexica/Aztec-inspired fictional royal court and adult guards. Woven cotton, compact geometric turquoise-and-gold jewelry, modest compact feather royal head ornament, cotton armour, small round shields and short low macuahuitl weapons. Queen fully clothed in elegant embroidered huipil and long skirt, refined turquoise jewelry. Natural Indigenous Mexican faces on both sides, not caricatures. Plain pawn simple cotton tunic and small shield without royal feathers. Ivory/turquoise/gold light army; charcoal/turquoise/bronze dark army. No blood, sacrifice, skull imagery, deity copies, giant feather fans, European armour. Elephant riders, horse riders and chariots are explicitly imaginative universal chess-role adaptations, not historical claims.",
+      "references": [
+        "https://www.britishmuseum.org/collection/object/E_Am-St-397-a"
+      ],
+      "source": "assets/characters/kingdoms/source/aztec-source-v1.png",
+      "runtime": "assets/characters/kingdoms/aztec-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-7c226e7a-6aee-40e4-b77f-342c8a83df37.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "c5e62bf9d610add2af0c5787de93c98999f8f7a4216aeb37a861a4cba6036d79",
+      "runtimeSha256": "3e091391a7405e51f3584aa7d117294cee4d3b3bd436b7e1ebdc1043a8a65e54",
+      "cropManifest": "assets/characters/kingdoms/source/aztec-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/aztec-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "inca",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Respectful Inca/Andean-inspired fictional royal court and adult warriors. Finely woven uncu tunics with simple original geometric panels, restrained red yoke and gold disk details; king modest royal headband with short fringe, queen full-length woven wrap dress and shoulder mantle with a gold clasp. Natural Andean Indigenous faces on both sides, not caricatures. Plain pawn simple woven tunic, small shield and short mace, no crown. Ivory/red/gold light army; charcoal/russet/bronze dark army. No European plate armour, no giant North American feather headdress, no copied sacred icons. Elephant riders, horse riders and chariots are imaginative universal chess adaptations, not historical claims.",
+      "references": [
+        "https://www.metmuseum.org/art/collection/search/751901",
+        "https://www.metmuseum.org/exhibitions/listings/2011/the-andean-tunic-400-bce1800-ce/photo-gallery"
+      ],
+      "source": "assets/characters/kingdoms/source/inca-source-v1.png",
+      "runtime": "assets/characters/kingdoms/inca-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-a86ccbde-304a-40f5-b88b-dbe0b5cd6de1.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "59f9aaac02181caa46fc8c7a58a6bf8a94e6e94a508a0d994124e160e774ff14",
+      "runtimeSha256": "c633f814aeda128678d2b51d4175c6ba1a9ae68197d4532c3df2bf9a79242132",
+      "cropManifest": "assets/characters/kingdoms/source/inca-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/inca-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    },
+    {
+      "id": "mewar",
+      "prompt": "Create ORIGINAL polished illustrated sprite artwork for a mobile chess game. Landscape PNG 1536 by 1024 pixels. Exactly TWELVE full-body isolated chess characters in EXACTLY SIX COLUMNS and TWO ROWS. The top row is the light army; the bottom row is the dark army. Each column has the SAME role in both rows. LEFT TO RIGHT SIX COLUMNS: (1) KING standing, (2) QUEEN standing, (3) ELEPHANT-MOUNTED WARRIOR bishop with full elephant and rider visible, (4) HORSE-MOUNTED WARRIOR knight with full horse and rider visible, (5) CHARIOT WARRIOR rook standing in a compact upright two-wheel chariot, no horse attached, BOTH wheels visible, (6) PLAIN ADULT FOOT GUARD pawn without crown. Count twelve sprites carefully: two kings, two queens, two elephant riders, two horse riders, two chariots, two plain guards. Both armies must include all six roles. Equal-width column slots of 256px and equal-height row slots of 512px. All objects fully contained in their own slots with a generous empty gutter around them, all hooves, elephant feet, clothing, weapon tips and chariot wheels intact. Center each silhouette in its own slot; no overlaps, no frame crossing, no floating extra items. Make the mounted figures compact and upright to fit the slots. A coherent premium hand-painted strategy-game illustration with clean strong silhouettes, subtly sculpted natural materials, controlled readable details, three-quarter view, consistent soft lighting, high contrast at phone-board scale. NO platforms, plinths, pedestal, base, ground patch, dust, cast shadow, terrain or scenery. Transparent empty background, not a checkerboard drawing. No labels, letters, watermark, borders, UI, logo or flag. Light-side clothing ivory/cream; dark-side clothing charcoal/deep slate. Both armies use the same natural culturally appropriate range of skin tones: NEVER distinguish sides by skin color. Both armies adult humans with dignified original invented faces, distinct kings and queens. Queens fully clothed, modest elegant royal attire. Plain pawns are simple narrow adult guards, not children, not royal, not bulky, not wearing enormous hats or carrying huge standards. Keep weapons compact and contained beside the figure. Bishops MUST ride elephants; knights MUST ride horses; rooks MUST stand in two-wheel chariots. These universal chess-role vehicles are an intentional imaginative adaptation, not a claim about the historical use of animals or vehicles. All costumes and characters must be independently invented based only on broad historical facts stated below. Do NOT copy any museum object/image, existing artwork, stock illustration, movie/game/TV character, logo, named artist's style, actor likeness, celebrity or real historical person's portrait. No recognizable copyrighted character. No religious script or deity depiction.\n\nTHEME: Rajput Mewar court-inspired original fictional royal army. Neatly wrapped regional turbans with restrained jeweled ornaments, long wrapped coats, waist sashes, mail sleeves and modest plate cuirasses for mounted guards, curved swords and small round dhal shields. Queen fully clothed in elegant long skirt, fitted modest bodice and soft head veil, restrained gold jewelry. Natural Rajasthani South Asian faces on both sides. Plain adult pawn simple low turban, tunic and small shield. Ivory/saffron/gold light army; charcoal/maroon/bronze dark army. Do not depict a named Maharana or actual historical portrait.",
+      "references": [
+        "https://resources.metmuseum.org/resources/metpublications/pdf/Divine_Pleasures.pdf",
+        "https://www.metmuseum.org/-/media/files/learn/for-educators/publications-for-educators/sseasia.pdf"
+      ],
+      "source": "assets/characters/kingdoms/source/mewar-source-v1.png",
+      "runtime": "assets/characters/kingdoms/mewar-v1.png",
+      "status": "generated-processed-visually-reviewed",
+      "generationTool": "image_gen.imagegen",
+      "generationMode": "original text-only; no reference images",
+      "generatedOriginal": "/Users/manugopinath/.codex/generated_images/01a0dc7a-6fb7-7012-b100-c92e53c556db/exec-82339103-3934-4afc-8ac9-b8d3cab2d54d.png",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "runtimeSize": [
+        1536,
+        512
+      ],
+      "sourceSha256": "a3401f11558a9760cfc48d809fc30b407e27bb37ab98405c6a8c8f2a989b819b",
+      "runtimeSha256": "d5e1803ee6a158faac835fd7dc5c51c8a04a4d52d5d318807adb8c20a574bfa6",
+      "cropManifest": "assets/characters/kingdoms/source/mewar-crops-v1.json",
+      "processingReport": "assets/characters/kingdoms/mewar-v1.report.json",
+      "processing": "prepare_kingdom_atlas.swift preserves existing source alpha (local macOS Vision fallback only for opaque sources), applies explicit reviewed source-space exclusions where needed, and fits each sprite to 224x226 maximum at baseline y244 inside a 256px cell.",
+      "qa": "All 12 complete role sprites visually reviewed; elephant-mounted bishops, horse-mounted knights, two-wheel chariot rooks and plain adult pawns. Transparent runtime; no source-neighbor remnants observed. Source-space silhouettes may differ from literal historical armies because chess-role mounts are intentional adaptations."
+    }
+  ],
+  "completedDate": "2026-09-26",
+  "runtimeOrder": [
+    "white king",
+    "white queen",
+    "white bishop",
+    "white knight",
+    "white rook",
+    "white pawn",
+    "black king",
+    "black queen",
+    "black bishop",
+    "black knight",
+    "black rook",
+    "black pawn"
+  ],
+  "regressionTests": "tool/test_prepare_kingdom_atlas.swift: four offline checks passed for strict overlap rejection, mutual exclusion requirement, reported successful exclusion, and out-of-source exclusion rejection."
+}

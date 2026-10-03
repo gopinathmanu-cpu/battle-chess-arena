@@ -1,6 +1,6 @@
 # Installed dependency licence inventory
 
-Collected from the resolved packages for Milestone 4 on 2026-09-05.
+Collected from the project's resolved dependency packages.
 Full upstream copyright and licence texts are preserved in `licenses/`.
 Regenerate with `python3 tool/collect_licenses.py` after installing dependencies.
 The collector identifies common licence text; human review remains required.
@@ -10,6 +10,10 @@ notice/source bundle before distribution. No native release is certified here.
 
 | Package | Version | Licence | Source | Full notice |
 | --- | --- | --- | --- | --- |
+| app_links | 7.2.1 | Apache-2.0 | [Upstream](https://github.com/llfbandit/app_links) | [app_links.txt](licenses/app_links.txt) |
+| app_links_linux | 1.0.3 | Apache-2.0 | [Upstream](https://github.com/llfbandit/app_links/tree/master/app_links_linux) | [app_links_linux.txt](licenses/app_links_linux.txt) |
+| app_links_platform_interface | 2.0.4 | Apache-2.0 | [Upstream](https://github.com/llfbandit/app_links/tree/main/app_links_platform_interface) | [app_links_platform_interface.txt](licenses/app_links_platform_interface.txt) |
+| app_links_web | 1.0.4 | Apache-2.0 | [Upstream](https://github.com/llfbandit/app_links/tree/master/app_links_web) | [app_links_web.txt](licenses/app_links_web.txt) |
 | args | 2.7.0 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/core/tree/main/pkgs/args) | [args.txt](licenses/args.txt) |
 | async | 2.13.1 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/core/tree/main/pkgs/async) | [async.txt](licenses/async.txt) |
 | audioplayers | 6.8.1 | MIT | [Upstream](https://github.com/bluefireteam/audioplayers) | [audioplayers.txt](licenses/audioplayers.txt) |
@@ -34,6 +38,7 @@ notice/source bundle before distribution. No native release is certified here.
 | flutter_lints | 4.0.0 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/flutter_lints) | [flutter_lints.txt](licenses/flutter_lints.txt) |
 | flutter_test | Flutter SDK | BSD-3-Clause | [Upstream](https://github.com/flutter/flutter) | [flutter_test.txt](licenses/flutter_test.txt) |
 | flutter_web_plugins | Flutter SDK | BSD-3-Clause | [Upstream](https://flutter.dev) | [flutter_web_plugins.txt](licenses/flutter_web_plugins.txt) |
+| gtk | 2.2.0 | MPL-2.0 | [Upstream](https://github.com/ubuntu-flutter-community/gtk.dart) | [gtk.txt](licenses/gtk.txt) |
 | hooks | 2.0.2 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/native/tree/main/pkgs/hooks) | [hooks.txt](licenses/hooks.txt) |
 | http | 1.6.0 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/http/tree/master/pkgs/http) | [http.txt](licenses/http.txt) |
 | http_parser | 4.1.2 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/http/tree/master/pkgs/http_parser) | [http_parser.txt](licenses/http_parser.txt) |
@@ -78,6 +83,14 @@ notice/source bundle before distribution. No native release is certified here.
 | term_glyph | 1.2.2 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/tools/tree/main/pkgs/term_glyph) | [term_glyph.txt](licenses/term_glyph.txt) |
 | test_api | 0.7.12 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/test/tree/master/pkgs/test_api) | [test_api.txt](licenses/test_api.txt) |
 | typed_data | 1.4.0 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/core/tree/main/pkgs/typed_data) | [typed_data.txt](licenses/typed_data.txt) |
+| url_launcher | 6.3.2 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher) | [url_launcher.txt](licenses/url_launcher.txt) |
+| url_launcher_android | 6.3.33 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher_android) | [url_launcher_android.txt](licenses/url_launcher_android.txt) |
+| url_launcher_ios | 6.4.2 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher_ios) | [url_launcher_ios.txt](licenses/url_launcher_ios.txt) |
+| url_launcher_linux | 3.2.3 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher_linux) | [url_launcher_linux.txt](licenses/url_launcher_linux.txt) |
+| url_launcher_macos | 3.2.6 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher_macos) | [url_launcher_macos.txt](licenses/url_launcher_macos.txt) |
+| url_launcher_platform_interface | 2.3.2 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher_platform_interface) | [url_launcher_platform_interface.txt](licenses/url_launcher_platform_interface.txt) |
+| url_launcher_web | 2.4.3 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher_web) | [url_launcher_web.txt](licenses/url_launcher_web.txt) |
+| url_launcher_windows | 3.1.6 | BSD-3-Clause | [Upstream](https://github.com/flutter/packages/tree/main/packages/url_launcher/url_launcher_windows) | [url_launcher_windows.txt](licenses/url_launcher_windows.txt) |
 | uuid | 4.6.0 | MIT | [Upstream](https://github.com/Daegalus/dart-uuid) | [uuid.txt](licenses/uuid.txt) |
 | vector_math | 2.4.0 | BSD-3-Clause | [Upstream](https://github.com/flutter/core-packages/tree/main/packages/vector_math) | [vector_math.txt](licenses/vector_math.txt) |
 | vm_service | 15.3.0 | BSD-3-Clause | [Upstream](https://github.com/dart-lang/sdk/tree/main/pkg/vm_service) | [vm_service.txt](licenses/vm_service.txt) |

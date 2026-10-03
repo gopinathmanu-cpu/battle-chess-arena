@@ -19,14 +19,18 @@ class MoveResolution {
 }
 
 class GameSession {
-  GameSession({this.mode = PlayerMode.local, Position? position})
-    : _position = position ?? Chess.initial;
+  GameSession({
+    this.mode = PlayerMode.local,
+    this.humanSide = Side.white,
+    Position? position,
+  }) : _position = position ?? Chess.initial;
 
   factory GameSession.fromMoves({
     PlayerMode mode = PlayerMode.local,
+    Side humanSide = Side.white,
     required Iterable<String> moves,
   }) {
-    final session = GameSession(mode: mode);
+    final session = GameSession(mode: mode, humanSide: humanSide);
     for (final move in moves) {
       if (session.playUci(move) == null) {
         throw FormatException('Invalid saved move: $move');
@@ -36,17 +40,35 @@ class GameSession {
   }
 
   final PlayerMode mode;
+  Side humanSide;
   Position _position;
   final List<Position> _positions = <Position>[];
   final List<String> _sanMoves = <String>[];
   final List<String> _uciMoves = <String>[];
+  final List<Piece?> _captures = <Piece?>[];
 
   Position get position => _position;
   List<String> get sanMoves => List.unmodifiable(_sanMoves);
   List<String> get uciMoves => List.unmodifiable(_uciMoves);
+
+  /// Actual victims, not missing starting material (promotion is not a capture).
+  List<Piece> get capturedPieces => List.unmodifiable(_captures.nonNulls);
   bool get canUndo => _positions.isNotEmpty;
+
+  /// History-dependent draw rules are not part of dartchess's Position result.
+  bool get isRuleDraw {
+    if (_position.halfmoves >= 100) return true;
+    final key = _position.fen.split(' ').take(4).join(' ');
+    var occurrences = 1;
+    for (final previous in _positions.reversed.take(_position.halfmoves)) {
+      if (previous.fen.split(' ').take(4).join(' ') == key) occurrences++;
+      if (occurrences >= 3) return true;
+    }
+    return false;
+  }
+
   bool get isHumanTurn =>
-      mode == PlayerMode.local || _position.turn == Side.white;
+      mode == PlayerMode.local || _position.turn == humanSide;
 
   Piece? pieceAt(Square square) => _position.board.pieceAt(square);
 
@@ -102,6 +124,7 @@ class GameSession {
     _positions.add(_position);
     _sanMoves.add(san);
     _uciMoves.add(move.uci);
+    _captures.add(defender);
     _position = next;
     return MoveResolution(
       move: move,
@@ -126,6 +149,7 @@ class GameSession {
     _position = _positions.removeLast();
     _sanMoves.removeLast();
     _uciMoves.removeLast();
+    _captures.removeLast();
   }
 
   void reset() {
@@ -133,5 +157,6 @@ class GameSession {
     _positions.clear();
     _sanMoves.clear();
     _uciMoves.clear();
+    _captures.clear();
   }
 }

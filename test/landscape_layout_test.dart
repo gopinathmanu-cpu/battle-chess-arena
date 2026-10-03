@@ -89,7 +89,8 @@ void main() {
       expect(board.top, greaterThanOrEqualTo(0));
       expect(board.right, lessThanOrEqualTo(650));
       expect(board.bottom, lessThanOrEqualTo(360));
-      expect(find.text('Fast battle mode'), findsOneWidget);
+      expect(find.text('Fast battle mode'), findsNothing);
+      expect(find.byTooltip('Game settings'), findsOneWidget);
       await tester.tap(find.byTooltip('Hide top bar'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('Show top bar'), findsOneWidget);

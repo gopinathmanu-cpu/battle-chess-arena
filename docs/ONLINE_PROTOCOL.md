@@ -1,9 +1,120 @@
-# Online Game Protocol v3
+# Online Game Protocol v4
 
-Online lifelines require v3 on both ends. Earlier clients are incompatible.
+## Clock extensions (capability-gated)
+
+`invite_clocks` enables `incrementMs` and `clockMode` on `send_invite`,
+`propose_invite_time`, and `create_shared_invite`. Only a durable-storage-enabled
+server advertises `daily_games`. Clients must not send these new fields to an
+older server or silently substitute a different clock.
+
+- Rapid: `clockMode: "live", baseMs: 900000, incrementMs: 10000`.
+- Classical: `clockMode: "live", baseMs: 1800000` (or `3600000`), `incrementMs: 0`.
+- Daily: `clockMode: "daily", baseMs: 86400000, incrementMs: 0`, timed enabled.
+  Daily is valid only for friend invitations, not quick-match or bot queues.
+
+Invitation payloads carry the agreed clock rules. State snapshots additionally
+contain `clockMode`, `baseMs`, `incrementMs`, and `turnDeadlineEpochMs` (null
+outside an active Daily turn). Both clients receive the same absolute deadline;
+the existing remaining-clock fields remain available for local interpolation.
+Each legal Daily move resets the per-turn allowance. Invalid/replayed commands,
+reconnect, and server restart do not extend it. Moves at expiry lose on time.
+Old invitations without these fields retain live/no-increment semantics.
+
+See [clock rollout and durability](GAME_CLOCKS.md) for storage configuration,
+private checkpoints, write-before-ack semantics and operational limits.
+
+## Transport
+
+Human portrait avatars and authoritative computer opponents require v4 on both
+ends. Earlier clients are incompatible.
 The development endpoint is `ws://localhost:8080`; production must use `wss://`.
 Every message is a JSON text frame. The server sends `connected` with
-`protocolVersion: 3` after the WebSocket handshake.
+`protocolVersion: 4` after the WebSocket handshake.
+
+### Optional custom avatar extension
+
+Updated servers advertise `custom_avatars` in `connected.capabilities`. This
+does not change protocol v4. `register_player` and `update_player` accept a
+custom design in the existing `avatarId` field: `custom-v1-` followed by exactly
+12 lowercase base-36 digits. The positional fields and inclusive ranges are:
+
+| Field | Range |
+| --- | --- |
+| Presentation | 0–1 |
+| Age | 0–3 |
+| Face shape | 0–3 |
+| Skin tone | 0–7 |
+| Hairstyle | 0–11 |
+| Hair colour | 0–9 |
+| Moustache | 0–4 |
+| Beard | 0–5 |
+| Eyewear | 0–5 |
+| Outfit | 0–5 |
+| Outfit colour | 0–7 |
+| Background | 0–7 |
+
+The default is `custom-v1-020321000000`. Unknown versions, extra characters,
+uppercase digits and out-of-range values are rejected. Preset and legacy IDs
+remain valid; human profiles cannot impersonate reserved bot portraits. Custom
+IDs flow unchanged through search, invitations, game snapshots, rankings and
+history. Artwork is rendered locally, with no external image URL or photo upload.
+The version freezes the meaning/order of parts as well as their bounds.
+
+On older services, the new app sends `avatar-01` on the wire but retains the
+chosen custom ID in its local saved profile after a successful acknowledgement.
+A visible lobby notice explains that other players see a preset. Reconnecting
+to an updated service automatically sends the retained custom ID. Old apps do
+not understand this format and display their existing fallback portrait; both
+players need the updated app to see custom artwork.
+
+### Optional colour toss extension
+
+Updated servers advertise `capabilities: ["color_toss"]` in `connected`.
+Only after receiving this capability may clients send `tossForColors: true`
+on `create_game`, `quick_match`, `start_computer_game`, or `send_invite`.
+Omitting the flag retains the creator/sender-White behaviour. Older v4
+servers remain usable without the optional extension; deploy the updated
+server before enabling this feature in a release.
+
+The server makes one random assignment when creating the match. Seat tokens
+are issued for the resulting colours, including a Black creator and White
+joiner. Invitation acceptance never assumes the sender is White. Snapshots
+and invitations contain `tossForColors`; the normal `seat` and `players`
+fields describe the outcome. Quick matches pair the same toss preference.
+Setup retries and reconnects keep the assignment; rematches retain seats.
+Start a new match for a new toss. Built-in opponents can play either colour
+without changing their fixed levels.
+
+WhatsApp shares an HTTPS invitation link with Avatar-name search/invite
+fallback instructions. Sharing creates an invitation, not a room. Existing
+custom-scheme game links still parse for backwards compatibility.
+
+### Revocable WhatsApp invitations
+
+Servers advertise `shared_invites` in `connected.capabilities`. Supported clients
+use `create_shared_invite` (`commandId`, optional `baseMs`, `tossForColors`).
+The `shared_invite_created` response contains a public invitation with `inviteId`,
+`avatarName`, `status`, `createdAt`, and `expiresAt`. No seat or identity credentials
+are put in shared URLs. An older server gets the Avatar-name-only fallback.
+
+The HTTPS path `/invite/ID` serves a read-only fallback page;
+WhatsApp link previews never claim a seat. Android HTTPS App Links and the page's
+`battlechessarena://invite?invite=ID` button open the app. The authenticated app
+sends `open_shared_invite` (`commandId`, `inviteId`), which atomically admits one
+opponent and returns `seat_joined`. Reopening by a participant returns the same
+seat; another player cannot take it. The creator receives `shared_invite_updated`
+and can open the started game from Active games.
+
+`list_shared_invites` lists the owner's links. `delete_shared_invite` revokes a
+link for everyone, publishes its deleted status, and retains a tombstone. Only
+the creator may revoke it. Deleting a used link does not delete the started game.
+
+Links expire **24 hours after creation**. Resharing/retrying does not extend that
+deadline. HTTP returns 410 with a deleted/expired message and no app-launch
+button; in-app opens return `INVITE_DELETED` or `INVITE_EXPIRED`. Unknown links
+return HTTP 404 / `INVITE_UNAVAILABLE`. All invitation pages use `no-store`.
+These reference stores are process-local: server restarts invalidate outstanding
+links, rather than silently recreating them. Durable storage remains separate.
 
 Clients send `{"type":"ping"}` while connected. The server replies with
 `{"type":"pong"}`. This heartbeat applies in the lobby as well as during a game.
@@ -13,7 +124,7 @@ Clients send `{"type":"ping"}` while connected. The server replies with
 Before creating, joining, resuming, or listing games, send:
 
 ```json
-{"type":"register_player","commandId":"profile-1","name":"Nova Knight","avatarId":"mage","level":"intermediate"}
+{"type":"register_player","commandId":"profile-1","name":"Nova Knight","avatarId":"avatar-17","level":"intermediate"}
 ```
 
 Avatar IDs contain 3–20 ASCII letters, numbers, spaces, underscores, or hyphens and
@@ -22,9 +133,12 @@ server returns `player_registered` with a private `playerToken`. Save this token
 and include it in later registrations to reclaim the same name. Never display or
 share player or seat tokens.
 
-Available avatar IDs are `crown`, `knight`, `mage`, `dragon`, `robot`, `ranger`,
-`sun`, and `moon`. Every game state includes public `players.w` and `players.b`
-objects containing only `name`, `avatarId`, and current `points`.
+Available portrait IDs are `avatar-01` through `avatar-50`. Legacy icon IDs are
+accepted only so existing saved profiles and history continue to render. Every
+game state includes public `players.w` and `players.b`
+objects containing `name`, `avatarId`, `level`, current `points`, and a
+`computer` boolean. Built-in opponents always set `computer: true` so clients
+never present them as people.
 
 An authenticated player can send `update_player` with a new unique `name` and
 `avatarId`. The server preserves the private identity, scores, invitations, and
@@ -48,12 +162,13 @@ returns all non-completed server games for that player with only their own priva
 seat credential. `find_player` performs a case-insensitive exact Avatar ID lookup
 and returns the public avatar icon and current online status.
 
-## Favourites, presence, and invitations
+## Saved player circles, presence, and invitations
 
-Favourites are private device data and are never uploaded as a list. To refresh
-their status, an authenticated client sends `presence` with up to fifty Avatar
-Names. The response reports whether each identity currently has an authenticated
-WebSocket connection.
+Family, Friends and Professionals classifications are private device data and
+are never uploaded as a list. Legacy favourites are treated as Friends. To
+refresh saved players' status, an authenticated client sends `presence` with up
+to fifty Avatar Names. The response reports whether each identity currently has
+an authenticated WebSocket connection.
 
 `send_invite` contains an opponent Avatar ID, an optional `scheduledAt`, a
 `timed` boolean, and `baseMs` for timed play. `propose_invite_time` can revise
@@ -65,7 +180,14 @@ rejected when the pair already has an open game, while a future invitation is
 allowed. `invite_updated` is delivered
 to every live connection belonging to either player. `list_invites` returns the
 current user's sent and received invitations with `pending`, `accepted`,
-`declined`, or `blocked` status.
+`declined`, `deleted`, `expired`, or `blocked` status. Invitations carry an
+`expiresAt` timestamp: 24 hours after creation, or 15 minutes after the scheduled
+start, whichever is later. Counter-proposals recalculate the deadline. Expiry is
+enforced both on requests and on server ticks, and never terminates a started game.
+
+Deleting an unanswered or accepted-but-not-started invitation cancels it for
+both players. Deleting an invitation to an already-started game hides that
+invitation for the caller only and preserves the match and completed history.
 
 The invitation payload identifies `awaitingResponseFromName`. That player can
 send `respond_invite` to accept or decline, or `propose_invite_time` with a new
@@ -84,6 +206,7 @@ not part of this version.
 | --- | --- | --- |
 | `create_game` | `commandId`; optional `baseMs`, `incrementMs` | Create room, claim White; defaults 600000 ms, zero increment. |
 | `quick_match` | `commandId`; optional `baseMs`, `incrementMs` | Join a waiting quick match with the same clock, or reserve a new White seat. |
+| `start_computer_game` | `commandId`, `opponentId`; optional `baseMs`, `incrementMs` | Start an authoritative game as White against one of the 20 built-in computer profiles. Replaces the caller's waiting quick match, if any. |
 | `cancel_matchmaking` | `commandId`, `gameId` | Delete the caller's still-waiting quick-match room and release its seat. |
 | `join_game` | `commandId`, `gameId` | Claim the vacant Black seat and start White's clock. |
 | `resume_game` | `gameId`, `seatToken` | Authenticate this connection as the existing seat. |
@@ -93,7 +216,7 @@ not part of this version.
 | `offer_draw` | `commandId`, `gameId`, `round` | Offer a draw; only one offer may be outstanding. |
 | `respond_draw` | `commandId`, `gameId`, `round`, `offerId`, `accept` | Opponent accepts/declines the identified offer; `accept` is a boolean. |
 | `rematch` | `commandId`, `gameId`, `round` | Consent to another round after completion. |
-| `use_lifeline` | `commandId`, `gameId`, `round` | Consume one of the seat's three lifelines for the current position. Repeats on an unchanged position are free. |
+| `use_lifeline` | `commandId`, `gameId`, `round` | Request a move suggestion on your turn. With the `credits` capability, each accepted nonduplicate request costs one credit. The legacy command name is retained for v4 compatibility. |
 
 Example move:
 
@@ -126,6 +249,9 @@ first seat, or `match_found` when it immediately claims a matching second seat.
 Both contain the same private seat fields and authoritative state as room setup.
 The waiting player receives an active `game_state` when paired.
 `matchmaking_cancelled` confirms removal of a still-waiting search.
+`computer_match_found` confirms a built-in opponent game and carries the same
+private seat fields and authoritative state. Computer moves, clocks, results,
+draw declines, and rematch consent are all processed by the server.
 
 An action receives a `command_result`:
 
@@ -153,6 +279,38 @@ same connection. A lost create/join response before the client receives a token
 cannot be recovered on a new connection: create or join again. The mobile client
 does not automatically retransmit unauthenticated setup requests.
 
+## Arena Credits extension
+
+Servers advertising the optional `credits` capability own the Arena Credit
+balance and policy. `player_registered`, `player_updated`, setup replies, and
+action receipts may include `credits`, `bonusCredits`, `purchasedCredits`, and
+`creditPolicy`. Private
+`credit_balance` frames include the authoritative `account`, its recent ledger
+entries, and the same policy. Clients display these fields but never submit a
+balance, grant, charge, refund, or purchase result.
+
+The launch policy charges once per activated round: two credits per player for
+a live human game, three for a Daily human game, and four for the human in a
+server-computer game. Waiting rooms, cancelled searches, invitations,
+reconnection, resume and synchronization do not deduct credits. Rematches use a
+new game-round transaction ID and are charged once when the next round starts.
+Each accepted online `use_lifeline` Move suggestion costs one credit under its
+own command-derived idempotency key; duplicate, invalid, or wrong-turn suggestion
+commands are free. An unfunded request is rejected before its suggestion counter
+changes with `INSUFFICIENT_CREDITS` and “You need 1 Arena Credit for an online
+move suggestion.” On-device suggestions outside online play remain free. An
+insufficient balance also rejects round activation with `INSUFFICIENT_CREDITS`;
+it never interrupts a round that is already active. A due scheduled invitation
+can use `credit_required` until both players can fund it.
+
+New and migrated beta profiles receive one idempotent 300-credit welcome grant.
+On later UTC days, registration can receive a Top-up of up to three bonus credits without
+exceeding the 300-credit welcome ceiling. A completed round with at least two
+legal half-moves earns one credit, capped at five per player per UTC day. All
+mutations are server-generated and keyed by profile, game and round. See
+[Arena Credits](ARENA_CREDITS.md) for the product policy and the production
+billing boundary.
+
 ## Authoritative state
 
 Every emitted snapshot has a strictly increasing `sequence`, including sync,
@@ -169,7 +327,7 @@ State fields:
 - `result`: null, or `{reason, winner}`; winner is `w`, `b`, or null
 - `drawOffer`: null, or `{side, offerId}`
 - `rematchOffers`: array of consenting sides
-- `lifelines.w`, `lifelines.b`: remaining lifelines, reset to three each round
+- `lifelines.w`, `lifelines.b`: legacy compatibility fields, reset to three each round; no longer decremented or used to limit suggestions
 - `lifelineRequests.w`, `lifelineRequests.b`: accepted request counters used to trigger or restore a suggestion
 
 Reasons: `checkmate`, `timeout`, `resignation`, `agreement`, `stalemate`,

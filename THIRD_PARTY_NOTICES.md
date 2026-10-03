@@ -9,6 +9,8 @@ reviewed from the generated Flutter lockfile before each release.
 | dartchess | Chess rules, legal moves, FEN and SAN | GPL-3.0 | https://github.com/lichess-org/dartchess |
 | Stockfish | On-device computer opponent | GPL-3.0 | https://github.com/official-stockfish/Stockfish |
 | web_socket_channel | Flutter WebSocket client | BSD-3-Clause | https://github.com/dart-lang/http/tree/master/pkgs/web_socket_channel |
+| app_links | Mobile game-invite deep links | Apache-2.0 | https://github.com/llfbandit/app_links |
+| url_launcher | Open WhatsApp invitation links | BSD-3-Clause | https://github.com/flutter/packages/tree/main/packages/url_launcher |
 | chess.js | Server-side chess validation | BSD-2-Clause | https://github.com/jhlywa/chess.js |
 | ws | Node.js WebSocket server | MIT | https://github.com/websockets/ws |
 
@@ -16,12 +18,32 @@ The Flutter `stockfish` package is a mobile integration layer around the
 Stockfish engine. Preserve its notices and the corresponding Stockfish source
 offer when distributing binaries.
 
-The concept image in `assets/concepts/` is an original project asset distributed
-under GPL-3.0-or-later. It must not be interpreted as granting rights to any
-third-party character, trademark, or franchise.
+The concept image in `assets/concepts/` is a user-supplied reference previously
+recorded as original project artwork. Its creator/source/permission evidence
+is not recorded and must be confirmed before release clearance; see
+`docs/ARTWORK_PROVENANCE.md`. The Classic Flat Club reference has the same
+open provenance question. Project notices do not grant third-party character,
+trademark or franchise rights, or resolve these input-origin questions.
 
 The original Manga Vanguard pawn-duel asset is also distributed under
 GPL-3.0-or-later. Its generation record is stored beside the image.
+
+The modular Chess Set Studio illustrations are original project-directed assets
+distributed under GPL-3.0-or-later. Their generation prompts and local preparation
+record are in `assets/custom_sets/modular-parts.asset.md`.
+
+The custom multiplayer avatar illustrations are original, code-drawn vector
+layers in `lib/src/features/online/custom_avatar_portrait.dart`, distributed
+under GPL-3.0-or-later. They do not use an external avatar API, stock portrait
+pack, downloaded photographs or an additional runtime dependency.
+
+The kingdom and legendary-army expansion uses original project-directed
+generated illustrations. Generation prompts and selected source/preparation
+records are under `assets/characters/kingdoms/`. Historical reference reading
+informs clothing descriptions; external museum/stock images are not included.
+See `docs/ARTWORK_PROVENANCE.md` for the release-review safeguards. GPL notices
+apply only to rights the project can grant; generation is not a warranty of
+non-infringement or a claim of exclusive copyright in AI-generated elements.
 
 ## Milestone 4 resolved dependencies and generated runners
 

@@ -1,0 +1,65 @@
+{
+  "cells": [
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 0,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 1,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/camelot-mounted-prepared-v2.png",
+      "column": 0,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/camelot-mounted-prepared-v2.png",
+      "column": 1,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 4,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 5,
+      "row": 0
+    },
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 0,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 1,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/camelot-mounted-prepared-v2.png",
+      "column": 0,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/camelot-mounted-prepared-v2.png",
+      "column": 1,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 4,
+      "row": 1
+    },
+    {
+      "path": "build/kingdom-review/camelot-base-for-repair-v1.png",
+      "column": 5,
+      "row": 1
+    }
+  ],
+  "note": "Prepare the original v1 source/crops as base-for-repair-v1 and the four-sprite mounted source/crops v2 with --columns2 --rows2; assemble replaces only B/N."
+}

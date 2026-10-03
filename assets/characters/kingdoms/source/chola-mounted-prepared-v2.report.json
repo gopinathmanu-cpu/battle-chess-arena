@@ -1,0 +1,326 @@
+{
+  "allowOverlappingCrops" : false,
+  "alphaFloor" : 24,
+  "bounds" : [
+    [
+      270,
+      0,
+      700,
+      511
+    ],
+    [
+      870,
+      0,
+      1300,
+      525
+    ],
+    [
+      270,
+      511,
+      700,
+      1024
+    ],
+    [
+      870,
+      525,
+      1300,
+      1024
+    ]
+  ],
+  "cells" : [
+    {
+      "column" : 0,
+      "components" : [
+        {
+          "bounds" : [
+            29,
+            9,
+            396,
+            504
+          ],
+          "pixels" : 105662
+        }
+      ],
+      "destinationBounds" : [
+        44,
+        18,
+        212,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 0,
+      "localAlphaBounds" : [
+        29,
+        9,
+        396,
+        504
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 11275,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "sprite-0",
+      "row" : 0,
+      "scale" : 0.45656565656565656,
+      "side" : "unspecified",
+      "sourceAlphaBounds" : [
+        299,
+        9,
+        666,
+        504
+      ],
+      "sourceCrop" : [
+        270,
+        0,
+        700,
+        511
+      ],
+      "transparentFraction" : 0.519128020752742,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 1,
+      "components" : [
+        {
+          "bounds" : [
+            26,
+            30,
+            389,
+            515
+          ],
+          "pixels" : 85187
+        }
+      ],
+      "destinationBounds" : [
+        299,
+        18,
+        468,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 1,
+      "localAlphaBounds" : [
+        26,
+        30,
+        389,
+        515
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 13848,
+      "removedSpecklePixels" : 1,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "sprite-1",
+      "row" : 0,
+      "scale" : 0.46597938144329898,
+      "side" : "unspecified",
+      "sourceAlphaBounds" : [
+        896,
+        30,
+        1259,
+        515
+      ],
+      "sourceCrop" : [
+        870,
+        0,
+        1300,
+        525
+      ],
+      "transparentFraction" : 0.62264894795127357,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 0,
+      "components" : [
+        {
+          "bounds" : [
+            26,
+            4,
+            396,
+            498
+          ],
+          "pixels" : 106022
+        }
+      ],
+      "destinationBounds" : [
+        43,
+        274,
+        212,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 2,
+      "localAlphaBounds" : [
+        26,
+        4,
+        396,
+        498
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 11254,
+      "removedSpecklePixels" : 2,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "sprite-2",
+      "row" : 1,
+      "scale" : 0.45748987854251011,
+      "side" : "unspecified",
+      "sourceAlphaBounds" : [
+        296,
+        515,
+        666,
+        1009
+      ],
+      "sourceCrop" : [
+        270,
+        511,
+        700,
+        1024
+      ],
+      "transparentFraction" : 0.51937077836710643,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 1,
+      "components" : [
+        {
+          "bounds" : [
+            13,
+            6,
+            410,
+            481
+          ],
+          "pixels" : 92215
+        }
+      ],
+      "destinationBounds" : [
+        289,
+        274,
+        478,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 3,
+      "localAlphaBounds" : [
+        13,
+        6,
+        410,
+        481
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 12235,
+      "removedSpecklePixels" : 3,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "sprite-3",
+      "row" : 1,
+      "scale" : 0.47578947368421054,
+      "side" : "unspecified",
+      "sourceAlphaBounds" : [
+        883,
+        531,
+        1280,
+        1006
+      ],
+      "sourceCrop" : [
+        870,
+        525,
+        1300,
+        1024
+      ],
+      "transparentFraction" : 0.57023349023628656,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    }
+  ],
+  "columns" : 2,
+  "coordinateSystem" : "top-left, exclusive right\/bottom",
+  "cropMode" : "measured",
+  "excludedRects" : {
+
+  },
+  "input" : "\/Users\/manugopinath\/GameStudio\/battle_chess_arena 3\/assets\/characters\/kingdoms\/source\/chola-mounted-source-v2.png",
+  "normalization" : {
+    "baseline" : 244,
+    "cellSize" : 256,
+    "maxHeight" : 226,
+    "maxWidth" : 224
+  },
+  "order" : [
+    "sprite-0",
+    "sprite-1",
+    "sprite-2",
+    "sprite-3"
+  ],
+  "output" : "\/Users\/manugopinath\/GameStudio\/battle_chess_arena 3\/build\/kingdom-review\/chola-mounted-prepared-v2.png",
+  "outputSize" : [
+    512,
+    512
+  ],
+  "reviewedOverlappingPairs" : [
+
+  ],
+  "reviewRequired" : "Inspect full atlas and checkerboard previews; segmentation checks cannot prove anatomical or historical correctness.",
+  "rows" : 2,
+  "sourceSize" : [
+    1536,
+    1024
+  ],
+  "status" : "passed"
+}

@@ -1,0 +1,871 @@
+{
+  "alphaFloor": 24,
+  "bounds": [
+    [
+      16,
+      0,
+      260,
+      500
+    ],
+    [
+      290,
+      10,
+      480,
+      500
+    ],
+    [
+      270,
+      0,
+      700,
+      511
+    ],
+    [
+      870,
+      0,
+      1300,
+      525
+    ],
+    [
+      1046,
+      20,
+      1323,
+      500
+    ],
+    [
+      1337,
+      70,
+      1525,
+      500
+    ],
+    [
+      16,
+      500,
+      260,
+      1007
+    ],
+    [
+      290,
+      510,
+      480,
+      1007
+    ],
+    [
+      270,
+      511,
+      700,
+      1024
+    ],
+    [
+      870,
+      525,
+      1300,
+      1024
+    ],
+    [
+      1046,
+      515,
+      1323,
+      1007
+    ],
+    [
+      1337,
+      570,
+      1525,
+      1007
+    ]
+  ],
+  "cells": [
+    {
+      "column": 0,
+      "components": [
+        {
+          "bounds": [
+            10,
+            24,
+            226,
+            482
+          ],
+          "pixels": 61106
+        }
+      ],
+      "destinationBounds": [
+        74,
+        18,
+        181,
+        244
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 0,
+      "localAlphaBounds": [
+        10,
+        24,
+        226,
+        482
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 8691,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "king",
+      "row": 0,
+      "scale": 0.49344978165938863,
+      "side": "white",
+      "sourceAlphaBounds": [
+        26,
+        24,
+        242,
+        482
+      ],
+      "sourceCrop": [
+        16,
+        0,
+        260,
+        500
+      ],
+      "transparentFraction": 0.4991311475409836,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    },
+    {
+      "column": 1,
+      "components": [
+        {
+          "bounds": [
+            23,
+            37,
+            181,
+            472
+          ],
+          "pixels": 46968
+        }
+      ],
+      "destinationBounds": [
+        343,
+        18,
+        425,
+        244
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 1,
+      "localAlphaBounds": [
+        23,
+        37,
+        181,
+        472
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 6328,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "queen",
+      "row": 0,
+      "scale": 0.5195402298850574,
+      "side": "white",
+      "sourceAlphaBounds": [
+        313,
+        47,
+        471,
+        482
+      ],
+      "sourceCrop": [
+        290,
+        10,
+        480,
+        500
+      ],
+      "transparentFraction": 0.49551020408163265,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    },
+    {
+      "column": 2,
+      "components": [
+        {
+          "bounds": [
+            29,
+            9,
+            396,
+            504
+          ],
+          "pixels": 105662
+        }
+      ],
+      "destinationBounds": [
+        556,
+        18,
+        724,
+        244
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 2,
+      "localAlphaBounds": [
+        29,
+        9,
+        396,
+        504
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 11275,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "bishop",
+      "row": 0,
+      "scale": 0.45656565656565656,
+      "side": "white",
+      "sourceAlphaBounds": [
+        299,
+        9,
+        666,
+        504
+      ],
+      "sourceCrop": [
+        270,
+        0,
+        700,
+        511
+      ],
+      "transparentFraction": 0.519128020752742,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "preparedCellIndex": 0,
+      "preparedDestinationBounds": [
+        44,
+        18,
+        212,
+        244
+      ],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-mounted-source-v2.png"
+    },
+    {
+      "column": 3,
+      "components": [
+        {
+          "bounds": [
+            26,
+            30,
+            389,
+            515
+          ],
+          "pixels": 85187
+        }
+      ],
+      "destinationBounds": [
+        811,
+        18,
+        980,
+        244
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 3,
+      "localAlphaBounds": [
+        26,
+        30,
+        389,
+        515
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 13848,
+      "removedSpecklePixels": 1,
+      "reviewedEdgeExceptions": [],
+      "role": "knight",
+      "row": 0,
+      "scale": 0.465979381443299,
+      "side": "white",
+      "sourceAlphaBounds": [
+        896,
+        30,
+        1259,
+        515
+      ],
+      "sourceCrop": [
+        870,
+        0,
+        1300,
+        525
+      ],
+      "transparentFraction": 0.6226489479512736,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "preparedCellIndex": 1,
+      "preparedDestinationBounds": [
+        299,
+        18,
+        468,
+        244
+      ],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-mounted-source-v2.png"
+    },
+    {
+      "column": 4,
+      "components": [
+        {
+          "bounds": [
+            13,
+            31,
+            261,
+            456
+          ],
+          "pixels": 60319
+        }
+      ],
+      "destinationBounds": [
+        1086,
+        18,
+        1218,
+        244
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 4,
+      "localAlphaBounds": [
+        13,
+        31,
+        261,
+        456
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 7904,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "rook",
+      "row": 0,
+      "scale": 0.5317647058823529,
+      "side": "white",
+      "sourceAlphaBounds": [
+        1059,
+        51,
+        1307,
+        476
+      ],
+      "sourceCrop": [
+        1046,
+        20,
+        1323,
+        500
+      ],
+      "transparentFraction": 0.5463372442839952,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    },
+    {
+      "column": 5,
+      "components": [
+        {
+          "bounds": [
+            8,
+            51,
+            169,
+            412
+          ],
+          "pixels": 31256
+        }
+      ],
+      "destinationBounds": [
+        1357,
+        18,
+        1458,
+        244
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 5,
+      "localAlphaBounds": [
+        8,
+        51,
+        169,
+        412
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 6111,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "pawn",
+      "row": 0,
+      "scale": 0.6260387811634349,
+      "side": "white",
+      "sourceAlphaBounds": [
+        1345,
+        121,
+        1506,
+        482
+      ],
+      "sourceCrop": [
+        1337,
+        70,
+        1525,
+        500
+      ],
+      "transparentFraction": 0.6133597229094507,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    },
+    {
+      "column": 0,
+      "components": [
+        {
+          "bounds": [
+            9,
+            15,
+            234,
+            478
+          ],
+          "pixels": 66044
+        }
+      ],
+      "destinationBounds": [
+        73,
+        274,
+        183,
+        500
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 6,
+      "localAlphaBounds": [
+        9,
+        15,
+        234,
+        478
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 7192,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "king",
+      "row": 1,
+      "scale": 0.48812095032397407,
+      "side": "black",
+      "sourceAlphaBounds": [
+        25,
+        515,
+        250,
+        978
+      ],
+      "sourceCrop": [
+        16,
+        500,
+        260,
+        1007
+      ],
+      "transparentFraction": 0.466129918841142,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    },
+    {
+      "column": 1,
+      "components": [
+        {
+          "bounds": [
+            15,
+            31,
+            181,
+            467
+          ],
+          "pixels": 49609
+        }
+      ],
+      "destinationBounds": [
+        341,
+        274,
+        427,
+        500
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 7,
+      "localAlphaBounds": [
+        15,
+        31,
+        181,
+        467
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 4557,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "queen",
+      "row": 1,
+      "scale": 0.518348623853211,
+      "side": "black",
+      "sourceAlphaBounds": [
+        305,
+        541,
+        471,
+        977
+      ],
+      "sourceCrop": [
+        290,
+        510,
+        480,
+        1007
+      ],
+      "transparentFraction": 0.47464788732394364,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    },
+    {
+      "column": 2,
+      "components": [
+        {
+          "bounds": [
+            26,
+            4,
+            396,
+            498
+          ],
+          "pixels": 106022
+        }
+      ],
+      "destinationBounds": [
+        555,
+        274,
+        724,
+        500
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 8,
+      "localAlphaBounds": [
+        26,
+        4,
+        396,
+        498
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 11254,
+      "removedSpecklePixels": 2,
+      "reviewedEdgeExceptions": [],
+      "role": "bishop",
+      "row": 1,
+      "scale": 0.4574898785425101,
+      "side": "black",
+      "sourceAlphaBounds": [
+        296,
+        515,
+        666,
+        1009
+      ],
+      "sourceCrop": [
+        270,
+        511,
+        700,
+        1024
+      ],
+      "transparentFraction": 0.5193707783671064,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "preparedCellIndex": 2,
+      "preparedDestinationBounds": [
+        43,
+        274,
+        212,
+        500
+      ],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-mounted-source-v2.png"
+    },
+    {
+      "column": 3,
+      "components": [
+        {
+          "bounds": [
+            13,
+            6,
+            410,
+            481
+          ],
+          "pixels": 92215
+        }
+      ],
+      "destinationBounds": [
+        801,
+        274,
+        990,
+        500
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 9,
+      "localAlphaBounds": [
+        13,
+        6,
+        410,
+        481
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 12235,
+      "removedSpecklePixels": 3,
+      "reviewedEdgeExceptions": [],
+      "role": "knight",
+      "row": 1,
+      "scale": 0.47578947368421054,
+      "side": "black",
+      "sourceAlphaBounds": [
+        883,
+        531,
+        1280,
+        1006
+      ],
+      "sourceCrop": [
+        870,
+        525,
+        1300,
+        1024
+      ],
+      "transparentFraction": 0.5702334902362866,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "preparedCellIndex": 3,
+      "preparedDestinationBounds": [
+        289,
+        274,
+        478,
+        500
+      ],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-mounted-source-v2.png"
+    },
+    {
+      "column": 4,
+      "components": [
+        {
+          "bounds": [
+            16,
+            28,
+            265,
+            452
+          ],
+          "pixels": 61009
+        }
+      ],
+      "destinationBounds": [
+        1085,
+        274,
+        1218,
+        500
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 10,
+      "localAlphaBounds": [
+        16,
+        28,
+        265,
+        452
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 6858,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "rook",
+      "row": 1,
+      "scale": 0.5330188679245284,
+      "side": "black",
+      "sourceAlphaBounds": [
+        1062,
+        543,
+        1311,
+        967
+      ],
+      "sourceCrop": [
+        1046,
+        515,
+        1323,
+        1007
+      ],
+      "transparentFraction": 0.5523392327786094,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    },
+    {
+      "column": 5,
+      "components": [
+        {
+          "bounds": [
+            9,
+            30,
+            174,
+            407
+          ],
+          "pixels": 33322
+        }
+      ],
+      "destinationBounds": [
+        1358,
+        274,
+        1457,
+        500
+      ],
+      "edgeContactPixels": {
+        "bottom": 0,
+        "left": 0,
+        "right": 0,
+        "top": 0
+      },
+      "excludedRects": [],
+      "index": 11,
+      "localAlphaBounds": [
+        9,
+        30,
+        174,
+        407
+      ],
+      "maskMode": "preserved-alpha",
+      "removedExcludedPixels": 0,
+      "removedFringePixels": 5838,
+      "removedSpecklePixels": 0,
+      "reviewedEdgeExceptions": [],
+      "role": "pawn",
+      "row": 1,
+      "scale": 0.5994694960212201,
+      "side": "black",
+      "sourceAlphaBounds": [
+        1346,
+        600,
+        1511,
+        977
+      ],
+      "sourceCrop": [
+        1337,
+        570,
+        1525,
+        1007
+      ],
+      "transparentFraction": 0.5944057646428745,
+      "validation": "passed",
+      "visionInstances": 0,
+      "warnings": [],
+      "sourceAsset": "assets/characters/kingdoms/source/chola-source-v1.png"
+    }
+  ],
+  "columns": 6,
+  "coordinateSystem": "top-left, exclusive right/bottom",
+  "cropMode": "composed-reviewed-source-cells",
+  "input": "/Users/manugopinath/GameStudio/battle_chess_arena 3/assets/characters/kingdoms/source/chola-source-v1.png",
+  "normalization": {
+    "baseline": 244,
+    "cellSize": 256,
+    "maxHeight": 226,
+    "maxWidth": 224
+  },
+  "order": [
+    "king",
+    "queen",
+    "bishop",
+    "knight",
+    "rook",
+    "pawn",
+    "king",
+    "queen",
+    "bishop",
+    "knight",
+    "rook",
+    "pawn"
+  ],
+  "output": "/Users/manugopinath/GameStudio/battle_chess_arena 3/assets/characters/kingdoms/chola-v1.png",
+  "outputSize": [
+    1536,
+    512
+  ],
+  "reviewRequired": "Inspect full atlas and checkerboard previews; segmentation checks cannot prove anatomical or historical correctness.",
+  "rows": 2,
+  "sourceSize": [
+    1536,
+    1024
+  ],
+  "status": "passed",
+  "compositionManifest": "assets/characters/kingdoms/source/chola-composition-v2.json",
+  "basePreparationReport": "assets/characters/kingdoms/source/chola-base-prepared-v1.report.json",
+  "mountedPreparationReport": "assets/characters/kingdoms/source/chola-mounted-prepared-v2.report.json",
+  "sources": [
+    "assets/characters/kingdoms/source/chola-source-v1.png",
+    "assets/characters/kingdoms/source/chola-mounted-source-v2.png"
+  ],
+  "qa": "Complete independent mounted repair: all four B/N cells replaced, original K/Q/R/P cells verified RGBA-identical. No source overlap or anatomical clipping in mounted repair."
+}

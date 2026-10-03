@@ -13,7 +13,6 @@ fastest competitive time controls.
 2. Epic Guardians — culturally respectful, original Indian epic-inspired units.
 3. Olympian Legion — Greek mythology-inspired bronze and marble champions.
 4. Neon Dominion — futuristic androids, mechs, and energy weapons.
-5. Royal Classic — premium traditional carved pieces.
 
 Each pack must provide the same semantic roles: king, queen, rook, bishop,
 knight, and pawn for both sides. Art, audio, particles, movement, attack,
@@ -90,8 +89,14 @@ keeps five complete piece packs commercially achievable.
 
 ### Phase 4 — Tournaments
 
-- Arena, Swiss, round-robin, scheduled, and private events.
-- Pairing service, standings, tie-breaks, spectators, and organizer tools.
+- Implemented: three offline bot knockout cups grouped by proficiency, using
+  the existing 20-avatar roster; quarterfinals, semifinals, final, persistent
+  progress, unlimited round retries, and saved champion status.
+- Catalog definitions support additional themed knockout cups; see
+  [bot tournaments](BOT_TOURNAMENTS.md) for behavior and extension points.
+- Future: themed challenges, online arena, Swiss, round-robin, scheduled, and
+  private events; pairing service, standings, tie-breaks, spectators, and
+  organizer tools.
 
 ## Originality and cultural safety
 
@@ -115,7 +120,7 @@ two-device match is verified:
 4. Friends and private challenges.
 5. PGN import/export, saved games and analysis.
 6. Open-source skeletal animation pipeline and complete Manga Vanguard pack.
-7. Original Indian, Greek, futuristic and classic packs.
+7. Complete and polish the original Indian, Greek and futuristic packs.
 8. Spectator mode.
 9. Arena, Swiss and round-robin tournaments.
 10. Organizer tools, fair-play monitoring, moderation and production deployment.

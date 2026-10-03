@@ -9,6 +9,9 @@ plugins {
 
 val releasePropertiesFile = rootProject.file("key.properties")
 val releaseProperties = Properties()
+val mobileTestPackage = providers.gradleProperty("mobileTestPackage")
+    .map(String::toBoolean)
+    .getOrElse(false)
 val buildingRelease = gradle.startParameter.taskNames.any {
     it.contains("release", ignoreCase = true)
 }
@@ -29,8 +32,18 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.manugopinath.battlechessarena"
+        // The opt-in testing identity installs alongside builds signed with an
+        // older development key, avoiding Android's signature-conflict error.
+        applicationId = if (mobileTestPackage) {
+            "com.manugopinath.battlechessarena.mobiletest"
+        } else {
+            "com.manugopinath.battlechessarena"
+        }
+        manifestPlaceholders["appLabel"] = if (mobileTestPackage) {
+            "Battle Chess Arena Beta"
+        } else {
+            "Battle Chess Arena"
+        }
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

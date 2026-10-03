@@ -1,0 +1,329 @@
+{
+  "version": 2,
+  "cellSize": 256,
+  "roles": [
+    "king",
+    "queen",
+    "bishop",
+    "knight",
+    "rook",
+    "pawn"
+  ],
+  "policy": {
+    "source": "Directional units face viewer-left in both source rows.",
+    "runtime": "Black is mirrored by ThemedPieceSprite so armies face each other.",
+    "uprightRoles": "King, Queen and Pawn remain near-front and unchanged."
+  },
+  "entries": [
+    {
+      "id": "achaemenid",
+      "source": "assets/characters/kingdoms/achaemenid-v1.png",
+      "sourceSha256": "ba0274b11d22fade60eca6506734be4a928243028055aa6d6f4616b542ef1499",
+      "runtime": "assets/characters/kingdoms/achaemenid-v2.png",
+      "runtimeSha256": "d3e8b4c58e8540b051dc78189ecfd793f44fd8ba0437590523ffdf06e4cdfe15",
+      "flippedRolesBothRows": [
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "arab",
+      "source": "assets/characters/kingdoms/arab-v1.png",
+      "sourceSha256": "7c6d2fffb8b9a6c90a435db0740fd75bf3dbf1c5c084664c684907b192ad9883",
+      "runtime": "assets/characters/kingdoms/arab-v2.png",
+      "runtimeSha256": "9719d33c5e7971ae3f42aa16311db71919a4d3acf67c0c75aa999547c2ca13c5",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "asgard",
+      "source": "assets/characters/kingdoms/asgard-v1.png",
+      "sourceSha256": "d34b7658aecfe49869f505497916e9f322ecb53f1f93dce353295e1861ddeb7b",
+      "runtime": "assets/characters/kingdoms/asgard-v2.png",
+      "runtimeSha256": "f48e2b201aad38a8f3b4af7240da0aabe99b7e1775b8611307eabf28d85ae9e6",
+      "flippedRolesBothRows": [],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "atlantis",
+      "source": "assets/characters/kingdoms/atlantis-v1.png",
+      "sourceSha256": "47859822cf32f0555de2df050cdd58f58e988cfd16c0a117e167d07bba563151",
+      "runtime": "assets/characters/kingdoms/atlantis-v2.png",
+      "runtimeSha256": "f1e9e0eb62c7f03d52da8faa793e932a69b1f73a915543fe1d0563798aeba51f",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "ayodhya",
+      "source": "assets/characters/kingdoms/ayodhya-v1.png",
+      "sourceSha256": "d3eb2a19ed45f05742399c8ba1557f7cad32352de14107dd5e635537325f00df",
+      "runtime": "assets/characters/kingdoms/ayodhya-v2.png",
+      "runtimeSha256": "6ba3cb95208f8783df3f3fd88d7399e4f325835fc8d2683aaa5759baff619904",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "aztec",
+      "source": "assets/characters/kingdoms/aztec-v1.png",
+      "sourceSha256": "3e091391a7405e51f3584aa7d117294cee4d3b3bd436b7e1ebdc1043a8a65e54",
+      "runtime": "assets/characters/kingdoms/aztec-v2.png",
+      "runtimeSha256": "eef537a7b3eaf14926dca125969601150917310dc4fc5df0ca4c791dce9d61f9",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "camelot",
+      "source": "assets/characters/kingdoms/camelot-v1.png",
+      "sourceSha256": "c1c1a723472e3b3942813c13cce33a63890e78cdef68f8322d46e25082c088df",
+      "runtime": "assets/characters/kingdoms/camelot-v2.png",
+      "runtimeSha256": "354f94a86fe9a1a9cd345504a71a1dc6f8eb6f4c03567d15ff048b2802d70fcb",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "chinese",
+      "source": "assets/characters/kingdoms/chinese-v1.png",
+      "sourceSha256": "a1727775416d636b73397eaab2b1714e927537e4638439c38a5017ccdb68cfaa",
+      "runtime": "assets/characters/kingdoms/chinese-v2.png",
+      "runtimeSha256": "5102a4b370b05073af8ea06ac1f9cfe71a5761974e71c0b837a3f534a9b60e23",
+      "flippedRolesBothRows": [],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "chola",
+      "source": "assets/characters/kingdoms/chola-v1.png",
+      "sourceSha256": "c8a9f0ccfacf2e7ab05ff0a99591c1d2ea1e393722b4ff02f64c7d68b74518e9",
+      "runtime": "assets/characters/kingdoms/chola-v2.png",
+      "runtimeSha256": "9b485c13aabf03a322f2f03ca5d5397c20e277b10a4e5d2cc3888cb7c501d3b4",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "egyptian",
+      "source": "assets/characters/kingdoms/egyptian-v1.png",
+      "sourceSha256": "3fdd1b577c0ee4b111e1d83191049963155d555f4ea175e721c881a6e0db38ab",
+      "runtime": "assets/characters/kingdoms/egyptian-v2.png",
+      "runtimeSha256": "27b7108a94c535ce9617dde9b40c060c96ff2b82c6c874c84581561d363c4515",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "english",
+      "source": "assets/characters/kingdoms/english-v1.png",
+      "sourceSha256": "41d04c85abc1d70909735f7569d6d2328e32cf64273f76ccb629cd96f980a5af",
+      "runtime": "assets/characters/kingdoms/english-v2.png",
+      "runtimeSha256": "0b8c65851b4969dc3cf054a26139ed2c649f5d69a946e5ad024496b18ef46ef4",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "french",
+      "source": "assets/characters/kingdoms/french-v1.png",
+      "sourceSha256": "805cdc9e3cdf44394e87ab0075faa0186bc0f2383cb4f623d0c881f1afa443c5",
+      "runtime": "assets/characters/kingdoms/french-v2.png",
+      "runtimeSha256": "f24ac7b64840e384c4d18fdcd8086edc9aad6c26ec195746a8b964c8a6a82963",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "hastinapura",
+      "source": "assets/characters/kingdoms/hastinapura-v1.png",
+      "sourceSha256": "28ffe149d176fe47b1eb5fa1f3dce6aad5ec2581413c022ade154d21a4c38882",
+      "runtime": "assets/characters/kingdoms/hastinapura-v2.png",
+      "runtimeSha256": "7ff4cc59940e28f5305c86d0dcb6eb37fd1deb8a7f735eb4ef4a143c01129b79",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "inca",
+      "source": "assets/characters/kingdoms/inca-v1.png",
+      "sourceSha256": "c633f814aeda128678d2b51d4175c6ba1a9ae68197d4532c3df2bf9a79242132",
+      "runtime": "assets/characters/kingdoms/inca-v2.png",
+      "runtimeSha256": "3169fdcf6bdacfdd142d4b3d18da3c2350b65cb160c6555b5dc0786d1a748310",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "japanese",
+      "source": "assets/characters/kingdoms/japanese-v1.png",
+      "sourceSha256": "14a86661309df9015588071a0fc38dfe9df3059cc6a278ac7f62ced29a49dda9",
+      "runtime": "assets/characters/kingdoms/japanese-v2.png",
+      "runtimeSha256": "8392b5017cdcf80bdea321722b3082a9974a8add3e06bb9f23f26fcfc0ff35be",
+      "flippedRolesBothRows": [],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "kishkindha",
+      "source": "assets/characters/kingdoms/kishkindha-v1.png",
+      "sourceSha256": "d70cb3b67e11f847bdd2e679b076607b444c66c03344d90ea4aebb8350f23d9d",
+      "runtime": "assets/characters/kingdoms/kishkindha-v2.png",
+      "runtimeSha256": "97c84ceb9cf8ef1bc09741e520e7d246c021840ba14ec69c5021874f6a655d06",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "lanka",
+      "source": "assets/characters/kingdoms/lanka-v1.png",
+      "sourceSha256": "8de99cbf9610d97bc548c2c67f4bf307da1fbfaaf0f2d163607bfa68f4cebec5",
+      "runtime": "assets/characters/kingdoms/lanka-v2.png",
+      "runtimeSha256": "d9c6257ad4c0fcb5c1666fd3311d55745a0688edb5205c392ac6fcb8f87e509e",
+      "flippedRolesBothRows": [
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "macedonian",
+      "source": "assets/characters/kingdoms/macedonian-v1.png",
+      "sourceSha256": "1c082a3c95fb6123684837bbd5226890bd19c7b07d71c69162111f8e5cdd1d24",
+      "runtime": "assets/characters/kingdoms/macedonian-v2.png",
+      "runtimeSha256": "d65765824cc4073f757572d72af8bf88dcd7acf9dbcab632d100ba5c028f79b1",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "maratha",
+      "source": "assets/characters/kingdoms/maratha-v1.png",
+      "sourceSha256": "9a2b3cd4390875294260b9373449872d3f377a7fc66b9f44d04c260c264293f7",
+      "runtime": "assets/characters/kingdoms/maratha-v2.png",
+      "runtimeSha256": "47720e68a77c19c70472fbb59e74b6abccf3f3da890b09ff77c4d3e60ddeafd9",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "mewar",
+      "source": "assets/characters/kingdoms/mewar-v1.png",
+      "sourceSha256": "d5e1803ee6a158faac835fd7dc5c51c8a04a4d52d5d318807adb8c20a574bfa6",
+      "runtime": "assets/characters/kingdoms/mewar-v2.png",
+      "runtimeSha256": "f5417c58b2185cc953b45a30b2876d1122bfabafa941af3707c66a2dbda61cac",
+      "flippedRolesBothRows": [
+        "knight",
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "mongolian",
+      "source": "assets/characters/kingdoms/mongolian-v1.png",
+      "sourceSha256": "2b6c1c5743e4022fba95e7d862d3f64bcaf6e6ac9384f49d5eb27a2866fc4f4c",
+      "runtime": "assets/characters/kingdoms/mongolian-v2.png",
+      "runtimeSha256": "dbce2b7f23d428e0d599f95f91199a1a9076712596b77903853c34f5e9d76649",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "ottoman",
+      "source": "assets/characters/kingdoms/ottoman-v1.png",
+      "sourceSha256": "7209aeb62bffe3976ba14b0324cdb3600af7593201f8fa4bcf8114e31a235177",
+      "runtime": "assets/characters/kingdoms/ottoman-v2.png",
+      "runtimeSha256": "7b62e73f2c33d2c514d890303db5f87b94eca174cdc114979ef186d6cbe0b276",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "persian",
+      "source": "assets/characters/kingdoms/persian-v1.png",
+      "sourceSha256": "26626c7c44dbc4749143cdbf96c55a88266019d6c09ee5fcb2ed876d0e5998a9",
+      "runtime": "assets/characters/kingdoms/persian-v2.png",
+      "runtimeSha256": "46e810b84485ff55766a49277154a3116690449942beb1070d6497a1d5787eb1",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "roman",
+      "source": "assets/characters/kingdoms/roman-v1.png",
+      "sourceSha256": "bb8ebbea30ffaee248f3ac2ded596ceb1a2ba32b3088cec9c84a352e8a2b4014",
+      "runtime": "assets/characters/kingdoms/roman-v2.png",
+      "runtimeSha256": "812f9e983a77f1113bae95189be2016e5ef9c8eeeb8dcfef177a03994bb2527a",
+      "flippedRolesBothRows": [
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "sparta",
+      "source": "assets/characters/kingdoms/sparta-v1.png",
+      "sourceSha256": "e107455966ded25a3dbcfbbbe08992074bb46df0d148a8af473175b9f38068ca",
+      "runtime": "assets/characters/kingdoms/sparta-v2.png",
+      "runtimeSha256": "5948475b0ddfe20ce0d362b2a3188a452db01cc97cf62dbfba656886a275113f",
+      "flippedRolesBothRows": [
+        "rook"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "troy",
+      "source": "assets/characters/kingdoms/troy-v1.png",
+      "sourceSha256": "b91a5d4706caf92ba32e20de501ad626ede4072efb2845f458f89322f1acafcb",
+      "runtime": "assets/characters/kingdoms/troy-v2.png",
+      "runtimeSha256": "0dfc628d0227418cb7b36b19f26bed3b71fd463daf748e8c91f01edd4812d66a",
+      "flippedRolesBothRows": [
+        "bishop",
+        "knight"
+      ],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    },
+    {
+      "id": "zulu",
+      "source": "assets/characters/kingdoms/zulu-v1.png",
+      "sourceSha256": "e9fa334c21d32f4c040493e222f23e3bc1e086f904df3d31cfd151da91faaa83",
+      "runtime": "assets/characters/kingdoms/zulu-v2.png",
+      "runtimeSha256": "585e929fbe13f87deb32f8b99b453eacc7c0ae26e8dfe5d97710daaa26cbde64",
+      "flippedRolesBothRows": [],
+      "canonicalSourceDirection": "near-front/viewer-left"
+    }
+  ]
+}

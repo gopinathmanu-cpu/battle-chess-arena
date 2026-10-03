@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { MatchError } from "./match.js";
+import { avatarNameAllowed } from './content-policy.js';
 
 const actions = [
   "move",
@@ -17,10 +18,15 @@ const fields = {
   leaderboard: [],
   points_history: [],
   find_player: ["query"],
+  list_available_players: ['requestId', 'after'],
   list_games: [],
   presence: ["names"],
-  send_invite: ["commandId", "opponentName", "scheduledAt", "timed", "baseMs"],
+  send_invite: ["commandId", "opponentName", "scheduledAt", "timed", "baseMs", "tossForColors"],
   list_invites: [],
+  create_shared_invite: ['commandId', 'baseMs', 'tossForColors'],
+  list_shared_invites: [],
+  delete_shared_invite: ['commandId', 'inviteId'],
+  open_shared_invite: ['commandId', 'inviteId'],
   delete_invite: ["commandId", "inviteId"],
   respond_invite: ["commandId", "inviteId", "accept"],
   propose_invite_time: [
@@ -30,8 +36,15 @@ const fields = {
     "timed",
     "baseMs",
   ],
-  create_game: ["commandId", "baseMs", "incrementMs"],
-  quick_match: ["commandId", "baseMs", "incrementMs"],
+  create_game: ["commandId", "baseMs", "incrementMs", "tossForColors"],
+  quick_match: ["commandId", "baseMs", "incrementMs", "tossForColors"],
+  start_computer_game: [
+    "commandId",
+    "opponentId",
+    "tossForColors",
+    "baseMs",
+    "incrementMs",
+  ],
   cancel_matchmaking: ["commandId", "gameId"],
   join_game: ["commandId", "gameId"],
   resume_game: ["gameId", "seatToken"],
@@ -47,6 +60,28 @@ const object = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const identifier = (value) =>
   typeof value === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
+const legacyAvatarIds = new Set([
+  "crown",
+  "knight",
+  "mage",
+  "dragon",
+  "robot",
+  "ranger",
+  "sun",
+  "moon",
+]);
+// Must match the immutable CustomAvatarDesign v1 wire order in the app:
+// presentation, age, face, skin, hair style/color, moustache, beard, eyewear,
+// outfit, outfit color, background. Portrait IDs contain no paths or user text.
+const customAvatarMaxima = [1, 3, 3, 7, 11, 9, 4, 5, 5, 5, 7, 7];
+const customAvatarId = (value) =>
+  value.length === 22 &&
+  /^custom-v1-[0-9a-z]{12}$/.test(value) &&
+  [...value.slice(10)].every((digit, index) =>
+    Number.parseInt(digit, 36) <= customAvatarMaxima[index]);
+const avatarId = (value) =>
+  typeof value === "string" &&
+  (legacyAvatarIds.has(value) || /^avatar-(0[1-9]|[1-4][0-9]|50)$/.test(value) || customAvatarId(value));
 const integer = (value, min = 0) => Number.isSafeInteger(value) && value >= min;
 function require(valid) {
   if (!valid)
@@ -63,42 +98,50 @@ export function validateMessage(message) {
       Object.hasOwn(fields, message.type),
   );
   const allowed = fields[message.type];
+  const friendClock = ['send_invite', 'propose_invite_time', 'create_shared_invite'].includes(message.type);
+  const clockFields = friendClock ? ['clockMode', 'incrementMs'] : [];
   require(
     Object.keys(message).every(
-      (key) => key === "type" || allowed.includes(key),
+      (key) => key === "type" || allowed.includes(key) || clockFields.includes(key),
     ),
   );
   if (allowed.includes("commandId")) require(identifier(message.commandId));
+  if (friendClock) {
+    require(message.clockMode === undefined || ['live', 'daily'].includes(message.clockMode));
+    require(message.incrementMs === undefined ||
+      (integer(message.incrementMs) && message.incrementMs <= 60000));
+    if (message.clockMode === 'daily') {
+      require(message.baseMs === 86400000 && message.incrementMs === 0 && message.timed !== false);
+    }
+  }
+  if (allowed.includes('tossForColors')) require(message.tossForColors === undefined || typeof message.tossForColors === 'boolean');
   if (allowed.includes("gameId")) require(identifier(message.gameId));
   if (allowed.includes("round")) require(integer(message.round, 1));
-  if (message.type === "create_game" || message.type === "quick_match") {
+  if (
+    message.type === 'create_shared_invite' ||
+    message.type === "create_game" ||
+    message.type === "quick_match" ||
+    message.type === "start_computer_game"
+  ) {
     require(
       message.baseMs === undefined ||
-        (integer(message.baseMs, 10_000) && message.baseMs <= 10_800_000),
+        (integer(message.baseMs, 10_000) && message.baseMs <= (friendClock && message.clockMode === 'daily' ? 86400000 : 10_800_000)),
     );
     require(
       message.incrementMs === undefined ||
         (integer(message.incrementMs) && message.incrementMs <= 60_000),
     );
   }
+  if (message.type === "start_computer_game")
+    require(identifier(message.opponentId));
   if (message.type === "register_player" || message.type === "update_player") {
     require(
       typeof message.name === "string" &&
         message.name === message.name.trim() &&
-        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.name),
+        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.name) &&
+        avatarNameAllowed(message.name),
     );
-    require(
-      [
-        "crown",
-        "knight",
-        "mage",
-        "dragon",
-        "robot",
-        "ranger",
-        "sun",
-        "moon",
-      ].includes(message.avatarId),
-    );
+    require(avatarId(message.avatarId));
     require(
       message.level === undefined ||
         ["beginner", "intermediate", "advanced"].includes(message.level),
@@ -127,6 +170,10 @@ export function validateMessage(message) {
         /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.query),
     );
   }
+  if (message.type === 'list_available_players') {
+    require(typeof message.requestId === 'string' && message.requestId.length > 0 && message.requestId.length <= 64);
+    require(message.after === undefined || (typeof message.after === 'string' && message.after.length <= 64));
+  }
   if (message.type === "send_invite") {
     require(
       typeof message.opponentName === "string" &&
@@ -136,7 +183,7 @@ export function validateMessage(message) {
     require(message.timed === undefined || typeof message.timed === "boolean");
     require(
       message.baseMs === undefined ||
-        (integer(message.baseMs, 10_000) && message.baseMs <= 10_800_000),
+        (integer(message.baseMs, 10_000) && message.baseMs <= (message.clockMode === 'daily' ? 86400000 : 10_800_000)),
     );
   }
   if (message.type === "respond_invite") {
@@ -144,13 +191,14 @@ export function validateMessage(message) {
     require(typeof message.accept === "boolean");
   }
   if (message.type === "delete_invite") require(identifier(message.inviteId));
+  if (['delete_shared_invite', 'open_shared_invite'].includes(message.type)) require(identifier(message.inviteId));
   if (message.type === "propose_invite_time") {
     require(identifier(message.inviteId));
     require(integer(message.scheduledAt));
     require(message.timed === undefined || typeof message.timed === "boolean");
     require(
       message.baseMs === undefined ||
-        (integer(message.baseMs, 10_000) && message.baseMs <= 10_800_000),
+        (integer(message.baseMs, 10_000) && message.baseMs <= (message.clockMode === 'daily' ? 86400000 : 10_800_000)),
     );
   }
   if (message.type === "resume_game") require(identifier(message.seatToken));
@@ -174,7 +222,7 @@ export function validateMessage(message) {
   }
   // Canonical ordering makes receipt matching independent of JSON key order.
   return Object.fromEntries(
-    ["type", ...allowed]
+    ["type", ...allowed, ...clockFields]
       .filter((key) => message[key] !== undefined)
       .map((key) => [
         key,

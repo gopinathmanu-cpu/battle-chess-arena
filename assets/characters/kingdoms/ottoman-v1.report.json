@@ -1,0 +1,1088 @@
+{
+  "allowOverlappingCrops" : true,
+  "alphaFloor" : 24,
+  "bounds" : [
+    [
+      0,
+      0,
+      266,
+      489
+    ],
+    [
+      263,
+      20,
+      525,
+      489
+    ],
+    [
+      494,
+      10,
+      820,
+      489
+    ],
+    [
+      802,
+      10,
+      1068,
+      489
+    ],
+    [
+      1070,
+      0,
+      1340,
+      489
+    ],
+    [
+      1343,
+      5,
+      1536,
+      489
+    ],
+    [
+      0,
+      489,
+      272,
+      1008
+    ],
+    [
+      263,
+      510,
+      525,
+      1008
+    ],
+    [
+      494,
+      510,
+      820,
+      1008
+    ],
+    [
+      802,
+      510,
+      1068,
+      1008
+    ],
+    [
+      1070,
+      500,
+      1340,
+      1008
+    ],
+    [
+      1343,
+      510,
+      1536,
+      1008
+    ]
+  ],
+  "cells" : [
+    {
+      "column" : 0,
+      "components" : [
+        {
+          "bounds" : [
+            12,
+            0,
+            264,
+            487
+          ],
+          "pixels" : 73548
+        }
+      ],
+      "destinationBounds" : [
+        69,
+        18,
+        186,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 21
+      },
+      "excludedRects" : [
+        [
+          263,
+          450,
+          266,
+          489
+        ]
+      ],
+      "index" : 0,
+      "localAlphaBounds" : [
+        12,
+        0,
+        264,
+        487
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 49,
+      "removedFringePixels" : 7057,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "king",
+      "row" : 0,
+      "scale" : 0.46406570841889117,
+      "side" : "white",
+      "sourceAlphaBounds" : [
+        12,
+        0,
+        264,
+        487
+      ],
+      "sourceCrop" : [
+        0,
+        0,
+        266,
+        489
+      ],
+      "transparentFraction" : 0.43456801512984916,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 1,
+      "components" : [
+        {
+          "bounds" : [
+            3,
+            31,
+            254,
+            465
+          ],
+          "pixels" : 61160
+        }
+      ],
+      "destinationBounds" : [
+        318,
+        18,
+        449,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+        [
+          263,
+          20,
+          272,
+          420
+        ],
+        [
+          494,
+          130,
+          525,
+          420
+        ]
+      ],
+      "index" : 1,
+      "localAlphaBounds" : [
+        3,
+        31,
+        254,
+        465
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 3120,
+      "removedFringePixels" : 7476,
+      "removedSpecklePixels" : 5,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "queen",
+      "row" : 0,
+      "scale" : 0.52073732718894006,
+      "side" : "white",
+      "sourceAlphaBounds" : [
+        266,
+        51,
+        517,
+        485
+      ],
+      "sourceCrop" : [
+        263,
+        20,
+        525,
+        489
+      ],
+      "transparentFraction" : 0.50227054476798128,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 2,
+      "components" : [
+        {
+          "bounds" : [
+            8,
+            10,
+            320,
+            474
+          ],
+          "pixels" : 82095
+        }
+      ],
+      "destinationBounds" : [
+        564,
+        18,
+        716,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+        [
+          494,
+          442,
+          517,
+          476
+        ],
+        [
+          810,
+          162,
+          820,
+          329
+        ]
+      ],
+      "index" : 2,
+      "localAlphaBounds" : [
+        8,
+        10,
+        320,
+        474
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 1870,
+      "removedFringePixels" : 13669,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "bishop",
+      "row" : 0,
+      "scale" : 0.48706896551724138,
+      "side" : "white",
+      "sourceAlphaBounds" : [
+        502,
+        20,
+        814,
+        484
+      ],
+      "sourceCrop" : [
+        494,
+        10,
+        820,
+        489
+      ],
+      "transparentFraction" : 0.47426899086798929,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 3,
+      "components" : [
+        {
+          "bounds" : [
+            8,
+            42,
+            245,
+            471
+          ],
+          "pixels" : 53224
+        }
+      ],
+      "destinationBounds" : [
+        833,
+        18,
+        958,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+        [
+          802,
+          341,
+          814,
+          359
+        ]
+      ],
+      "index" : 3,
+      "localAlphaBounds" : [
+        8,
+        42,
+        245,
+        471
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 216,
+      "removedFringePixels" : 12391,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "knight",
+      "row" : 0,
+      "scale" : 0.52680652680652684,
+      "side" : "white",
+      "sourceAlphaBounds" : [
+        810,
+        52,
+        1047,
+        481
+      ],
+      "sourceCrop" : [
+        802,
+        10,
+        1068,
+        489
+      ],
+      "transparentFraction" : 0.58227510320686893,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 4,
+      "components" : [
+        {
+          "bounds" : [
+            5,
+            13,
+            256,
+            475
+          ],
+          "pixels" : 57247
+        }
+      ],
+      "destinationBounds" : [
+        1090,
+        18,
+        1213,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 4,
+      "localAlphaBounds" : [
+        5,
+        13,
+        256,
+        475
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 10630,
+      "removedSpecklePixels" : 1,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "rook",
+      "row" : 0,
+      "scale" : 0.48917748917748916,
+      "side" : "white",
+      "sourceAlphaBounds" : [
+        1075,
+        13,
+        1326,
+        475
+      ],
+      "sourceCrop" : [
+        1070,
+        0,
+        1340,
+        489
+      ],
+      "transparentFraction" : 0.56640914943573428,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 5,
+      "components" : [
+        {
+          "bounds" : [
+            15,
+            48,
+            174,
+            483
+          ],
+          "pixels" : 37535
+        }
+      ],
+      "destinationBounds" : [
+        1366,
+        18,
+        1449,
+        244
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 12,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 5,
+      "localAlphaBounds" : [
+        15,
+        48,
+        174,
+        483
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 9442,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "pawn",
+      "row" : 0,
+      "scale" : 0.51954022988505744,
+      "side" : "white",
+      "sourceAlphaBounds" : [
+        1358,
+        53,
+        1517,
+        488
+      ],
+      "sourceCrop" : [
+        1343,
+        5,
+        1536,
+        489
+      ],
+      "transparentFraction" : 0.59817796428724357,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 0,
+      "components" : [
+        {
+          "bounds" : [
+            12,
+            4,
+            265,
+            496
+          ],
+          "pixels" : 74374
+        }
+      ],
+      "destinationBounds" : [
+        70,
+        274,
+        186,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+        [
+          263,
+          930,
+          272,
+          1008
+        ]
+      ],
+      "index" : 6,
+      "localAlphaBounds" : [
+        12,
+        4,
+        265,
+        496
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 356,
+      "removedFringePixels" : 6984,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "king",
+      "row" : 1,
+      "scale" : 0.45934959349593496,
+      "side" : "black",
+      "sourceAlphaBounds" : [
+        12,
+        493,
+        265,
+        985
+      ],
+      "sourceCrop" : [
+        0,
+        489,
+        272,
+        1008
+      ],
+      "transparentFraction" : 0.47315255582001586,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 1,
+      "components" : [
+        {
+          "bounds" : [
+            3,
+            40,
+            255,
+            473
+          ],
+          "pixels" : 62246
+        }
+      ],
+      "destinationBounds" : [
+        318,
+        274,
+        450,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+        [
+          263,
+          510,
+          274,
+          920
+        ],
+        [
+          494,
+          610,
+          525,
+          930
+        ],
+        [
+          263,
+          920,
+          266,
+          943
+        ]
+      ],
+      "index" : 7,
+      "localAlphaBounds" : [
+        3,
+        40,
+        255,
+        473
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 3573,
+      "removedFringePixels" : 6878,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "queen",
+      "row" : 1,
+      "scale" : 0.52193995381062352,
+      "side" : "black",
+      "sourceAlphaBounds" : [
+        266,
+        550,
+        518,
+        983
+      ],
+      "sourceCrop" : [
+        263,
+        510,
+        525,
+        1008
+      ],
+      "transparentFraction" : 0.5229314203378399,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 2,
+      "components" : [
+        {
+          "bounds" : [
+            7,
+            3,
+            321,
+            472
+          ],
+          "pixels" : 84325
+        }
+      ],
+      "destinationBounds" : [
+        564,
+        274,
+        715,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+        [
+          494,
+          933,
+          518,
+          975
+        ],
+        [
+          810,
+          655,
+          820,
+          825
+        ]
+      ],
+      "index" : 8,
+      "localAlphaBounds" : [
+        7,
+        3,
+        321,
+        472
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 1880,
+      "removedFringePixels" : 11520,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "bishop",
+      "row" : 1,
+      "scale" : 0.48187633262260127,
+      "side" : "black",
+      "sourceAlphaBounds" : [
+        501,
+        513,
+        815,
+        982
+      ],
+      "sourceCrop" : [
+        494,
+        510,
+        820,
+        1008
+      ],
+      "transparentFraction" : 0.48059107596028283,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 3,
+      "components" : [
+        {
+          "bounds" : [
+            8,
+            37,
+            248,
+            469
+          ],
+          "pixels" : 53994
+        }
+      ],
+      "destinationBounds" : [
+        833,
+        274,
+        959,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+        [
+          802,
+          833,
+          815,
+          852
+        ]
+      ],
+      "index" : 9,
+      "localAlphaBounds" : [
+        8,
+        37,
+        248,
+        469
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 246,
+      "removedFringePixels" : 11352,
+      "removedSpecklePixels" : 1,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "knight",
+      "row" : 1,
+      "scale" : 0.52314814814814814,
+      "side" : "black",
+      "sourceAlphaBounds" : [
+        810,
+        547,
+        1050,
+        979
+      ],
+      "sourceCrop" : [
+        802,
+        510,
+        1068,
+        1008
+      ],
+      "transparentFraction" : 0.5923996738835039,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 4,
+      "components" : [
+        {
+          "bounds" : [
+            5,
+            12,
+            256,
+            473
+          ],
+          "pixels" : 57214
+        }
+      ],
+      "destinationBounds" : [
+        1090,
+        274,
+        1213,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 10,
+      "localAlphaBounds" : [
+        5,
+        12,
+        256,
+        473
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 10243,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "rook",
+      "row" : 1,
+      "scale" : 0.49023861171366595,
+      "side" : "black",
+      "sourceAlphaBounds" : [
+        1075,
+        512,
+        1326,
+        973
+      ],
+      "sourceCrop" : [
+        1070,
+        500,
+        1340,
+        1008
+      ],
+      "transparentFraction" : 0.5828667249927092,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    },
+    {
+      "column" : 5,
+      "components" : [
+        {
+          "bounds" : [
+            14,
+            42,
+            174,
+            476
+          ],
+          "pixels" : 37355
+        }
+      ],
+      "destinationBounds" : [
+        1366,
+        274,
+        1449,
+        500
+      ],
+      "edgeContactPixels" : {
+        "bottom" : 0,
+        "left" : 0,
+        "right" : 0,
+        "top" : 0
+      },
+      "excludedRects" : [
+
+      ],
+      "index" : 11,
+      "localAlphaBounds" : [
+        14,
+        42,
+        174,
+        476
+      ],
+      "maskMode" : "preserved-alpha",
+      "removedExcludedPixels" : 0,
+      "removedFringePixels" : 8668,
+      "removedSpecklePixels" : 0,
+      "reviewedEdgeExceptions" : [
+
+      ],
+      "role" : "pawn",
+      "row" : 1,
+      "scale" : 0.52073732718894006,
+      "side" : "black",
+      "sourceAlphaBounds" : [
+        1357,
+        552,
+        1517,
+        986
+      ],
+      "sourceCrop" : [
+        1343,
+        510,
+        1536,
+        1008
+      ],
+      "transparentFraction" : 0.61134694217283647,
+      "validation" : "passed",
+      "visionInstances" : 0,
+      "warnings" : [
+
+      ]
+    }
+  ],
+  "columns" : 6,
+  "coordinateSystem" : "top-left, exclusive right\/bottom",
+  "cropMode" : "measured",
+  "excludedRects" : {
+    "0" : [
+      [
+        263,
+        450,
+        266,
+        489
+      ]
+    ],
+    "1" : [
+      [
+        263,
+        20,
+        272,
+        420
+      ],
+      [
+        494,
+        130,
+        525,
+        420
+      ]
+    ],
+    "2" : [
+      [
+        494,
+        442,
+        517,
+        476
+      ],
+      [
+        810,
+        162,
+        820,
+        329
+      ]
+    ],
+    "3" : [
+      [
+        802,
+        341,
+        814,
+        359
+      ]
+    ],
+    "6" : [
+      [
+        263,
+        930,
+        272,
+        1008
+      ]
+    ],
+    "7" : [
+      [
+        263,
+        510,
+        274,
+        920
+      ],
+      [
+        494,
+        610,
+        525,
+        930
+      ],
+      [
+        263,
+        920,
+        266,
+        943
+      ]
+    ],
+    "8" : [
+      [
+        494,
+        933,
+        518,
+        975
+      ],
+      [
+        810,
+        655,
+        820,
+        825
+      ]
+    ],
+    "9" : [
+      [
+        802,
+        833,
+        815,
+        852
+      ]
+    ]
+  },
+  "input" : "\/Users\/manugopinath\/GameStudio\/battle_chess_arena 3\/assets\/characters\/kingdoms\/source\/ottoman-source-v1.png",
+  "normalization" : {
+    "baseline" : 244,
+    "cellSize" : 256,
+    "maxHeight" : 226,
+    "maxWidth" : 224
+  },
+  "order" : [
+    "king",
+    "queen",
+    "bishop",
+    "knight",
+    "rook",
+    "pawn",
+    "king",
+    "queen",
+    "bishop",
+    "knight",
+    "rook",
+    "pawn"
+  ],
+  "output" : "\/Users\/manugopinath\/GameStudio\/battle_chess_arena 3\/assets\/characters\/kingdoms\/ottoman-v1.png",
+  "outputSize" : [
+    1536,
+    512
+  ],
+  "reviewedOverlappingPairs" : [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      9
+    ]
+  ],
+  "reviewRequired" : "Inspect full atlas and checkerboard previews; segmentation checks cannot prove anatomical or historical correctness.",
+  "rows" : 2,
+  "sourceSize" : [
+    1536,
+    1024
+  ],
+  "status" : "passed"
+}

@@ -3,6 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../domain/game_result_analysis.dart';
+import '../../domain/player_progress.dart';
+import '../../services/player_identity_controller.dart';
+import '../progression/progress_widgets.dart';
 
 enum GameResultOutcome { victory, defeat, draw }
 
@@ -11,12 +14,14 @@ Future<bool> showCheckmateDialog({
   required bool userWon,
   required String title,
   required GameResultMessage message,
+  ProgressAward? progressAward,
 }) => showGameResultDialog(
   context: context,
   outcome: userWon ? GameResultOutcome.victory : GameResultOutcome.defeat,
   heading: 'CHECKMATE',
   title: title,
   message: message,
+  progressAward: progressAward,
 );
 
 Future<bool> showGameResultDialog({
@@ -25,6 +30,8 @@ Future<bool> showGameResultDialog({
   required String heading,
   required String title,
   required GameResultMessage message,
+  String primaryLabel = 'New Game',
+  ProgressAward? progressAward,
 }) async =>
     await showGeneralDialog<bool>(
       context: context,
@@ -37,6 +44,8 @@ Future<bool> showGameResultDialog({
         heading: heading,
         title: title,
         message: message,
+        primaryLabel: primaryLabel,
+        progressAward: progressAward,
       ),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(
@@ -57,12 +66,16 @@ class _ResultDialog extends StatefulWidget {
     required this.heading,
     required this.title,
     required this.message,
+    required this.primaryLabel,
+    this.progressAward,
   });
 
   final GameResultOutcome outcome;
   final String heading;
   final String title;
   final GameResultMessage message;
+  final String primaryLabel;
+  final ProgressAward? progressAward;
 
   @override
   State<_ResultDialog> createState() => _ResultDialogState();
@@ -89,6 +102,7 @@ class _ResultDialogState extends State<_ResultDialog>
 
   @override
   Widget build(BuildContext context) {
+    final nickname = PlayerIdentityScope.maybeOf(context)?.nickname;
     final victory = widget.outcome == GameResultOutcome.victory;
     final primary = switch (widget.outcome) {
       GameResultOutcome.victory => const Color(0xFFFFD166),
@@ -223,6 +237,27 @@ class _ResultDialogState extends State<_ResultDialog>
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
+                                if (nickname != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    switch (widget.outcome) {
+                                      GameResultOutcome.victory =>
+                                        'Congratulations, $nickname!',
+                                      GameResultOutcome.draw =>
+                                        'Well played, $nickname.',
+                                      GameResultOutcome.defeat =>
+                                        'Good fight, $nickname.',
+                                    },
+                                    key: const ValueKey(
+                                      'personalized-result-message',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: primary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 18),
                                 Text(
                                   widget.message.sentiment,
@@ -246,6 +281,10 @@ class _ResultDialogState extends State<_ResultDialog>
                                     height: 1.4,
                                   ),
                                 ),
+                                if (widget.progressAward case final award?) ...[
+                                  const SizedBox(height: 16),
+                                  ProgressAwardBanner(award: award),
+                                ],
                                 const SizedBox(height: 24),
                                 Row(
                                   children: [
@@ -262,7 +301,7 @@ class _ResultDialogState extends State<_ResultDialog>
                                         onPressed: () =>
                                             Navigator.pop(context, true),
                                         icon: const Icon(Icons.refresh),
-                                        label: const Text('New Game'),
+                                        label: Text(widget.primaryLabel),
                                       ),
                                     ),
                                   ],

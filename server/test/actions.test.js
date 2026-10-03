@@ -73,18 +73,21 @@ test("resign finishes once and disallows subsequent actions", () => {
   assert.equal(act(black, "offer_draw").code, "GAME_NOT_ACTIVE");
 });
 
-test("lifelines are limited per round and repeated positions are free", () => {
+test("suggestions are unlimited, including legacy exhausted saves, and require your turn", () => {
   const { game, white, black, act } = setup();
   assert.equal(act(white, "use_lifeline").accepted, true);
-  assert.deepEqual(game.lifelines, { w: 2, b: 3 });
+  assert.deepEqual(game.lifelines, { w: 3, b: 3 });
   assert.equal(game.lifelineRequests.w, 1);
   assert.equal(act(white, "use_lifeline").accepted, true);
-  assert.deepEqual(game.lifelines, { w: 2, b: 3 });
+  assert.deepEqual(game.lifelines, { w: 3, b: 3 });
   assert.equal(game.lifelineRequests.w, 2);
   assert.equal(act(black, "use_lifeline").code, "NOT_YOUR_TURN");
   act(white, "move", { ply: 0, move: { from: "e2", to: "e4" } });
   assert.equal(act(black, "use_lifeline").accepted, true);
-  assert.deepEqual(game.snapshot().lifelines, { w: 2, b: 2 });
+  assert.deepEqual(game.snapshot(1100).lifelines, { w: 3, b: 3 });
+  game.lifelines.b = 0;
+  for (let i = 0; i < 20; i++) assert.equal(act(black, 'use_lifeline').accepted, true);
+  assert.equal(game.lifelineRequests.b, 21);
 });
 
 test("draw offers require the opponent and the current offer ID", () => {
@@ -176,6 +179,16 @@ test("promotion choice is committed and malformed protocol fields are rejected",
     true,
   );
   assert.equal(game.chess.get("a8").type, "n");
+  assert.equal(
+    validateMessage({
+      type: "register_player",
+      commandId: "avatar-valid",
+      name: "Face Player",
+      avatarId: "avatar-50",
+      level: "beginner",
+    }).avatarId,
+    "avatar-50",
+  );
   for (const message of [
     null,
     [],
@@ -187,6 +200,20 @@ test("promotion choice is committed and malformed protocol fields are rejected",
       name: "Level Hero",
       avatarId: "crown",
       level: "expert",
+    },
+    {
+      type: "register_player",
+      commandId: "x",
+      name: "Face Player",
+      avatarId: "avatar-51",
+      level: "beginner",
+    },
+    {
+      type: "register_player",
+      commandId: "x",
+      name: "f-u-c-k king",
+      avatarId: "crown",
+      level: "beginner",
     },
     {
       type: "move",

@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { createMatchServer } from "./server.js";
+import { FirestoreStateStore } from './firestore-state-store.js';
 const port = Number(process.env.PORT ?? 8080);
-const app = createMatchServer({ port });
+const stateStore = process.env.FIRESTORE_PROJECT_ID
+  ? new FirestoreStateStore({ projectId: process.env.FIRESTORE_PROJECT_ID,
+      database: process.env.FIRESTORE_DATABASE ?? '(default)' }) : null;
+// A load failure aborts startup; never replace durable games with an empty map.
+const initialState = stateStore ? await stateStore.load() : null;
+const app = createMatchServer({ port, stateStore, initialState });
 const { server, httpServer } = app;
 server.on("listening", () =>
   console.log(

@@ -12,6 +12,7 @@ class StockfishComputerPlayer implements ComputerPlayer {
   Future<String?> bestMove(
     String fen, {
     ComputerDifficulty difficulty = ComputerDifficulty.medium,
+    int? botLevel,
   }) async => null;
 
   @override

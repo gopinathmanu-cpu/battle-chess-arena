@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "date": "2026-09-26",
+  "mode": "Built-in image_gen; user-authorized local alpha extraction/composition",
+  "preparationTool": "tool/prepare_kingdom_atlas.swift",
+  "rendering": "6 columns K,Q,B,N,R,P by 2 rows White,Black; isolated 256x256 cells; role scaling occurs in the app",
+  "note": "Preserve actual generation prompts, source images and crop exceptions. Rights are not certified by hashes or generation.",
+  "assets": [
+    {
+      "id": "japanese",
+      "runtime": "assets/characters/kingdoms/japanese-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/japanese-source-v1.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/japanese-crops-v1.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-east-v1-crops.json",
+          "row": 0,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-east-v1-crops.json",
+          "row": 0,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "tool/compose_kingdom_atlas.swift",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    },
+    {
+      "id": "chinese",
+      "runtime": "assets/characters/kingdoms/chinese-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/chinese-source-v1.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/chinese-crops-v1.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-east-v1-crops.json",
+          "row": 1,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-east-v1-crops.json",
+          "row": 1,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "tool/compose_kingdom_atlas.swift",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    },
+    {
+      "id": "mongolian",
+      "runtime": "assets/characters/kingdoms/mongolian-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/mongolian-source-v1.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/mongolian-crops-v1.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-east-v1-crops.json",
+          "row": 2,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-east-v1-crops.json",
+          "row": 2,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "tool/compose_kingdom_atlas.swift",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    },
+    {
+      "id": "egyptian",
+      "runtime": "assets/characters/kingdoms/egyptian-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/egyptian-source-v1.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/egyptian-crops-v1.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-east-v1-crops.json",
+          "row": 3,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-east-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-east-v1-crops.json",
+          "row": 3,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "tool/compose_kingdom_atlas.swift",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    },
+    {
+      "id": "arab",
+      "runtime": "assets/characters/kingdoms/arab-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/arab-source-v1.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/arab-crops-v1.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-west-v1-crops.json",
+          "row": 0,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-west-v1-crops.json",
+          "row": 0,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "tool/compose_kingdom_atlas.swift",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    },
+    {
+      "id": "persian",
+      "runtime": "assets/characters/kingdoms/persian-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/persian-source-v1.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/persian-crops-v1.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-west-v1-crops.json",
+          "row": 1,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-west-v1-crops.json",
+          "row": 1,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "tool/compose_kingdom_atlas.swift",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    },
+    {
+      "id": "english",
+      "runtime": "assets/characters/kingdoms/english-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/english-source-v1.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/english-crops-v1.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-west-v1-crops.json",
+          "row": 2,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-west-v1-crops.json",
+          "row": 2,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "tool/compose_kingdom_atlas.swift",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    },
+    {
+      "id": "french",
+      "runtime": "assets/characters/kingdoms/french-v1.png",
+      "sourceFiles": [
+        "assets/characters/kingdoms/source/french-reference-v1.png",
+        "assets/characters/kingdoms/source/french-source-v2.png",
+        "assets/characters/kingdoms/source/french-royals-source-v3.png"
+      ],
+      "sourceCrops": [
+        "assets/characters/kingdoms/source/french-secondary-crops-v2.json",
+        "assets/characters/kingdoms/source/french-royals-crops-v3.json"
+      ],
+      "supplements": [
+        {
+          "source": "assets/characters/kingdoms/source/elephants-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/elephants-west-v1-crops.json",
+          "row": 3,
+          "columns": "White, Black"
+        },
+        {
+          "source": "assets/characters/kingdoms/source/chariots-west-v1-source.png",
+          "crops": "assets/characters/kingdoms/source/chariots-west-v1-crops.json",
+          "row": 3,
+          "columns": "White, Black"
+        }
+      ],
+      "composition": "assets/characters/kingdoms/source/french-composition-v1.json",
+      "review": "12 complete role/side sprites visually inspected; no obvious logo/watermark or recognizable modern franchise design observed. This is limited visual QA, not legal clearance."
+    }
+  ],
+  "sha256": {
+    "assets/characters/kingdoms/japanese-v1.png": "14a86661309df9015588071a0fc38dfe9df3059cc6a278ac7f62ced29a49dda9",
+    "assets/characters/kingdoms/source/japanese-source-v1.png": "04a9f2024ab10fc4bfe569d70eb542fff59525759d519cd886b16b5d197ab032",
+    "assets/characters/kingdoms/source/japanese-crops-v1.json": "0351f31720fd06a550b89ceae047c1fba353389e35fc24d3cef299e1b24951c6",
+    "assets/characters/kingdoms/source/elephants-east-v1-source.png": "a9bfca67e2937ca3ccba98d0709d422ae7e39148c37e6f13314480c54926f0fb",
+    "assets/characters/kingdoms/source/elephants-east-v1-crops.json": "91f4b4df793f3d08b71dfc5f37c3bf54a16cb5350725acd2fa9b469af57ea58a",
+    "assets/characters/kingdoms/source/chariots-east-v1-source.png": "d33f47215aed2955ac42181aeb3d2a9ff3a061155b85173ef768f15d48076a37",
+    "assets/characters/kingdoms/source/chariots-east-v1-crops.json": "65019050989242fa4aa5d17db3f051874da25bbc62e36fc728730a26c35cc01a",
+    "assets/characters/kingdoms/chinese-v1.png": "a1727775416d636b73397eaab2b1714e927537e4638439c38a5017ccdb68cfaa",
+    "assets/characters/kingdoms/source/chinese-source-v1.png": "8caba8ff9a6a1bfa3700753fd3c9882bbab724507d66b76eb961ab4c2097cc07",
+    "assets/characters/kingdoms/source/chinese-crops-v1.json": "edeb3950a527acbd652f253b25a674c97d9fa33344a035c00f9eb85f74f0136c",
+    "assets/characters/kingdoms/mongolian-v1.png": "2b6c1c5743e4022fba95e7d862d3f64bcaf6e6ac9384f49d5eb27a2866fc4f4c",
+    "assets/characters/kingdoms/source/mongolian-source-v1.png": "842d855a9f638a71446b771a5902989fb46424b17639bc755d20ce1996d68c46",
+    "assets/characters/kingdoms/source/mongolian-crops-v1.json": "8ba5ab031bd134e503b69a992cbb6c4dba0f12b0c589d15f7870f098910acae7",
+    "assets/characters/kingdoms/egyptian-v1.png": "3fdd1b577c0ee4b111e1d83191049963155d555f4ea175e721c881a6e0db38ab",
+    "assets/characters/kingdoms/source/egyptian-source-v1.png": "a66c896984ca08fb33fb4f353bf5d8a6bfc89bc71b288f23bbba8b5bc9cfc521",
+    "assets/characters/kingdoms/source/egyptian-crops-v1.json": "97eebba2c2347031a1bf1f2834dd65953241856dc57150f727ee90bad5878c69",
+    "assets/characters/kingdoms/arab-v1.png": "7c6d2fffb8b9a6c90a435db0740fd75bf3dbf1c5c084664c684907b192ad9883",
+    "assets/characters/kingdoms/source/arab-source-v1.png": "e347c9e9188f63f9931897668af9784051cc1cbad15b2e082b0c7ef385f560b5",
+    "assets/characters/kingdoms/source/arab-crops-v1.json": "40447fe7ea88afb67feb39b1d2018348e01094f3b34b8c2137c0f0f51d0b1468",
+    "assets/characters/kingdoms/source/elephants-west-v1-source.png": "5c3c4e487517428727670d40a705308a984d6e09a6b954cbeacdb9e81c61e851",
+    "assets/characters/kingdoms/source/elephants-west-v1-crops.json": "10c353049cbe131c19db36c0bcc900788e5674b4b94f7fca4278aa5e0a49bf94",
+    "assets/characters/kingdoms/source/chariots-west-v1-source.png": "f81d3ffc8f4aed61af319e25b59b84d543b17c599953c67eed6e556c9157855d",
+    "assets/characters/kingdoms/source/chariots-west-v1-crops.json": "da256851fc7a01d3addaecfbdd2391f5814525d89e7dc93c1ae468fcbd71214b",
+    "assets/characters/kingdoms/persian-v1.png": "26626c7c44dbc4749143cdbf96c55a88266019d6c09ee5fcb2ed876d0e5998a9",
+    "assets/characters/kingdoms/source/persian-source-v1.png": "ccc789439bdd0482dfd533854cec8da0d396e64d317392098e43f5b11e7de68d",
+    "assets/characters/kingdoms/source/persian-crops-v1.json": "911ef206e3815c07fefee6079bc32b43ada0ba305e3c3233ea6ba530c936c9ff",
+    "assets/characters/kingdoms/english-v1.png": "41d04c85abc1d70909735f7569d6d2328e32cf64273f76ccb629cd96f980a5af",
+    "assets/characters/kingdoms/source/english-source-v1.png": "9b4ef29a18ae3adb8bc2ea90fe9e26b509bbd3f24eea1935de350d9e3a7f871a",
+    "assets/characters/kingdoms/source/english-crops-v1.json": "89b4fab9d0a05b967c16a7dc42efb855e880e3987b883d0c3052478dfc62ddf8",
+    "assets/characters/kingdoms/french-v1.png": "805cdc9e3cdf44394e87ab0075faa0186bc0f2383cb4f623d0c881f1afa443c5",
+    "assets/characters/kingdoms/source/french-reference-v1.png": "211aa64470410e4cddb7a18250ea2f098835c0597c7b0776963f3da9ddb3145e",
+    "assets/characters/kingdoms/source/french-source-v2.png": "ad0da3f234d16465fd37f20286e68059073e62ae1d3ed7a1421cc2377c324726",
+    "assets/characters/kingdoms/source/french-royals-source-v3.png": "333f1f11ca5142baacdb3748f9472f6823597a988d8d723a0120dc7b7482c88d",
+    "assets/characters/kingdoms/source/french-secondary-crops-v2.json": "81ffb013deaabe578f702114955f837875756900f098d8d3e6c161a7422e4106",
+    "assets/characters/kingdoms/source/french-royals-crops-v3.json": "7294730318d80d11376a14ca905e0d85ecb5cc54702239f870b8ac1df72e8959"
+  }
+}

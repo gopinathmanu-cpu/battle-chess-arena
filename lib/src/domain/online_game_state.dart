@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'package:dartchess/dartchess.dart';
 
+import 'captured_pieces.dart';
+
 class OnlineGameState {
   OnlineGameState.fromJson(Map<String, dynamic> json)
     : gameId = json['gameId'] as String,
@@ -8,6 +10,10 @@ class OnlineGameState {
       round = json['round'] as int,
       status = json['status'] as String,
       timed = json['timed'] as bool? ?? true,
+      clockMode = json['clockMode'] as String? ?? 'live',
+      incrementMs = json['incrementMs'] as int? ?? 0,
+      turnDeadlineEpochMs = json['turnDeadlineEpochMs'] as int?,
+      tossForColors = json['tossForColors'] as bool? ?? false,
       fen = json['fen'] as String,
       turn = json['turn'] as String,
       whiteMs = ((json['clocks'] as Map)['w'] as num).round(),
@@ -64,6 +70,10 @@ class OnlineGameState {
   final int round;
   final String status;
   final bool timed;
+  final String clockMode;
+  final int incrementMs;
+  final int? turnDeadlineEpochMs;
+  final bool tossForColors;
   final String fen;
   final String turn;
   final int whiteMs;
@@ -81,6 +91,11 @@ class OnlineGameState {
   final OnlinePlayerSummary whitePlayer;
   final OnlinePlayerSummary blackPlayer;
   late final Position position;
+  // Computed once per snapshot, never replayed by the 100 ms clock refresh.
+  late final List<Piece>? capturedPieces = capturedPiecesFromSan(
+    san,
+    expectedPosition: position,
+  );
 
   OnlinePlayerSummary opponentFor(String seat) =>
       seat == 'w' ? blackPlayer : whitePlayer;
@@ -118,6 +133,8 @@ class OnlinePlayerSummary {
     required this.name,
     required this.avatarId,
     this.level = 'intermediate',
+    this.computer = false,
+    this.botLevel,
   });
 
   factory OnlinePlayerSummary.fromJson(
@@ -127,9 +144,13 @@ class OnlinePlayerSummary {
     name: json?['name'] as String? ?? fallbackName,
     avatarId: json?['avatarId'] as String? ?? 'crown',
     level: json?['level'] as String? ?? 'intermediate',
+    computer: json?['computer'] as bool? ?? false,
+    botLevel: json?['botLevel'] as int?,
   );
 
   final String name;
   final String avatarId;
   final String level;
+  final bool computer;
+  final int? botLevel;
 }

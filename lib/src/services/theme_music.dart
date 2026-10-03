@@ -2,18 +2,61 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import '../domain/online_player_profile.dart';
 import '../domain/piece_pack.dart';
 
+enum BackgroundMusic {
+  theme,
+  rapid,
+  zen,
+  relaxing,
+  inspiring,
+  calm,
+  focus,
+  epic,
+}
+
+extension BackgroundMusicDetails on BackgroundMusic {
+  String get label => switch (this) {
+    BackgroundMusic.theme => 'Chess Set Theme · Default',
+    BackgroundMusic.rapid => 'Rapid Chess',
+    BackgroundMusic.zen => 'Zen Garden',
+    BackgroundMusic.relaxing => 'Relaxing Evening',
+    BackgroundMusic.inspiring => 'Inspiring Rise',
+    BackgroundMusic.calm => 'Calm Waters',
+    BackgroundMusic.focus => 'Deep Focus',
+    BackgroundMusic.epic => 'Epic Strategy',
+  };
+  String assetFor(PiecePackId theme) {
+    if (this != BackgroundMusic.theme) return 'audio/mood_$name.wav';
+    // Every visual world has its own deterministic, project-original loop.
+    // The files contain synthesized oscillators/noise only: no recordings,
+    // samples, imported MIDI, or melodies from existing works.
+    return 'audio/${theme.name}.wav';
+  }
+}
+
+BackgroundMusic backgroundMusicFromName(String? name) =>
+    BackgroundMusic.values.where((music) => music.name == name).firstOrNull ??
+    BackgroundMusic.theme;
+
 enum CinematicSound {
+  creditCoin,
   attack,
   lightImpact,
   heavyImpact,
   finalStrike,
+  checkMale,
+  checkFemale,
+  youWon,
   victoryApplause,
 }
 
 abstract class MusicOutput {
-  Future<void> play(PiecePackId theme);
+  Future<void> play(
+    PiecePackId theme, {
+    BackgroundMusic selection = BackgroundMusic.theme,
+  });
   Future<void> playEffect(CinematicSound effect);
   Future<void> pause();
   Future<void> dispose();
@@ -22,16 +65,20 @@ abstract class MusicOutput {
 class AssetMusicOutput implements MusicOutput {
   AudioPlayer? _player;
   AudioPlayer? _effectPlayer;
-  PiecePackId? _loaded;
+  String? _loaded;
   @override
-  Future<void> play(PiecePackId theme) async {
+  Future<void> play(
+    PiecePackId theme, {
+    BackgroundMusic selection = BackgroundMusic.theme,
+  }) async {
     final player = _player ??= AudioPlayer();
-    if (_loaded != theme) {
+    final asset = selection.assetFor(theme);
+    if (_loaded != asset) {
       await player.stop();
       await player.setReleaseMode(ReleaseMode.loop);
       await player.setVolume(.3);
-      await player.play(AssetSource('audio/${theme.name}.wav'));
-      _loaded = theme;
+      await player.play(AssetSource(asset));
+      _loaded = asset;
     } else {
       await player.resume();
     }
@@ -65,7 +112,15 @@ class ThemeMusic extends ChangeNotifier {
     required this.output,
     required this.saveMuted,
     bool muted = false,
-  }) : _muted = muted;
+    BackgroundMusic selection = BackgroundMusic.theme,
+    this.saveSelection,
+  }) : _muted = muted,
+       _selection = selection;
+  static const selectionKey = 'backgroundMusic_v1';
+  final Future<void> Function(BackgroundMusic)? saveSelection;
+  BackgroundMusic _selection;
+  BackgroundMusic get selection => _selection;
+  String? saveError;
   final MusicOutput output;
   final Future<void> Function(bool) saveMuted;
   bool _muted;
@@ -75,6 +130,7 @@ class ThemeMusic extends ChangeNotifier {
   bool _closed = false;
   PiecePackId? _theme;
   Future<void> _pending = Future.value();
+  int _effectSequence = 0;
   Future<void> get settled => _pending;
 
   void select(PiecePackId theme) {
@@ -90,20 +146,55 @@ class ThemeMusic extends ChangeNotifier {
   }
 
   void toggleMuted() {
-    _muted = !_muted;
+    setMuted(!_muted);
+  }
+
+  void setMuted(bool value) {
+    _muted = value;
+    saveError = null;
     notifyListeners();
-    final value = _muted;
     _pending = _pending.then((_) async {
       try {
         await saveMuted(value);
       } catch (_) {
-        /* Playback still works. */
+        if (!_closed) {
+          saveError = 'Sound changed, but could not save it. Please try again.';
+          notifyListeners();
+        }
       }
     });
     _sync();
   }
 
+  void setSelection(BackgroundMusic value) {
+    _selection = value;
+    saveError = null;
+    notifyListeners();
+    _pending = _pending.then((_) async {
+      try {
+        await saveSelection?.call(value);
+      } catch (_) {
+        if (!_closed) {
+          saveError = 'Music changed, but could not save it. Please try again.';
+          notifyListeners();
+        }
+      }
+    });
+    _sync();
+  }
+
+  Future<void> resetToDefaults() {
+    setSelection(BackgroundMusic.theme);
+    setMuted(false);
+    return settled;
+  }
+
   Future<void> playEffect(CinematicSound effect) async {
+    _effectSequence++;
+    await _playEffect(effect);
+  }
+
+  Future<void> _playEffect(CinematicSound effect) async {
     if (_closed || _muted || !_active) return;
     try {
       await output.playEffect(effect);
@@ -113,6 +204,49 @@ class ThemeMusic extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  Future<void> announceCheck({AvatarVoice voice = AvatarVoice.male}) =>
+      playEffect(
+        voice == AvatarVoice.female
+            ? CinematicSound.checkFemale
+            : CinematicSound.checkMale,
+      );
+
+  /// Keeps spoken victory feedback ahead of the applause. A checkmate can
+  /// include the character's “Check” call in the same uninterrupted sequence.
+  Future<void> announceVictory({
+    AvatarVoice voice = AvatarVoice.male,
+    bool checkmate = false,
+  }) async {
+    final sequence = ++_effectSequence;
+    if (checkmate) {
+      await _playEffect(
+        voice == AvatarVoice.female
+            ? CinematicSound.checkFemale
+            : CinematicSound.checkMale,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 720));
+      if (_effectSequence != sequence) return;
+    }
+    await _playEffect(CinematicSound.youWon);
+    await Future<void>.delayed(const Duration(milliseconds: 1050));
+    if (_effectSequence != sequence) return;
+    await _playEffect(CinematicSound.victoryApplause);
+  }
+
+  Future<void> announceCheckmateLoss({
+    AvatarVoice voice = AvatarVoice.male,
+  }) async {
+    final sequence = ++_effectSequence;
+    await _playEffect(
+      voice == AvatarVoice.female
+          ? CinematicSound.checkFemale
+          : CinematicSound.checkMale,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 720));
+    if (_effectSequence != sequence) return;
+    await _playEffect(CinematicSound.finalStrike);
   }
 
   /// Restores the selected soundtrack after a platform audio-focus interruption.
@@ -125,7 +259,7 @@ class ThemeMusic extends ChangeNotifier {
         if (_muted || !_active || _theme == null) {
           await output.pause();
         } else {
-          await output.play(_theme!);
+          await output.play(_theme!, selection: _selection);
         }
         if (unavailable && !_closed) {
           unavailable = false;
@@ -161,7 +295,8 @@ class MusicScope extends InheritedNotifier<ThemeMusic> {
 }
 
 class MusicButton extends StatelessWidget {
-  const MusicButton({super.key});
+  const MusicButton({this.compact = false, super.key});
+  final bool compact;
   @override
   Widget build(BuildContext context) {
     final music = MusicScope.of(context);
@@ -172,7 +307,23 @@ class MusicButton extends StatelessWidget {
           ? 'Unmute music'
           : 'Mute music',
       onPressed: music?.toggleMuted,
-      icon: Icon(music?.muted == true ? Icons.volume_off : Icons.volume_up),
+      padding: compact ? const EdgeInsets.symmetric(horizontal: 2) : null,
+      constraints: compact
+          ? const BoxConstraints.tightFor(width: 28, height: 40)
+          : null,
+      style: compact
+          ? IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            )
+          : null,
+      icon: Icon(
+        music?.muted == true
+            ? Icons.volume_off_rounded
+            : Icons.volume_up_rounded,
+        color: music?.muted == true
+            ? const Color(0xFFFF6B6B)
+            : const Color(0xFF69F0AE),
+      ),
     );
   }
 }

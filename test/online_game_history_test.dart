@@ -1,9 +1,48 @@
+import 'dart:convert';
+
 import 'package:battle_chess_arena/src/domain/online_player_profile.dart';
 import 'package:battle_chess_arena/src/services/online_game_history.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test(
+    'legacy favourites migrate to Friends and connections can move',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'online_favorites_v1': jsonEncode([
+          {'name': 'Legacy Knight', 'avatarId': 'moon'},
+        ]),
+      });
+      var connections = await OnlineGameHistory.loadFavorites();
+      expect(connections.single.circle, OnlinePlayerCircle.friends);
+
+      connections = await OnlineGameHistory.saveConnection(
+        const OnlineFavorite(
+          name: 'Legacy Knight',
+          avatarId: 'moon',
+          circle: OnlinePlayerCircle.family,
+        ),
+      );
+      expect(connections.single.circle, OnlinePlayerCircle.family);
+
+      connections = await OnlineGameHistory.saveConnection(
+        const OnlineFavorite(
+          name: 'Grand Master',
+          avatarId: 'crown',
+          circle: OnlinePlayerCircle.professionals,
+        ),
+      );
+      expect(connections.map((item) => item.circle), [
+        OnlinePlayerCircle.family,
+        OnlinePlayerCircle.professionals,
+      ]);
+
+      connections = await OnlineGameHistory.removeConnection('legacy knight');
+      expect(connections.single.name, 'Grand Master');
+    },
+  );
+
   test(
     'persists profile and keeps one latest history entry per game',
     () async {
@@ -58,6 +97,9 @@ void main() {
 
       await OnlineGameHistory.saveReminders({'invite-one'});
       expect(await OnlineGameHistory.loadReminders(), {'invite-one'});
+      expect(await OnlineGameHistory.loadMobileNotificationsEnabled(), isFalse);
+      await OnlineGameHistory.saveMobileNotificationsEnabled(true);
+      expect(await OnlineGameHistory.loadMobileNotificationsEnabled(), isTrue);
     },
   );
 }
