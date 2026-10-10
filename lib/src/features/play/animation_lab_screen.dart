@@ -1550,16 +1550,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   }
 
   void _scheduleComputerReply() {
-    _computerReplyTimer?.cancel();
-    setState(() => _computerReplyDelay = true);
-    if (_pacingPaused) return;
-    final epoch = _gameEpoch;
-    final fen = _game.position.fen;
-    _computerReplyTimer = Timer(const Duration(seconds: 2), () {
-      if (!mounted || epoch != _gameEpoch || _game.position.fen != fen) return;
-      setState(() => _computerReplyDelay = false);
-      unawaited(_maybePlayComputer());
-    });
+    unawaited(_maybePlayComputer());
   }
 
   void _finishTurn() {

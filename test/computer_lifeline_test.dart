@@ -157,7 +157,7 @@ void main() {
   });
 
   testWidgets(
-    'computer capture waits two seconds after the previous cinematic',
+    'computer replies after the cinematic without an extra pause',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final player = CaptureReplyPlayer();
@@ -194,10 +194,6 @@ void main() {
       expect(player.calls, 0);
       // Skipping the overlay still lets the Olympian live strike finish.
       await tester.pump(const Duration(milliseconds: 850));
-      expect(player.calls, 0);
-      await tester.pump(const Duration(milliseconds: 1999));
-      expect(player.calls, 0);
-      await tester.pump(const Duration(milliseconds: 1));
       expect(player.calls, 1);
       expect(find.byType(CaptureBattleOverlay), findsNothing);
       expect(

@@ -188,6 +188,33 @@ void main() {
     expect(find.byKey(const ValueKey('board-swipe-hint')), findsNothing);
   });
 
+  for (final gesture in ['swipe', 'double tap']) {
+    testWidgets('board swipe hint disappears after $gesture', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        MaterialApp(home: AnimationLabScreen(pack: piecePacks.first)),
+      );
+      await tester.pumpAndSettle();
+      final hint = find.byKey(const ValueKey('board-swipe-hint'));
+      expect(hint, findsOneWidget);
+      final text = tester.widget<Text>(
+        find.descendant(of: hint, matching: find.byType(Text)),
+      );
+      expect(text.style?.fontSize, 10);
+      if (gesture == 'swipe') {
+        await tester.drag(find.byType(ChessBoard), const Offset(-100, 0));
+      } else {
+        final square = find.byKey(const ValueKey('square-e4'));
+        await tester.tap(square);
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(square);
+      }
+      await tester.pumpAndSettle();
+      expect(hint, findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
   testWidgets('compact home keeps primary actions visible without scrolling', (
     tester,
   ) async {

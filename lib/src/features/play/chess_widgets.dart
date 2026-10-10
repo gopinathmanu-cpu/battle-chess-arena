@@ -211,6 +211,12 @@ class ChessBoard extends StatefulWidget {
 
 class _ChessBoardState extends State<ChessBoard>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  bool _swipeHintDismissed = false;
+
+  void _dismissSwipeHint() {
+    if (!_swipeHintDismissed) setState(() => _swipeHintDismissed = true);
+  }
+
   late final AnimationController _motion;
   final _pieceScaleKeys = <Square, GlobalKey>{};
   _BoardMovePresentation? _movement;
@@ -253,6 +259,9 @@ class _ChessBoardState extends State<ChessBoard>
   @override
   void didUpdateWidget(ChessBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.swipeHint == null && widget.swipeHint != null) {
+      _swipeHintDismissed = false;
+    }
     _reduced =
         widget.reducedMotion ||
         (MediaQuery.maybeOf(context)?.disableAnimations ?? false);
@@ -309,7 +318,12 @@ class _ChessBoardState extends State<ChessBoard>
 
   @override
   Widget build(BuildContext context) => ChessSetSwipe(
-    onChange: widget.onSetSwipe,
+    onChange: widget.onSetSwipe == null
+        ? null
+        : (direction) {
+            _dismissSwipeHint();
+            widget.onSetSwipe!(direction);
+          },
     child: widget.showCoordinates
         ? LayoutBuilder(
             builder: (context, box) {
@@ -406,7 +420,9 @@ class _ChessBoardState extends State<ChessBoard>
             ),
           ),
         ),
-      if (widget.swipeHint != null && widget.onSetSwipe != null)
+      if (!_swipeHintDismissed &&
+          widget.swipeHint != null &&
+          widget.onSetSwipe != null)
         Positioned.fill(
           child: IgnorePointer(
             child: Center(
@@ -428,7 +444,8 @@ class _ChessBoardState extends State<ChessBoard>
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: 10,
+                      height: 1.15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -579,6 +596,9 @@ class _ChessBoardState extends State<ChessBoard>
         child: GestureDetector(
           key: ValueKey('square-${square.name}'),
           onTap: () => widget.onSquareTap(square),
+          onDoubleTap: !_swipeHintDismissed && widget.swipeHint != null
+              ? _dismissSwipeHint
+              : null,
           child: ColoredBox(
             color: isCheckedKing
                 ? const Color(0xFFB71C1C).withValues(alpha: .72)
