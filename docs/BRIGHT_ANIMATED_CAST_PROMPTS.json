@@ -1,0 +1,275 @@
+{
+  "release": "0.9.0-beta.50+65",
+  "tool": "built-in image_gen.imagegen",
+  "transparent_background": true,
+  "mode": "edit",
+  "post_processing": "None. Selected generator PNGs copied intact; cropping, facing and scale occur in Flutter at rendering time.",
+  "runtimeAssets": [
+    {
+      "key": "neon-white-rook",
+      "reference": "assets/cinematics/neon/white-cast.png",
+      "dest": "assets/cinematics/neon/white-cast-rook-v1.png",
+      "prompt": "Edit ONLY the ROOK (fifth character from left, cannon chariot) in this existing White Neon Dominion transparent six-character sprite sheet. Improvise this Rook into a tall imposing armoured chariot commander: the existing rider/commander has a long upright heroic torso with clearly visible broad shoulders, articulated waist, tall crowned/crested helmet, and a commanding upper body rising high above the cannon carriage. The commander should look adult and tall, never dwarfish or tiny seated behind the gun. Preserve the recognizable wheeled energy-cannon chariot, original wheel size/baseline, cyan/ivory/gold faction, original painted fantasy sci-fi identity, full-body view and right-facing direction. Reuse the existing accessories, enlarge/improve the commander vertically only inside its own transparent column. Exact crop space x1485 through x1878: ALL Rook pixels remain inside this region; the tall commander helmet may reach y85 and feet/wheels keep the existing ground baseline around y638. No overlap with horse Knight to left or Pawn to right, no wide new weapon trail. Exact original 2172x724 transparent canvas. All other FIVE FIGURES, their pixels/colours/poses/positions, long flowing Queen hair and transparent gutters remain unchanged. No added characters, no background, text, grids, labels, border, pedestal or watermark.",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-32411137-2b9d-449c-9b4e-d849f2737daa.png",
+      "sha256": "d495e0e57af54f1285a74b0fd87294dc0cf7f156d747cbfd49af52acc83faa00",
+      "bytes": 1672953,
+      "dimensions": [
+        2172,
+        724
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        21,
+        75,
+        2134,
+        651
+      ],
+      "meanOpaqueLuminance": 116.54
+    },
+    {
+      "key": "neon-black-rook",
+      "reference": "assets/cinematics/neon/black-cast-bright-v1.png",
+      "dest": "assets/cinematics/neon/black-cast-bright-rook-v1.png",
+      "prompt": "Edit ONLY the ROOK (fifth character from left, cannon chariot) in this existing bright Black Neon Dominion transparent six-character sprite sheet. Improvise this Rook into a tall imposing armoured chariot commander: the existing rider/commander has a long upright heroic torso with clearly visible broad shoulders, articulated waist, tall crowned/crested helmet, and a commanding upper body rising high above the cannon carriage. The commander should look adult and tall, never dwarfish or tiny seated behind the gun. Preserve the recognizable wheeled energy-cannon chariot, original wheel size/baseline, bright pearl silver/gunmetal and warm rose-gold armour, ruby cape and brilliant magenta/fuchsia energy accessories, original painted fantasy sci-fi identity, full-body view and right-facing direction. Keep helmet/visor original design and fair exposed skin wherever visible. Enlarge/improve the commander vertically only inside its own transparent column. Exact crop space x1476 through x1874: ALL Rook pixels remain inside this region; the tall commander helmet may reach y80 and feet/wheels keep existing ground baseline around y638. No overlap with horse Knight to left or Pawn to right, no wide new weapon trail. Exact original 2167x726 transparent canvas. All other FIVE FIGURES, colours/poses/positions, long flowing Queen hair and transparent gutters remain unchanged. No added characters, no background, text, grids, labels, border, pedestal or watermark.",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-30032a3f-82f4-4857-a137-dff0eaff7dff.png",
+      "sha256": "e2a46e84a983f4f3f05e646792a198a8533da787b4789bba3a58cab5e588f361",
+      "bytes": 1708643,
+      "dimensions": [
+        2167,
+        726
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        8,
+        111,
+        2157,
+        644
+      ],
+      "meanOpaqueLuminance": 101.95
+    },
+    {
+      "key": "neon-ready-rooks",
+      "reference": "assets/cinematics/neon/ready-cast-bright-v1.png",
+      "dest": "assets/cinematics/neon/ready-cast-bright-rook-v1.png",
+      "prompt": "Edit ONLY the two ROOKS (fifth character in EACH row, cannon chariots) in this existing bright Neon Dominion transparent ready-pose atlas. Both existing chariot commanders must become tall imposing adult armoured figures with long upright heroic torsos, clearly visible broad shoulders, articulated waists and tall crested helmets. Their prominent upper bodies rise above the cannon carriage in a braced anticipation/READY stance; never tiny seated dwarf-like gunners. Keep recognizable wheeled energy cannon, original wheels and ground contact, same full-body camera view, original weapon aim and right-facing direction. White/top commander: ivory/cyan/gold armour and blue cape. Black/bottom commander: bright silver/gunmetal, rose-gold trim, ruby cape and vivid magenta accessories, matching the new bright Black artwork; helmets stay intact. ALL White Rook pixels stay in x1222..1555, head can reach y55, original wheel baseline around y475. ALL Black Rook pixels stay in x1226..1578, head can reach y495, original wheel baseline around y880. Enlarge height only inside those columns, no overlap with Knight/Pawn, no broad glow trails. Keep exact original1774x887 canvas, two rows and six characters each. All other TEN FIGURES and their exact ready poses, original colours, full bodies, long flowing Queen hair, locations and transparent gutters stay unchanged. This is READY, not an attack or rest pose. Genuine transparent alpha, no backdrop/ground, grid, labels, text, borders, watermark or pedestal.",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-4e13f003-c198-4095-96b0-6d43ca3c775e.png",
+      "sha256": "fc9f3630c80c553eca42a56469ace1e4a294c2d0a680736021f87c8aff8be926",
+      "bytes": 2429660,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        1,
+        44,
+        1774,
+        879
+      ],
+      "meanOpaqueLuminance": 94.5
+    },
+    {
+      "key": "neon-attack-rooks",
+      "reference": "assets/cinematics/neon/attack-cast-bright-v1.png",
+      "dest": "assets/cinematics/neon/attack-cast-bright-rook-v1.png",
+      "prompt": "Edit ONLY the two ROOKS (fifth character in EACH row, cannon chariots) in this existing bright Neon Dominion transparent ATTACK-pose atlas. Both existing chariot commanders must become tall imposing adult armoured figures with long upright heroic torsos, clearly visible broad shoulders, articulated waists and tall crested helmets. Prominent upper bodies rise above the cannon carriage while giving the attack command with a clear forward arm gesture, keeping the cannon visibly firing RIGHT; never tiny seated dwarf-like gunners. Preserve recognizable wheeled energy cannon, original wheels and ground contact, same full-body camera view, controlled strike and direction. White/top commander: ivory/cyan/gold armour and blue cape. Black/bottom commander: bright silver/gunmetal, rose-gold trim, ruby cape and vivid magenta accessories, matching the new bright Black artwork; helmets stay intact. ALL White Rook pixels stay in x1189..1542, head can reach y55, original wheel baseline around y469. ALL Black Rook pixels stay in x1192..1522, head can reach y480, original wheel baseline around y867. Enlarge height only inside those columns, no overlap with Knight/Pawn, no broad new glow trails. Keep exact original1774x887 canvas, two rows and six characters each. All other TEN FIGURES and their exact extended attack poses, original colours, full bodies, long flowing Queen hair, locations and transparent gutters stay unchanged. This is ATTACK, not ready/rest. Genuine transparent alpha, no backdrop/ground, grid, labels, text, borders, watermark or pedestal.",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-92d1755f-177c-46b2-afbb-914ab36dd228.png",
+      "sha256": "816c060e96ee1004b40fbc9f629394c9d6ef2ad750ff8f2e019f45dd20b59740",
+      "bytes": 2328963,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        8,
+        51,
+        1773,
+        865
+      ],
+      "meanOpaqueLuminance": 99.74
+    },
+    {
+      "key": "manga-cast",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-4b59a356-0fc3-4f24-8faa-249fe4416946.png",
+      "dest": "assets/cinematics/manga/cast-bright-v1.png",
+      "prompt": "Edit target Image 1: the EXISTING transparent Manga Vanguard twelve-character atlas. Identity-preserve colour/lighting edit. Keep top White row unchanged. Change ONLY bottom Black row lighting and colours: fair naturally lit warm ivory faces and hands, medium luminous violet/steel-silver armour with polished rose-gold and bright silver ornament, vivid orchid/magenta gemstones and bright berry silk accessories/capes. Brighten horse and elephant surface details into clearly visible midtones; sharply contrasting accessory trim must remain readable at small chess icon size. Keep the Black purple/magenta faction distinct from top White blue/ivory. Preserve every exact existing figure, identity, expression, pose, shape, full silhouette, right-facing direction, anatomy, mount, weapon, scale and original crop location. Exact original 1774x887 canvas, TWO rows and SIX characters per row, King Queen elephant Bishop mounted horse Knight horse-chariot Rook Pawn. Recolour only: do not shift, resize, add, remove or redraw poses, and keep original transparent gutters and alpha outside figures. Genuine transparency, no backdrop, shadows/ground, text, labels, borders or watermark.",
+      "reference": "assets/cinematics/manga/cast.png",
+      "sha256": "24f3df7d3239e934413a0d415510bb01eff9ca9e1c42817273f9d950fd956739",
+      "bytes": 2720960,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        12,
+        6,
+        1769,
+        870
+      ],
+      "meanOpaqueLuminance": 101.0
+    },
+    {
+      "key": "epic-cast",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-81eb8eba-2346-4e9a-9fd8-bcd4e61e6ac1.png",
+      "dest": "assets/cinematics/epic/cast-bright-v1.png",
+      "prompt": "Edit target Image 1: the EXISTING transparent Epic Guardians twelve-character atlas. Identity-preserve colour/lighting edit. Keep top White row unchanged. Change ONLY bottom Black row lighting and colours: fair naturally lit warm ivory faces and hands, luminous midtone violet/royal-purple cloth and armour, brightly polished gold and silver contrasting ornaments, vivid amethyst gemstones, bright lavender/saffron accessories. Brighten elephant/horse and chariot detail into visible midtones, avoiding black muddy silhouettes. Preserve the purple/amethyst Black army faction distinct from White ivory/turquoise. Preserve every exact existing figure, identity, expression, pose, body shape, full silhouette, right-facing direction, anatomy, mount, weapon, scale and original crop location. Exact original 1774x887 canvas, TWO rows and SIX characters per row, King Queen elephant Bishop mounted horse Knight horse-chariot Rook Pawn. Recolour only: do not shift, resize, add, remove or redraw poses, and keep original transparent gutters and alpha outside figures. Genuine transparency, no backdrop, shadows/ground, text, labels, borders or watermark.",
+      "reference": "assets/cinematics/epic/cast.png",
+      "sha256": "fb1ec1ed8f0c884fb03b7d907d48d695c4e77cbe2314b9e0684d19c7684ba167",
+      "bytes": 2601706,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        10,
+        3,
+        1764,
+        875
+      ],
+      "meanOpaqueLuminance": 123.18
+    },
+    {
+      "key": "olympian-queens",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-6c64b53c-612f-4b56-9fae-3fc8865c298d.png",
+      "dest": "assets/cinematics/olympian/cast-bright-hair-v1.png",
+      "prompt": "Use case: precise-object-edit. Edit ONLY the two QUEENS (second character in each row) of the original bright transparent Olympian atlas. Both Queens must have obviously LONG flowing hair with long individual wavy strands reaching BELOW THE WAIST. White Queen: luminous golden blonde, distinct from blue cape. Black Queen: rich chestnut-brown with bright warm highlights, distinct from crimson cape. Maintain their original helmet, crown, face, pose, spear and female warrior identity. Critical game-sprite crop restriction: absolutely ALL new Queen hair in BOTH rows must be wholly inside X=315 to X=548 on this 1774-pixel-wide image; do not extend hair to the left of x315 or into the King's cape. Let the flowing locks emerge below the back of the helmet, cascade beside the shoulders and down the torso in waves to the waist/hip, with small wind-swept ends inside that exact Queen column. Preserve long visible hair length rather than a wide sideways hair fan. White row hair may extend from y95 to y330, Black row hair y538 to y775. Each queen remains completely inside her original crop; do not enlarge body or shift it. Keep ALL OTHER TEN CHARACTERS and every other pixel region, original colours, transparent gutters, exact 1774x887 two-row six-column composition, all mounts/weapons/positions and alpha unchanged. Especially preserve the King's cape without inserting any Queen hair in his character column. Full figures, no backdrop, text, grid, borders, watermark, ground or pedestal. Original painted fantasy style. This is an existing atlas correction for cropped game pieces, not a new layout.",
+      "reference": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-589cd770-380a-4686-88e1-dd46a06e9838.png",
+      "references": [
+        "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-589cd770-380a-4686-88e1-dd46a06e9838.png"
+      ],
+      "sha256": "60c0d260d08ed40f366ef41ab3f967f755690b3f09bdd9a0d36588447b543645",
+      "bytes": 2611823,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        10,
+        8,
+        1771,
+        876
+      ],
+      "meanOpaqueLuminance": 108.37
+    },
+    {
+      "key": "neon-ready",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-cf436d5b-81b4-4859-902d-ed9e8837947b.png",
+      "dest": "assets/cinematics/neon/ready-cast-bright-v1.png",
+      "prompt": "Use case: identity-preserve. Image1 is the EXISTING Neon Dominion transparent ready-pose atlas to edit. Image2 is ONLY the Black-faction updated colour reference. Keep TOP WHITE ROW unchanged. Recolour ONLY BOTTOM BLACK ROW of Image1 to match Image2: clearly lit pearl gunmetal/silver armour, warm rose-gold trim, brilliant fuchsia/magenta gems and energy weapons and luminous ruby capes. Keep helmets/masks intact; any exposed skin fair naturally lit warm ivory. Midtone animal armour and weapon/accessory highlights must be clearly readable on small chess squares, avoiding muddy black silhouettes. Preserve Image1's EXACT ready poses, six identities, positions, native silhouettes and proportions, complete bodies/mounts, right-facing direction, weapons, baseline, original transparent gutters and 1774x887 two-row six-column composition. Queens retain clearly visible long flowing white hair as already present; do not shorten or conceal it. Image2 supplies colours only, never change Image1's ready stance to the reference rest stance. Exact original art style, genuine transparent alpha, no scenery, shadow/ground panel, labels, grid, text, border or watermark.",
+      "reference": "assets/cinematics/neon/ready-cast.png",
+      "references": [
+        "/Users/manugopinath/GameStudio/battle_chess_arena 3/assets/cinematics/neon/ready-cast.png",
+        "/Users/manugopinath/GameStudio/battle_chess_arena 3/assets/cinematics/neon/black-cast-bright-v1.png"
+      ],
+      "sha256": "f6e3c1c3dbcaf48b642ea557993f7521bf0c2e0e78914d59294b2ecf1d95ff05",
+      "bytes": 2377982,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        3,
+        52,
+        1772,
+        878
+      ],
+      "meanOpaqueLuminance": 98.7
+    },
+    {
+      "key": "neon-attack",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-8ff08a73-3313-4bda-9388-11349ca0ce1a.png",
+      "dest": "assets/cinematics/neon/attack-cast-bright-v1.png",
+      "prompt": "Use case: identity-preserve. Image1 is the EXISTING Neon Dominion transparent attack-pose atlas to edit. Image2 is ONLY the Black-faction updated colour reference. Keep TOP WHITE ROW unchanged. Recolour ONLY BOTTOM BLACK ROW of Image1 to match Image2: clearly lit pearl gunmetal/silver armour, warm rose-gold trim, brilliant fuchsia/magenta gems and energy weapons and luminous ruby capes. Keep helmets/masks intact; any exposed skin fair naturally lit warm ivory. Midtone animal armour and weapon/accessory highlights must be clearly readable on small chess squares, avoiding muddy black silhouettes. Preserve Image1's EXACT extended attack poses, six identities, positions, native silhouettes and proportions, complete bodies/mounts, right-facing direction, weapons, baseline, original transparent gutters and 1774x887 two-row six-column composition. Queens retain clearly visible long flowing white hair as already present; do not shorten or conceal it. Image2 supplies colours only, never change Image1's attack stance to the reference rest stance. Exact original art style, genuine transparent alpha, no scenery, shadow/ground panel, labels, grid, text, border or watermark.",
+      "reference": "assets/cinematics/neon/attack-cast.png",
+      "references": [
+        "/Users/manugopinath/GameStudio/battle_chess_arena 3/assets/cinematics/neon/attack-cast.png",
+        "/Users/manugopinath/GameStudio/battle_chess_arena 3/assets/cinematics/neon/black-cast-bright-v1.png"
+      ],
+      "sha256": "8dcc4d7e4cdffafdd9a691b1ac24ae8b16c6f0b8627b77ba77c7616c2ef2c0ea",
+      "bytes": 2224592,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "mode": "RGBA",
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "opaqueBounds": [
+        8,
+        50,
+        1772,
+        865
+      ],
+      "meanOpaqueLuminance": 103.47
+    }
+  ],
+  "generationParents": [
+    {
+      "key": "neon-black",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-a0d1890d-c917-4aff-b867-3c1505412e47.png",
+      "dest": "assets/cinematics/neon/black-cast-bright-v1.png",
+      "prompt": "Edit target Image 1: the EXISTING transparent six-character Black Neon Dominion cast. Identity-preserve colour/lighting edit, not a redesign. Keep the exact six same figures, poses, expressions, silhouettes, scale, source positions, whole bodies, mounts, crowns, weapons, right-facing direction, spacing, canvas 2167x726 and transparent alpha. Brighten the Black army substantially for small chess-board squares: turn very dark/near-black armour into clearly lit pearl gunmetal and bright silver, use polished warm rose-gold trims, vivid fuchsia/magenta gems and energy accessories and luminous ruby capes. Faces and any exposed skin should be fair, softly lit natural warm ivory; keep closed helmets/masks and their original form where present. The metal and accessories need crisp contrasting bright highlights, with distinct light and midtone surfaces, rather than dark muddy silhouettes. Preserve the original magenta/ruby faction identity distinct from cyan White. Six columns in original order King, Queen, elephant Bishop, horse Knight, cannon-chariot Rook, Pawn. Exact original composition; recolour ONLY, no spatial changes, no new figures or objects. Genuine transparent background, no scenery, ground, captions, labels, borders, watermark or glow rectangle.",
+      "reference": "assets/cinematics/neon/black-cast.png",
+      "sha256": "70c95e05b2695dc1cf556f16b3c8d53c8a678e53511c2613eadd353316180c56"
+    },
+    {
+      "key": "olympian-cast",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-589cd770-380a-4686-88e1-dd46a06e9838.png",
+      "reference": "assets/cinematics/olympian/cast.png",
+      "prompt": "Edit target Image 1: the EXISTING transparent Olympian Legion twelve-character atlas. Identity-preserve colour/lighting edit. Keep top White row unchanged. Change ONLY bottom Black row lighting and colours: fair naturally lit warm ivory faces and hands, clearly lit silver-bronze armour and polished champagne-gold trim, luminous scarlet/crimson cloth and capes, bright ruby accessories, contrasting gold/silver shields and weapon edges. Brighten elephant/horse and chariot details into visible midtones, avoiding dark muddy silhouettes. Preserve the crimson/ruby Black faction distinct from White blue/ivory. Preserve every exact existing figure, identity, expression, pose, body shape, full silhouette, right-facing direction, anatomy, mount, weapon, scale and original crop location. Exact original 1774x887 canvas, TWO rows and SIX characters per row, King Queen elephant Bishop mounted horse Knight horse-chariot Rook Pawn. Recolour only: do not shift, resize, add, remove or redraw poses, and keep original transparent gutters and alpha outside figures. Genuine transparency, no backdrop, shadows/ground, text, labels, borders or watermark.",
+      "sha256": "da02b4e89f78963821e773eb63a4e89f6ca410bd4407ecd47103f4fa3cfa95bf"
+    }
+  ],
+  "discardedGenerations": [
+    {
+      "key": "olympian-queens",
+      "reference": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-589cd770-380a-4686-88e1-dd46a06e9838.png",
+      "references": [
+        "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-589cd770-380a-4686-88e1-dd46a06e9838.png"
+      ],
+      "prompt": "Use case: precise-object-edit / identity-preserve. Edit ONLY the QUEEN in the second column of EACH row of this existing transparent Olympian Legion character atlas. Both Queens need visibly LONG, full, flowing wind-swept hair that extends down to below the waist and trails behind her to the LEFT while she faces RIGHT. White/top Queen: rich golden-blonde long flowing hair with bright warm highlights, distinct against her blue cape. Black/bottom Queen: long flowing raven-brown hair with bright chestnut/silver highlights, distinct against her bright crimson cape. The hair must visibly read as hair with clear long wave strands, not mistaken for cape fabric; both are female warrior Queens. Retain their exact faces, helmets/crowns, female figure, pose, spear, attire, height, ground position and existing native proportions. Hair stays entirely inside each Queen's existing silhouette/crop space and transparent column gutters, without touching neighboring units or adding a wide new sheet silhouette. Keep all other TEN CHARACTERS, their colours, positions, poses, all weapons and mounts, and all transparent alpha unchanged. Exact original 1774x887 canvas, two rows and six columns, painted fantasy style. Bottom army remains brightly lit with fair visible faces/hands, silver/gold accessories and crimson/ruby faction. Genuine transparency; no background, grid, text, labels, border, pedestal or watermark.",
+      "source": "/Users/manugopinath/.codex/generated_images/01a0fc4e-55f3-7b71-b0b0-4b34a2fa5765/exec-dc170a10-0649-4f8e-b719-5467222208ce.png",
+      "reason": "Not selected: flowing hair encroached on neighbouring King crop; replaced with crop-safe long-hair generation.",
+      "sha256": "9e524b5590eb952ef870925747405b9e3fe7df4e9047feb2f8749287a3a1db65"
+    }
+  ]
+}

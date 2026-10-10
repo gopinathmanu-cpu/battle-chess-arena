@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'dart:ui' as ui;
 
 import 'package:battle_chess_arena/src/domain/custom_chess_set.dart';
+import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/studio/chess_set_studio_screen.dart';
 import 'package:battle_chess_arena/src/features/studio/custom_piece.dart';
 import 'package:battle_chess_arena/src/services/custom_chess_sets.dart';
@@ -176,6 +177,22 @@ void main() {
     expect(saved.designFor(Side.black, Role.knight).costume, 3);
     expect(saved.designFor(Side.white, Role.king).costume, 1);
     expect(saved.designFor(Side.black, Role.king).costume, 1);
+    expect(
+      saved.designFor(Side.white, Role.knight).formationPack,
+      PiecePackId.greek,
+    );
+    expect(
+      saved.designFor(Side.black, Role.knight).formationPack,
+      PiecePackId.futuristic,
+    );
+    expect(
+      saved.designFor(Side.white, Role.king).formationPack,
+      PiecePackId.indianEpic,
+    );
+    expect(
+      saved.designFor(Side.black, Role.king).formationPack,
+      PiecePackId.indianEpic,
+    );
     expect(saved.designFor(Side.black, Role.knight).scale, 1);
     expect(saved.designFor(Side.white, Role.knight).scale, 1);
     expect(saved.lightSquare, 0xffe7e8cf);
@@ -186,6 +203,64 @@ void main() {
     await restored.ready;
     expect(restored.active?.name, saved.name);
     restored.dispose();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Studio offers only the four Fantasy formations for new armies', (
+    tester,
+  ) async {
+    final library = CustomChessSets(autoLoad: false);
+    addTearDown(library.dispose);
+    await _pumpStudio(tester, library);
+    await _tap(tester, _key('create-custom-set'));
+    await _tap(tester, _key('studio-part-formation-3'));
+    final thumbnails = tester
+        .widgetList<CustomPartThumbnail>(find.byType(CustomPartThumbnail))
+        .toList();
+    expect(thumbnails, hasLength(4));
+    expect(thumbnails.map((thumbnail) => thumbnail.pack), availablePiecePacks);
+    expect(find.text('Ivory court'), findsNothing);
+    expect(find.text('Crimson legion'), findsNothing);
+    expect(find.text('Jade dynasty'), findsNothing);
+    expect(find.text('Radiant realm'), findsNothing);
+    await _tap(tester, _key('studio-apply-army-formation'));
+    await _tap(tester, _key('save-custom-set'));
+    for (final role in Role.values) {
+      expect(
+        library.active!.designFor(Side.white, role).formationPack,
+        PiecePackId.futuristic,
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('editing a legacy custom set retains its original formations', (
+    tester,
+  ) async {
+    final library = CustomChessSets(autoLoad: false);
+    addTearDown(library.dispose);
+    final old = CustomChessSet(
+      id: 'legacy-set',
+      name: 'Legacy formations',
+      pieces: const {},
+    );
+    await library.save(old);
+    final originalJson = old.toJson();
+    await _pumpStudio(tester, library);
+    await _tap(tester, find.text('Edit'));
+    await _tap(tester, _key('save-custom-set'));
+    expect(library.active!.toJson(), originalJson);
+    for (final side in Side.values) {
+      for (final role in Role.values) {
+        expect(library.active!.designFor(side, role).formationPack, isNull);
+        expect(
+          CustomPieceParts.packForDesign(
+            library.active!.designFor(side, role),
+          ).id,
+          side == Side.white ? PiecePackId.chola : PiecePackId.roman,
+        );
+      }
+    }
     expect(tester.takeException(), isNull);
   });
 

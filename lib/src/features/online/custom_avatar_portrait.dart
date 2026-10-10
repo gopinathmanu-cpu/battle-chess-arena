@@ -159,8 +159,8 @@ class CustomAvatarPainter extends CustomPainter {
       _gradient(
         _skin,
         Rect.fromLTRB(_left, 23, _right, _chin),
-        light: .12,
-        dark: .08,
+        light: .2,
+        dark: .16,
       ),
     );
     canvas.save();
@@ -168,6 +168,40 @@ class CustomAvatarPainter extends CustomPainter {
     canvas.drawOval(
       Rect.fromLTWH(_left + 3, 38, 12, 25),
       _paint(Colors.white.withValues(alpha: .055)),
+    );
+    // Soft sculpting keeps facial volume readable in a small circular portrait.
+    canvas.drawOval(
+      Rect.fromLTRB(_left - 4, 25, _right + 6, _chin + 5),
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-.3, -.35),
+          radius: .9,
+          colors: [
+            Colors.transparent,
+            _dark(_skin, .32).withValues(alpha: .25),
+          ],
+          stops: const [.5, 1],
+        ).createShader(Rect.fromLTRB(_left, 23, _right, _chin)),
+    );
+    for (final center in [const Offset(38, 54), const Offset(62, 54)]) {
+      canvas.drawCircle(
+        center,
+        8,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              const Color(0xFFE99691).withValues(alpha: .22),
+              Colors.transparent,
+            ],
+          ).createShader(Rect.fromCircle(center: center, radius: 8)),
+      );
+    }
+    canvas.drawOval(
+      const Rect.fromLTWH(38, 29, 18, 13),
+      Paint()
+        ..shader = RadialGradient(
+          colors: [Colors.white.withValues(alpha: .15), Colors.transparent],
+        ).createShader(const Rect.fromLTWH(38, 29, 18, 13)),
     );
     final cheek = Color.lerp(
       _skin,
@@ -952,8 +986,8 @@ class CustomAvatarPainter extends CustomPainter {
 
   void _features(Canvas canvas) {
     final brow = _hair.computeLuminance() > .55 ? _dark(_hair, .48) : _hair;
-    final eyeHeight = _child ? 6.5 : (design.age == 1 ? 5.5 : 4.5);
-    final eyeWidth = _child ? 10.2 : (design.age == 1 ? 8.8 : 8.3);
+    final eyeHeight = _child ? 8.0 : (design.age == 1 ? 7.2 : 6.4);
+    final eyeWidth = _child ? 12.0 : (design.age == 1 ? 11.2 : 10.6);
     for (final x in [40.0, 60.0]) {
       final l = x - eyeWidth / 2;
       final r = x + eyeWidth / 2;
@@ -963,17 +997,42 @@ class CustomAvatarPainter extends CustomPainter {
         ..quadraticBezierTo(x, y - eyeHeight, r, y)
         ..quadraticBezierTo(x, y + eyeHeight * .65, l, y)
         ..close();
-      canvas.drawPath(eye, _paint(const Color(0xFFF4EEE8)));
+      canvas.drawPath(
+        eye,
+        Paint()
+          ..shader =
+              const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFD3CFD2), Color(0xFFFFFAF2)],
+              ).createShader(
+                Rect.fromLTRB(l, y - eyeHeight / 2, r, y + eyeHeight / 2),
+              ),
+      );
       canvas.save();
       canvas.clipPath(eye);
       canvas.drawCircle(
         Offset(x, y - .2),
-        _child ? 2.65 : 2.1,
-        _paint(const Color(0xFF574033)),
+        _child ? 3.3 : 2.9,
+        Paint()
+          ..shader =
+              const RadialGradient(
+                colors: [
+                  Color(0xFFB18651),
+                  Color(0xFF5B4033),
+                  Color(0xFF302C32),
+                ],
+                stops: [0, .65, 1],
+              ).createShader(
+                Rect.fromCircle(
+                  center: Offset(x, y - .2),
+                  radius: _child ? 3.3 : 2.9,
+                ),
+              ),
       );
       canvas.drawCircle(
         Offset(x, y - .2),
-        _child ? 1.55 : 1.25,
+        _child ? 1.8 : 1.6,
         _paint(const Color(0xFF20232A)),
       );
       canvas.drawCircle(
@@ -981,7 +1040,18 @@ class CustomAvatarPainter extends CustomPainter {
         .7,
         _paint(Colors.white.withValues(alpha: .9)),
       );
+      canvas.drawCircle(
+        Offset(x + .8, y + .8),
+        .35,
+        _paint(Colors.white.withValues(alpha: .7)),
+      );
       canvas.restore();
+      canvas.drawPath(
+        Path()
+          ..moveTo(l + .5, y + .4)
+          ..quadraticBezierTo(x, y + eyeHeight * .65, r - .5, y + .4),
+        _stroke(_dark(_skin, .3).withValues(alpha: .35), .6),
+      );
       canvas.drawPath(
         Path()
           ..moveTo(l, y)

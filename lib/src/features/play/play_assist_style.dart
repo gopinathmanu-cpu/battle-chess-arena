@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 const moveSuggestionIconColor = Color(0xFFFFC928);
 const threatIconColor = Color(0xFFFF5252);
+const _iconSurface = Color(0xFF2F3E63);
+const _assistInk = Color(0xFF223149);
+const _disabledInk = Color(0xFF4A5871);
 
 class MoveSuggestionIcon extends StatelessWidget {
   const MoveSuggestionIcon({this.size, super.key});
@@ -16,7 +19,7 @@ class MoveSuggestionIcon extends StatelessWidget {
       width: iconSize + 10,
       height: iconSize + 10,
       decoration: BoxDecoration(
-        color: const Color(0xFF17130A),
+        color: _iconSurface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: moveSuggestionIconColor, width: 1.4),
       ),
@@ -77,7 +80,7 @@ class ThreatActionIcon extends StatelessWidget {
       width: iconSize + 10,
       height: iconSize + 10,
       decoration: BoxDecoration(
-        color: const Color(0xFF1A0D0D),
+        color: _iconSurface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: threatIconColor, width: 1.4),
       ),
@@ -93,13 +96,51 @@ class ThreatActionIcon extends StatelessWidget {
 
 // Keep both assist labels at the same readable size. Let long labels wrap
 // instead of shrinking one button's text independently of the other.
-const playAssistButtonStyle = ButtonStyle(
-  textStyle: WidgetStatePropertyAll(
+final playAssistButtonStyle = ButtonStyle(
+  backgroundColor: WidgetStateProperty.resolveWith((states) {
+    if (states.contains(WidgetState.disabled)) return const Color(0xFFCCD3DF);
+    if (states.contains(WidgetState.pressed)) return const Color(0xFFC6D6EC);
+    if (states.contains(WidgetState.hovered) ||
+        states.contains(WidgetState.focused)) {
+      return const Color(0xFFD3DFF0);
+    }
+    return const Color(0xFFE2EAF4);
+  }),
+  foregroundColor: WidgetStateProperty.resolveWith(
+    (states) =>
+        states.contains(WidgetState.disabled) ? _disabledInk : _assistInk,
+  ),
+  iconColor: WidgetStateProperty.resolveWith(
+    (states) =>
+        states.contains(WidgetState.disabled) ? _disabledInk : _assistInk,
+  ),
+  overlayColor: const WidgetStatePropertyAll(Color(0x10223149)),
+  surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+  side: WidgetStateProperty.resolveWith(
+    (states) => BorderSide(
+      color: states.contains(WidgetState.disabled)
+          ? const Color(0xFFAAB8CC)
+          : const Color(0xFF8DA1BD),
+    ),
+  ),
+  backgroundBuilder: _assistProgressTheme,
+  textStyle: const WidgetStatePropertyAll(
     TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
   ),
-  padding: WidgetStatePropertyAll(
+  padding: const WidgetStatePropertyAll(
     EdgeInsets.symmetric(horizontal: 8, vertical: 8),
   ),
-  minimumSize: WidgetStatePropertyAll(Size(0, 48)),
-  iconSize: WidgetStatePropertyAll(18),
+  minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+  iconSize: const WidgetStatePropertyAll(18),
+);
+
+Widget _assistProgressTheme(
+  BuildContext context,
+  Set<WidgetState> states,
+  Widget? child,
+) => ProgressIndicatorTheme(
+  data: ProgressIndicatorTheme.of(context).copyWith(
+    color: states.contains(WidgetState.disabled) ? _disabledInk : _assistInk,
+  ),
+  child: child ?? const SizedBox.shrink(),
 );

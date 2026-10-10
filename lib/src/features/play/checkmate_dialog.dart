@@ -6,6 +6,11 @@ import '../../domain/game_result_analysis.dart';
 import '../../domain/player_progress.dart';
 import '../../services/player_identity_controller.dart';
 import '../progression/progress_widgets.dart';
+import 'board_appearance.dart';
+import 'checkmate_animation.dart';
+
+export 'checkmate_animation.dart'
+    show showCheckmateAnimation, checkmateAnimationDuration;
 
 enum GameResultOutcome { victory, defeat, draw }
 
@@ -15,6 +20,8 @@ Future<bool> showCheckmateDialog({
   required String title,
   required GameResultMessage message,
   ProgressAward? progressAward,
+  BoardAppearance? appearance,
+  Future<void> Function()? onWatchCinematic,
 }) => showGameResultDialog(
   context: context,
   outcome: userWon ? GameResultOutcome.victory : GameResultOutcome.defeat,
@@ -22,6 +29,8 @@ Future<bool> showCheckmateDialog({
   title: title,
   message: message,
   progressAward: progressAward,
+  appearance: appearance,
+  onWatchCinematic: onWatchCinematic,
 );
 
 Future<bool> showGameResultDialog({
@@ -32,13 +41,17 @@ Future<bool> showGameResultDialog({
   required GameResultMessage message,
   String primaryLabel = 'New Game',
   ProgressAward? progressAward,
+  BoardAppearance? appearance,
+  Future<void> Function()? onWatchCinematic,
 }) async =>
     await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
       barrierLabel: 'Game result',
       barrierColor: Colors.black87,
-      transitionDuration: const Duration(milliseconds: 650),
+      transitionDuration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 650),
       pageBuilder: (context, animation, secondaryAnimation) => _ResultDialog(
         outcome: outcome,
         heading: heading,
@@ -46,6 +59,8 @@ Future<bool> showGameResultDialog({
         message: message,
         primaryLabel: primaryLabel,
         progressAward: progressAward,
+        appearance: appearance,
+        onWatchCinematic: onWatchCinematic,
       ),
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(
@@ -68,6 +83,8 @@ class _ResultDialog extends StatefulWidget {
     required this.message,
     required this.primaryLabel,
     this.progressAward,
+    this.appearance,
+    this.onWatchCinematic,
   });
 
   final GameResultOutcome outcome;
@@ -76,6 +93,8 @@ class _ResultDialog extends StatefulWidget {
   final GameResultMessage message;
   final String primaryLabel;
   final ProgressAward? progressAward;
+  final BoardAppearance? appearance;
+  final Future<void> Function()? onWatchCinematic;
 
   @override
   State<_ResultDialog> createState() => _ResultDialogState();
@@ -91,7 +110,18 @@ class _ResultDialogState extends State<_ResultDialog>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2200),
-    )..repeat();
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.stop();
+      _controller.value = .45;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override
@@ -120,6 +150,15 @@ class _ResultDialogState extends State<_ResultDialog>
         final pulse = (math.sin(_controller.value * math.pi * 2) + 1) / 2;
         return Stack(
           children: [
+            if (widget.appearance case final appearance?)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: MatchResultBackdrop(
+                    key: const ValueKey('result-animated-backdrop'),
+                    appearance: appearance,
+                  ),
+                ),
+              ),
             Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
@@ -128,7 +167,9 @@ class _ResultDialogState extends State<_ResultDialog>
                       radius: 1.15,
                       colors: [
                         primary.withValues(alpha: victory ? .22 : .09),
-                        const Color(0xFF07050D).withValues(alpha: .94),
+                        const Color(0xFF07050D).withValues(
+                          alpha: widget.appearance == null ? .94 : .55,
+                        ),
                       ],
                     ),
                   ),
@@ -156,10 +197,17 @@ class _ResultDialogState extends State<_ResultDialog>
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(26),
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Color(0xFF201834), Color(0xFF090711)],
+                      colors: [
+                        const Color(0xFF201834).withValues(
+                          alpha: widget.appearance == null ? 1 : .82,
+                        ),
+                        const Color(0xFF090711).withValues(
+                          alpha: widget.appearance == null ? 1 : .62,
+                        ),
+                      ],
                     ),
                     border: Border.all(color: primary, width: 2),
                     boxShadow: [
@@ -286,6 +334,11 @@ class _ResultDialogState extends State<_ResultDialog>
                                   ProgressAwardBanner(award: award),
                                 ],
                                 const SizedBox(height: 24),
+                                if (widget.onWatchCinematic
+                                    case final watch?) ...[
+                                  CinematicSummaryButton(onPressed: watch),
+                                  const SizedBox(height: 12),
+                                ],
                                 Row(
                                   children: [
                                     Expanded(
@@ -321,6 +374,40 @@ class _ResultDialogState extends State<_ResultDialog>
       },
     );
   }
+}
+
+/// Keeps the result visible underneath the movie and prevents duplicate routes.
+class CinematicSummaryButton extends StatefulWidget {
+  const CinematicSummaryButton({required this.onPressed, super.key});
+
+  final Future<void> Function() onPressed;
+
+  @override
+  State<CinematicSummaryButton> createState() => _CinematicSummaryButtonState();
+}
+
+class _CinematicSummaryButtonState extends State<CinematicSummaryButton> {
+  bool _opening = false;
+
+  Future<void> _watch() async {
+    setState(() => _opening = true);
+    try {
+      await widget.onPressed();
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: OutlinedButton.icon(
+      key: const ValueKey('watch-cinematic-summary'),
+      onPressed: _opening ? null : _watch,
+      icon: const Icon(Icons.movie_outlined),
+      label: const Text('Watch cinematic summary'),
+    ),
+  );
 }
 
 class _CelebrationAtmospherePainter extends CustomPainter {

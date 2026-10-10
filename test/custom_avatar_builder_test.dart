@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'dart:ui' as ui;
 
 import 'package:battle_chess_arena/src/domain/custom_avatar.dart';
+import 'package:battle_chess_arena/src/domain/custom_avatar_presets.dart';
 import 'package:battle_chess_arena/src/features/online/custom_avatar_builder_screen.dart';
 import 'package:battle_chess_arena/src/features/online/custom_avatar_portrait.dart';
 import 'package:battle_chess_arena/src/theme/app_theme.dart';
@@ -116,6 +117,34 @@ Future<void> _capture(WidgetTester tester, String name) async {
 }
 
 void main() {
+  testWidgets(
+    'portrait-inspired starter remains editable and returns portable avatar',
+    (tester) async {
+      final result = await _openBuilder(tester);
+      final look = _key('avatar-portrait-look-0');
+      await tester.scrollUntilVisible(
+        look,
+        200,
+        scrollable: find.descendant(
+          of: _key('avatar-options-scroll'),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.tap(look);
+      await tester.pump();
+      final preview = tester.widget<CustomAvatarPortrait>(
+        find.byType(CustomAvatarPortrait).first,
+      );
+      expect(preview.design, customAvatarPresets.first.$2);
+      await tester.tap(_key('use-custom-avatar'));
+      await tester.pumpAndSettle();
+      expect(
+        CustomAvatarDesign.tryParse(result.avatarId!),
+        customAvatarPresets.first.$2,
+      );
+    },
+  );
+
   setUpAll(() async {
     const fontDirectory = String.fromEnvironment(
       'AVATAR_STUDIO_FONT_DIR',

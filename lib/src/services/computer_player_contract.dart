@@ -2,8 +2,13 @@
 
 enum ComputerDifficulty { easy, medium, hard }
 
-/// Suggestions are intentionally independent of the selected opponent level.
-const suggestionDifficulty = ComputerDifficulty.hard;
+/// Assistance always uses the strongest profile currently supported by the app,
+/// independently of the opponent's selected difficulty or fixed persona.
+const assistanceDifficulty = ComputerDifficulty.hard;
+const assistanceBotLevel = BotStrength.maximumLevel;
+
+/// Retained for callers that display or inspect the suggestion preset.
+const suggestionDifficulty = assistanceDifficulty;
 
 extension ComputerDifficultyDetails on ComputerDifficulty {
   String get label => switch (this) {
@@ -54,15 +59,16 @@ extension ComputerDifficultyDetails on ComputerDifficulty {
 /// A persona's fixed strength, independent of the three user presets.
 class BotStrength {
   BotStrength(this.level) {
-    RangeError.checkValueInInterval(level, 1, 20, 'botLevel');
+    RangeError.checkValueInInterval(level, 1, maximumLevel, 'botLevel');
   }
 
+  static const maximumLevel = 20;
   final int level;
-  int get stockfishSkill => ((level - 1) * 20 / 19).round();
-  int get depth => 2 + ((level - 1) * 16 ~/ 19);
+  int get stockfishSkill => ((level - 1) * 20 / (maximumLevel - 1)).round();
+  int get depth => 2 + ((level - 1) * 16 ~/ (maximumLevel - 1));
   Duration get thinkTime => Duration(milliseconds: 250 + (level - 1) * 125);
   int get fallbackDepth => level <= 7 ? 1 : (level <= 14 ? 2 : 3);
-  double get mistakeChance => (20 - level) / 24;
+  double get mistakeChance => (maximumLevel - level) / 24;
 }
 
 abstract interface class ComputerPlayer {
@@ -72,4 +78,15 @@ abstract interface class ComputerPlayer {
     int? botLevel,
   });
   void dispose();
+}
+
+extension ComputerPlayerAssistance on ComputerPlayer {
+  /// Shares the maximum-strength request between suggestions and automated
+  /// human turns. A fixed level avoids the preset's optional Elo cap; native
+  /// search still has its ordinary depth/time limits and legal fallback.
+  Future<String?> bestAssistanceMove(String fen) => bestMove(
+    fen,
+    difficulty: assistanceDifficulty,
+    botLevel: assistanceBotLevel,
+  );
 }

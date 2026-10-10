@@ -26,13 +26,14 @@ void main() {
     await tester.tap(find.text('Credits guide'));
     await tester.pumpAndSettle();
     expect(find.text('How Credits Work'), findsOneWidget);
-    expect(find.text('Live online round'), findsOneWidget);
+    expect(find.text('Live online round'), findsNothing);
+    expect(find.text('Immediate tournament or Conquest retry'), findsNothing);
     await tester.scrollUntilVisible(
-      find.text('Immediate tournament or Conquest retry'),
-      300,
+      find.text('Move suggestion'),
+      200,
       scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('Immediate tournament or Conquest retry'), findsOneWidget);
+    expect(find.text('Move suggestion'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Low-balance safety grant'),
       350,

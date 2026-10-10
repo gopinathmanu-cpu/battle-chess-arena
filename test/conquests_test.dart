@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'tournaments_screen_test.dart' show TournamentComputer;
+import 'support/piece_choice.dart';
 
 SavedGame saveFor(BotTournament cup, TournamentRun run) => SavedGame(
   mode: PlayerMode.computer,
@@ -193,6 +194,8 @@ void main() {
           home: TournamentsScreen(
             pack: piecePacks.first,
             conquests: true,
+            initialClassicPieces: true,
+            initialAnimatedArena: false,
             storage: storage,
             computerFactory: TournamentComputer.new,
           ),
@@ -213,17 +216,27 @@ void main() {
 
     expect(
       find.byKey(const ValueKey('tournament-retry-countdown')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.byKey(const ValueKey('conquest-proceed-button')), findsNothing);
     expect(find.text('Rematch this round'), findsOneWidget);
-    expect(find.text('5'), findsOneWidget);
+    expect(find.text('5'), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('play-tournament-round')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('piece-type-choice')), findsNothing);
+    await chooseGamePieces(tester, classic: true);
+    await tester.pumpAndSettle();
     expect(find.byType(AnimationLabScreen), findsOneWidget);
-    expect(wallet.credits, 295);
-    expect(wallet.lastChange?.reason, 'conquest_immediate_retry');
+    expect(
+      tester
+          .widget<ChessBoard>(find.byType(ChessBoard))
+          .appearance!
+          .standardPieces,
+      isTrue,
+    );
+    expect(wallet.credits, 300);
+    expect(wallet.lastChange?.reason, isNot('conquest_immediate_retry'));
   });
 
   testWidgets(
@@ -238,7 +251,8 @@ void main() {
           home: TournamentsScreen(
             pack: piecePacks.first,
             conquests: true,
-            initialClassicPieces: true,
+            initialClassicPieces: false,
+            initialAnimatedArena: true,
             computerFactory: () => computer,
           ),
         ),
@@ -268,6 +282,7 @@ void main() {
       final proceed = find.byKey(const ValueKey('conquest-proceed-button'));
       expect(find.text('Proceed to next match'), findsOneWidget);
       await tester.tap(proceed);
+      await chooseGamePieces(tester, classic: false);
       await tester.pumpAndSettle();
       final screen = tester.widget<AnimationLabScreen>(
         find.byType(AnimationLabScreen),
@@ -283,23 +298,27 @@ void main() {
       await tester.drag(find.byType(ChessBoard), const Offset(-90, 0));
       await tester.pumpAndSettle();
       var changedBoard = tester.widget<ChessBoard>(find.byType(ChessBoard));
-      expect(changedBoard.appearance!.white.id, PiecePackId.indianEpic);
+      expect(changedBoard.appearance!.white.id, PiecePackId.anime);
+      expect(changedBoard.appearance!.standardPieces, isTrue);
       expect(changedBoard.appearance!.black.id, PiecePackId.chola);
       expect(changedBoard.appearance!.board.id, PiecePackId.chola);
 
       await tester.tap(find.byKey(const ValueKey('quick-piece-style-toggle')));
       await tester.pumpAndSettle();
       changedBoard = tester.widget<ChessBoard>(find.byType(ChessBoard));
-      expect(changedBoard.appearance!.standardPieces, isTrue);
+      expect(changedBoard.appearance!.standardPieces, isFalse);
       await tester.tap(find.byKey(const ValueKey('quick-piece-style-toggle')));
       await tester.pumpAndSettle();
       changedBoard = tester.widget<ChessBoard>(find.byType(ChessBoard));
-      expect(changedBoard.appearance!.standardPieces, isFalse);
-      expect(changedBoard.appearance!.white.id, PiecePackId.indianEpic);
+      expect(changedBoard.appearance!.standardPieces, isTrue);
+      expect(changedBoard.appearance!.white.id, PiecePackId.anime);
       expect(changedBoard.appearance!.black.id, PiecePackId.chola);
       await tester.tap(find.byKey(const ValueKey('square-e2')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('square-e4')));
+      await tester.pumpAndSettle();
+      expect(computer.requestedBotLevel, isNull);
+      await tester.pump(const Duration(seconds: 2));
       await tester.pumpAndSettle();
       expect(computer.requestedBotLevel, 6);
       final returnToMap = find.byKey(const ValueKey('return-to-tournament'));

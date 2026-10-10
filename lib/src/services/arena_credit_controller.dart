@@ -32,7 +32,7 @@ class ArenaCreditChange {
 
 /// App-lifetime wallet presentation and local-feature settlement controller.
 ///
-/// Online match charges are accepted only from the server. Successful
+/// Online suggestion charges are accepted only from the server. Successful
 /// on-device paid features are settled locally and persisted immediately.
 class ArenaCreditController extends ChangeNotifier {
   ArenaCreditController({DateTime Function()? now})
@@ -74,7 +74,7 @@ class ArenaCreditController extends ChangeNotifier {
 
   /// Charges an on-device feature after it has completed successfully.
   ///
-  /// Online match charges remain server-authoritative. This path is reserved
+  /// Online suggestion charges remain server-authoritative. This path is reserved
   /// for local features, such as a successfully generated computer-game hint,
   /// where there is no match server command to settle the charge.
   bool trySpendLocal({required int cost, required String reason}) {

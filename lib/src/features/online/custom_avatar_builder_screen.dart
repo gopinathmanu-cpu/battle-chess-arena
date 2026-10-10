@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/custom_avatar.dart';
+import '../../domain/custom_avatar_presets.dart';
 import 'custom_avatar_portrait.dart';
 
 /// Returns an appearance ID to the profile form; it never saves the profile.
@@ -232,6 +233,27 @@ class _CustomAvatarBuilderScreenState extends State<CustomAvatarBuilderScreen> {
           ? 'Save your profile to keep this avatar.'
           : 'Every starting look can be customised.',
       style: const TextStyle(fontSize: 12, color: Colors.white60),
+    ),
+    const SizedBox(height: 22),
+    const _Heading('Portrait-inspired looks'),
+    const Text(
+      'Choose a starting look, then personalise any detail.',
+      style: TextStyle(fontSize: 12, color: Colors.white60),
+    ),
+    const SizedBox(height: 12),
+    _AvatarGrid(
+      preferredColumns: 4,
+      children: [
+        for (var i = 0; i < customAvatarPresets.length; i++)
+          _PortraitOption(
+            key: ValueKey('avatar-portrait-look-$i'),
+            label: customAvatarPresets[i].$1,
+            design: customAvatarPresets[i].$2,
+            selected: _design == customAvatarPresets[i].$2,
+            small: true,
+            onTap: () => _update(customAvatarPresets[i].$2),
+          ),
+      ],
     ),
     const SizedBox(height: 22),
     const _Heading('Face style'),

@@ -2,21 +2,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:dartchess/dartchess.dart';
 
 import '../../services/game_display_settings.dart';
 import '../../services/app_color_scheme_controller.dart';
 import '../../services/app_icon_controller.dart';
 import '../../services/theme_music.dart';
-import '../../services/custom_chess_sets.dart';
 import '../../services/custom_set_actions.dart';
 import '../credits/gold_credit_coin.dart';
 import '../credits/arena_credit_header.dart';
 import '../credits/credit_rules_sheet.dart';
 import '../../services/arena_credit_controller.dart';
-import '../studio/chess_set_studio_screen.dart';
 import '../profile/preferred_name.dart';
 import '../profile/online_profile_settings.dart';
 import '../../domain/online_player_profile.dart';
+import '../../domain/animated_army_theme.dart';
+import '../../domain/piece_pack.dart';
+import '../play/board_appearance.dart';
 import 'board_color_settings.dart';
 
 /// Settings stay off the play surface and only cover it after an explicit tap.
@@ -29,6 +31,7 @@ Future<void> showGameSettings({
   Future<void> Function()? onReset,
   bool inGame = true,
   ValueChanged<OnlinePlayerProfile>? onOnlineProfileChanged,
+  Widget Function(VoidCallback refresh)? chessSetSelector,
 }) {
   bool resetting = false;
   int resetRevision = 0;
@@ -116,43 +119,28 @@ Future<void> showGameSettings({
                       if (appColors != null)
                         ApplicationColorSchemePicker(controller: appColors),
                       AppIconPicker(controller: appIcons),
-                      ListTile(
-                        leading: const Icon(Icons.palette_outlined),
-                        title: const Text('Chess set & theme'),
-                        subtitle: Text(
-                          inGame
-                              ? 'Choose Classic or Themed. Swipe the board left or right to browse sets.'
-                              : 'Choose Themed armies or any Classic piece set',
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          onCustomize();
-                        },
-                      ),
-                      BoardColorSettingsSection(display: display),
-                      if (CustomChessSetScope.maybeOf(context) != null)
+                      if (chessSetSelector != null)
+                        chessSetSelector(() {
+                          if (context.mounted && sheetContext.mounted) {
+                            setSheetState(() {});
+                          }
+                        })
+                      else
                         ListTile(
-                          key: const ValueKey('settings-chess-set-studio'),
-                          leading: const Icon(Icons.design_services_outlined),
-                          title: const Text('Chess Set Studio'),
-                          subtitle: const Text(
-                            'Create your own pieces, board and background',
+                          leading: const Icon(Icons.palette_outlined),
+                          title: const Text('Chess set & theme'),
+                          subtitle: Text(
+                            inGame
+                                ? 'Choose Classic or Animated pieces. Swipe the board left or right to switch between them.'
+                                : 'Choose Animated armies or any Classic piece set',
                           ),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
-                            final navigator = Navigator.of(sheetContext);
-                            navigator.pop();
-                            navigator.push(
-                              MaterialPageRoute<void>(
-                                settings: const RouteSettings(
-                                  name: '/chess-set-studio',
-                                ),
-                                builder: (_) => const ChessSetStudioScreen(),
-                              ),
-                            );
+                            Navigator.of(sheetContext).pop();
+                            onCustomize();
                           },
                         ),
+                      BoardColorSettingsSection(display: display),
                       const _SettingsSectionHeading(
                         icon: Icons.tune_rounded,
                         label: 'MATCH PREFERENCES',
@@ -283,6 +271,238 @@ Future<void> showGameSettings({
       ),
     ),
   ).whenComplete(appIcons.dispose);
+}
+
+/// Selecting a Classic set explicitly chooses the Classic page, even if the
+/// Animated page currently uses Classic board icons after a swipe.
+class ChessSetSelection {
+  const ChessSetSelection({
+    required this.animatedArena,
+    required this.pack,
+    required this.classicStyle,
+  });
+
+  final bool animatedArena;
+  final PiecePack pack;
+  final ClassicPieceStyle classicStyle;
+}
+
+class SettingsChessSetPicker extends StatelessWidget {
+  const SettingsChessSetPicker({
+    required this.animatedArena,
+    required this.pack,
+    required this.classicStyle,
+    required this.onSelected,
+    super.key,
+  });
+
+  final bool animatedArena;
+  final PiecePack pack;
+  final ClassicPieceStyle classicStyle;
+  final ValueChanged<ChessSetSelection> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    key: const ValueKey('settings-chess-set-picker'),
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+    child: LayoutBuilder(
+      builder: (context, box) {
+        final width = box.maxWidth > 10 ? (box.maxWidth - 10) / 2 : 0.0;
+        Widget choices(bool animated) => Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: animated
+              ? [
+                  for (final choice in availablePiecePacks)
+                    SizedBox(
+                      width: width,
+                      child: _ChessSetChoiceCard(
+                        choiceKey: ValueKey(
+                          'settings-animated-${choice.id.name}',
+                        ),
+                        label: AnimatedArmyTheme.forPack(
+                          choice.id,
+                        )!.displayName,
+                        pack: choice,
+                        style: classicStyle,
+                        animated: true,
+                        selected: animatedArena && choice.id == pack.id,
+                        onTap: () => onSelected(
+                          ChessSetSelection(
+                            animatedArena: true,
+                            pack: choice,
+                            classicStyle: classicStyle,
+                          ),
+                        ),
+                      ),
+                    ),
+                ]
+              : [
+                  for (final style in ClassicPieceStyle.values)
+                    SizedBox(
+                      width: width,
+                      child: _ChessSetChoiceCard(
+                        choiceKey: ValueKey('settings-classic-${style.name}'),
+                        label: style.label,
+                        pack: pack,
+                        style: style,
+                        animated: false,
+                        selected: !animatedArena && classicStyle == style,
+                        onTap: () => onSelected(
+                          ChessSetSelection(
+                            animatedArena: false,
+                            pack: pack,
+                            classicStyle: style,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+        );
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.style_outlined),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Chess set',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              'Classic sets use the traditional game page. Animated armies show character avatars and battles above the board.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Classic',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            choices(false),
+            const SizedBox(height: 16),
+            const Text(
+              'Animated',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            choices(true),
+            const SizedBox(height: 8),
+            Text(
+              'In an Animated game, swipe the board to change its pieces while keeping the animation.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+class _ChessSetChoiceCard extends StatelessWidget {
+  const _ChessSetChoiceCard({
+    required this.choiceKey,
+    required this.label,
+    required this.pack,
+    required this.style,
+    required this.animated,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Key choiceKey;
+  final String label;
+  final PiecePack pack;
+  final ClassicPieceStyle style;
+  final bool animated;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${animated ? 'Animated' : 'Classic'} set, $label',
+      child: Material(
+        color: selected ? colors.primaryContainer : colors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: selected ? colors.primary : colors.outlineVariant,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: choiceKey,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7894AE),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (final side in Side.values)
+                        SizedBox.square(
+                          dimension: 38,
+                          child: CharacterPiece(
+                            piece: Piece(color: side, role: Role.knight),
+                            pack: pack,
+                            standard: !animated,
+                            classicStyle: style,
+                            showRole: false,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (selected) ...[
+                      Icon(Icons.check_circle, size: 16, color: colors.primary),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SettingsSectionHeading extends StatelessWidget {

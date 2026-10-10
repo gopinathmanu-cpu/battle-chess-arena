@@ -2,6 +2,7 @@ import 'dart:io' as io;
 import 'dart:ui' as ui;
 
 import 'package:battle_chess_arena/src/domain/custom_avatar.dart';
+import 'package:battle_chess_arena/src/domain/custom_avatar_presets.dart';
 import 'package:battle_chess_arena/src/features/online/custom_avatar_portrait.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -170,6 +171,7 @@ void main() {
   ) async {
     if (!_visuals) return;
     await tester.runAsync(() async {
+      await _sheet('portrait-inspired-looks', customAvatarPresets, columns: 4);
       await _sheet('hairstyles', [
         for (var i = 0; i < 12; i++)
           (

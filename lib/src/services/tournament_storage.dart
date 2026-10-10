@@ -118,12 +118,18 @@ class TournamentStorage {
         humanSide: game.humanSide,
         moves: game.moves,
       );
+      final pendingCompletion =
+          game.historyResultTitle?.trim().isNotEmpty == true;
       if (!run.playing ||
           game.mode != PlayerMode.computer ||
-          session.position.isGameOver ||
-          session.isRuleDraw ||
-          game.whiteMilliseconds <= 0 ||
-          game.blackMilliseconds <= 0 ||
+          (game.historyResultTitle != null && !pendingCompletion) ||
+          game.whiteMilliseconds < 0 ||
+          game.blackMilliseconds < 0 ||
+          (!pendingCompletion &&
+              (session.position.isGameOver ||
+                  session.isRuleDraw ||
+                  game.whiteMilliseconds == 0 ||
+                  game.blackMilliseconds == 0)) ||
           game.lifelinesRemaining < 0 ||
           game.lifelinesRemaining > 3 ||
           game.difficulty !=

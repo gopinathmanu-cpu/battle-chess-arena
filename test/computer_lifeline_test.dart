@@ -117,7 +117,7 @@ void main() {
       expect(board.appearance?.black.id, PiecePackId.anime);
       expect(board.appearance?.board.id, PiecePackId.anime);
       expect(board.appearance?.standardPieces, isTrue);
-      expect(find.byTooltip('Use themed character pieces'), findsOneWidget);
+      expect(find.byTooltip('Use animated character pieces'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -192,11 +192,41 @@ void main() {
       await tester.tap(find.text('Skip'));
       await tester.pump();
       expect(player.calls, 0);
+      // Skipping the overlay still lets the Olympian live strike finish.
+      await tester.pump(const Duration(milliseconds: 850));
+      expect(player.calls, 0);
       await tester.pump(const Duration(milliseconds: 1999));
       expect(player.calls, 0);
       await tester.pump(const Duration(milliseconds: 1));
       expect(player.calls, 1);
+      expect(find.byType(CaptureBattleOverlay), findsNothing);
+      expect(
+        tester.widget<ChessBoard>(find.byType(ChessBoard)).previewFrom,
+        Square.d8,
+      );
+      await tester.pump();
+      for (var halfCycle = 0; halfCycle < 6; halfCycle++) {
+        await tester.pump(const Duration(microseconds: 200001));
+      }
       expect(find.byType(CaptureBattleOverlay), findsOneWidget);
+      final committed = tester.widget<ChessBoard>(find.byType(ChessBoard));
+      expect(committed.position.board.pieceAt(Square.d8), isNull);
+      expect(committed.position.board.pieceAt(Square.d5)?.role, Role.queen);
+      expect(committed.blinkingSquare, isNull);
+      await tester.tap(find.text('Skip'));
+      await tester.pump();
+      expect(
+        tester.widget<ChessBoard>(find.byType(ChessBoard)).blinkingSquare,
+        Square.d5,
+      );
+      await tester.pump();
+      for (var halfCycle = 0; halfCycle < 6; halfCycle++) {
+        await tester.pump(const Duration(microseconds: 200001));
+      }
+      final completed = tester.widget<ChessBoard>(find.byType(ChessBoard));
+      expect(completed.previewFrom, isNull);
+      expect(completed.lastMoveFrom, Square.d8);
+      expect(completed.lastMoveTo, Square.d5);
       await tester.pumpWidget(const SizedBox());
     },
   );

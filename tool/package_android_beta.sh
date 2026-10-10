@@ -41,6 +41,7 @@ COPYFILE_DISABLE=1 tar -czf "$beta_output/corresponding-source.tar.gz" \
   --exclude='*.iml' --exclude='xcuserdata' --exclude='*.xcuserstate' \
   --exclude='.flutter-plugins*' --exclude='.packages' \
   --exclude='*.log' --exclude='Generated.xcconfig' \
+  --exclude='__pycache__' --exclude='*.py[cod]' \
   --exclude='flutter_export_environment.sh' \
   README.md CHANGELOG.md LICENSE COPYING OPEN_SOURCE_POLICY.md THIRD_PARTY_NOTICES.md \
   analysis_options.yaml pubspec.yaml pubspec.lock \

@@ -13,12 +13,14 @@ import '../../services/custom_set_actions.dart';
 import '../../domain/custom_chess_set.dart';
 import '../studio/chess_set_studio_screen.dart';
 import '../../services/last_game_storage.dart';
+import '../../services/game_history_storage.dart';
 import '../../services/online_game_history.dart';
 import '../../services/player_identity_controller.dart';
 import '../../services/player_progress_controller.dart';
 import '../../services/theme_music.dart';
 import '../../services/tournament_storage.dart';
 import '../online/online_lobby_screen.dart';
+import '../history/game_history_screen.dart';
 import '../online/online_avatar_image.dart';
 import '../profile/online_profile_settings.dart';
 import '../play/animation_lab_screen.dart';
@@ -84,42 +86,20 @@ class _HomeScreenState extends State<HomeScreen> {
       onOnlineProfileChanged: (profile) {
         if (mounted) setState(() => _onlineProfile = profile);
       },
-      controls: (refresh) => [
-        SwitchListTile(
-          title: const Text('Classic chess pieces'),
-          secondary: const Icon(Icons.swap_horiz),
-          value: _classicPieces,
-          onChanged: (value) async {
-            await _changeChessSet(() => _classicPieces = value);
-            refresh();
-          },
-        ),
-        if (_classicPieces)
-          SettingsChoiceTile<ClassicPieceStyle>(
-            title: 'Classic set',
-            icon: Icons.castle_outlined,
-            value: _classicStyle,
-            values: ClassicPieceStyle.values,
-            optionLabel: (style) => style.label,
-            optionDescription: (style) => style.subtitle,
-            onSelected: (value) async {
-              await _changeChessSet(() => _classicStyle = value);
-              refresh();
-            },
-          )
-        else
-          SettingsChoiceTile<PiecePack>(
-            title: 'Themed set',
-            icon: Icons.groups_2_outlined,
-            value: _selected,
-            values: piecePacks,
-            optionLabel: (pack) => pack.name,
-            onSelected: (value) async {
-              await _changeChessSet(() => _selected = value);
-              refresh();
-            },
-          ),
-      ],
+      chessSetSelector: (refresh) => SettingsChessSetPicker(
+        animatedArena: !_classicPieces,
+        pack: _selected,
+        classicStyle: _classicStyle,
+        onSelected: (selection) async {
+          await _changeChessSet(() {
+            _classicPieces = !selection.animatedArena;
+            _selected = selection.pack;
+            _classicStyle = selection.classicStyle;
+          });
+          refresh();
+        },
+      ),
+      controls: (_) => const [],
     );
   }
 
@@ -138,8 +118,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<PiecePack> get _visiblePacks => _themeFilter.custom
       ? const []
       : _themeFilter.group == null
-      ? piecePacks
-      : piecePacks
+      ? availablePiecePacks
+      : availablePiecePacks
             .where((pack) => pack.group == _themeFilter.group)
             .toList(growable: false);
 
@@ -166,13 +146,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openTournaments({bool conquests = false}) async {
+    final customSelected = CustomChessSetScope.maybeOf(context)?.active != null;
+    final classicPieces = !conquests || (!customSelected && _classicPieces);
+    final animatedArena = conquests && !customSelected && !_classicPieces;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: RouteSettings(name: conquests ? '/conquests' : '/tournament'),
         builder: (_) => TournamentsScreen(
           pack: _selected,
           conquests: conquests,
-          initialClassicPieces: _classicPieces,
+          initialClassicPieces: classicPieces,
+          initialAnimatedArena: animatedArena,
           initialClassicStyle: _classicStyle,
         ),
       ),
@@ -185,7 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final saved = await HomeChessSet.load();
       if (!mounted || _selectionRevision != 0) return;
       setState(() {
-        _selected = piecePacks.firstWhere((pack) => pack.id == saved.pack);
+        _selected = availablePiecePacks.firstWhere(
+          (pack) => pack.id == saved.pack,
+          orElse: () => availablePiecePacks.first,
+        );
         _classicPieces = saved.classic;
         _classicStyle = saved.style;
       });
@@ -194,8 +181,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _changeChessSet(VoidCallback change) async {
-    if (!await restoreBuiltInChessSet(context) || !mounted) return;
+  Future<bool> _changeChessSet(
+    VoidCallback change, {
+    bool keepCustomSet = false,
+  }) async {
+    if (!keepCustomSet && !await restoreBuiltInChessSet(context)) return false;
+    if (!mounted) return false;
     final revision = ++_selectionRevision;
     setState(() {
       change();
@@ -219,6 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+    return true;
   }
 
   @override
@@ -434,13 +426,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 5),
-                                  Text(
-                                    progress == null
-                                        ? 'Experience 0 XP  ·  Trophies 0'
-                                        : 'Experience ${progress.experience} XP  ·  Trophies ${progress.trophies}',
+                                  HomeExperienceSummary(
+                                    experience: progress?.experience ?? 0,
+                                    trophies: progress?.trophies ?? 0,
                                     key: const ValueKey('home-avatar-details'),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       color: Theme.of(
                                         context,
@@ -585,21 +574,34 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Align(
               alignment: Alignment.center,
               child: Semantics(
-                label: 'Filter themed chess sets',
+                label: 'Filter animated chess sets',
                 child: DropdownButton<_ThemeFilter>(
                   key: const ValueKey('chess-set-group-filter'),
                   value: visibleFilter,
                   isDense: true,
+                  isExpanded: true,
                   underline: const SizedBox.shrink(),
                   dropdownColor: Theme.of(
                     context,
                   ).colorScheme.surfaceContainerHigh,
                   style: Theme.of(context).textTheme.bodyMedium,
                   items: [
-                    for (final filter in _ThemeFilter.values)
+                    for (final filter in _ThemeFilter.values.where(
+                      (filter) =>
+                          (filter.custom &&
+                              (library?.sets.isNotEmpty ?? false)) ||
+                          (!filter.custom && filter.group == null) ||
+                          availablePiecePacks.any(
+                            (pack) => pack.group == filter.group,
+                          ),
+                    ))
                       DropdownMenuItem(
                         value: filter,
-                        child: Text(filter.label),
+                        child: Text(
+                          filter.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                   onChanged: (filter) async {
@@ -625,41 +627,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-        if (library != null)
+        if (library != null && custom != null)
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  key: const ValueKey('create-custom-theme'),
-                  onPressed: () => _openCustomSetEditor(library, create: true),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Create'),
+                child: FilledButton.tonalIcon(
+                  key: const ValueKey('edit-custom-theme'),
+                  onPressed: () =>
+                      _openCustomSetEditor(library, setId: custom.id),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit'),
                 ),
               ),
-              if (custom != null) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    key: const ValueKey('edit-custom-theme'),
-                    onPressed: () =>
-                        _openCustomSetEditor(library, setId: custom.id),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit'),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey('delete-custom-theme'),
+                  onPressed: () => _deleteCustomSet(library, custom),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Delete'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const ValueKey('delete-custom-theme'),
-                    onPressed: () => _deleteCustomSet(library, custom),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ],
           ),
         if (_selectionError != null)
@@ -674,14 +665,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _openCustomSetEditor(
     CustomChessSets library, {
-    bool create = false,
-    String? setId,
+    required String setId,
   }) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: const RouteSettings(name: '/chess-set-studio/editor'),
-        builder: (_) =>
-            ChessSetStudioScreen(createOnOpen: create, initialSetId: setId),
+        builder: (_) => ChessSetStudioScreen(initialSetId: setId),
       ),
     );
     if (!mounted || library.sets.isEmpty) return;
@@ -765,10 +754,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
               ),
               SizedBox(height: 4),
-              Text(
-                'Create a chess set and it will appear here.',
-                textAlign: TextAlign.center,
-              ),
+              Text('No saved chess sets.', textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -853,18 +839,52 @@ class _HomeScreenState extends State<HomeScreen> {
           accent: accent,
           onTap: () => _openTournaments(conquests: true),
         ),
+        const SizedBox(height: 8),
+        _ModeButton(
+          key: const ValueKey('game-history-button'),
+          icon: Icons.history,
+          title: 'Game history',
+          subtitle: compact ? null : 'Past games & cinematic replays',
+          accent: accent,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              settings: const RouteSettings(name: '/game-history'),
+              builder: (_) => const GameHistoryScreen(),
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Future<void> _promptForSavedGame({PlayerMode? requestedMode}) async {
     if (_savedPromptOpen) return;
+    _savedPromptOpen = true;
+    try {
+      // Recover any retained completion before the resume loader clears it.
+      await GameHistoryStorage().migrateRetainedGames();
+      await _showSavedGamePrompt(requestedMode: requestedMode);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not save this game to history. Please try again.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      _savedPromptOpen = false;
+    }
+  }
+
+  Future<void> _showSavedGamePrompt({PlayerMode? requestedMode}) async {
     final saved = await LastGameStorage.load();
     if (!mounted || saved == null) {
       if (requestedMode != null) await _startNewGame(requestedMode);
       return;
     }
-    _savedPromptOpen = true;
     final choice = await showDialog<_SavedGameChoice>(
       context: context,
       barrierDismissible: false,
@@ -873,7 +893,7 @@ class _HomeScreenState extends State<HomeScreen> {
         content: Text(
           '${saved.mode == PlayerMode.computer ? 'Computer game' : 'Local game'} '
           'with ${saved.moves.length} moves is still open.\n\n'
-          'Starting a new game will permanently delete this saved position.',
+          'Starting a new game replaces this resumable game. Its played moves stay in Game history.',
         ),
         actions: [
           TextButton(
@@ -892,13 +912,16 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
-    _savedPromptOpen = false;
     if (!mounted) return;
     if (choice == _SavedGameChoice.resume) {
       final pack = piecePacks.firstWhere((pack) => pack.id == saved.homePack);
       setState(() {
-        _selected = pack;
-        if (_themeFilter.group != null && pack.group != _themeFilter.group) {
+        _selected = availablePiecePacks.firstWhere(
+          (available) => available.id == pack.id,
+          orElse: () => availablePiecePacks.first,
+        );
+        if (_themeFilter.group != null &&
+            _selected.group != _themeFilter.group) {
           _themeFilter = _ThemeFilter.all;
         }
         _difficulty = saved.difficulty;
@@ -912,19 +935,44 @@ class _HomeScreenState extends State<HomeScreen> {
         savedGame: saved,
       );
     } else if (choice == _SavedGameChoice.newGame) {
-      await LastGameStorage.clear();
+      try {
+        await GameHistoryStorage().save(GameHistoryRecord.fromSavedGame(saved));
+        await LastGameStorage.clear();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Could not save this game to history. Please try again.',
+              ),
+            ),
+          );
+        }
+        return;
+      }
       if (!mounted) return;
       await _startNewGame(requestedMode ?? saved.mode);
     }
   }
 
   Future<void> _startNewGame(PlayerMode mode) async {
+    final pack = _selected;
+    final customSelected = CustomChessSetScope.maybeOf(context)?.active != null;
+    final classicPieces = !customSelected && _classicPieces;
+    final animatedArena = !customSelected && !_classicPieces;
+    final classicStyle = _classicStyle;
     if (mode != PlayerMode.computer) {
-      _pushGame(mode: mode);
+      _pushGame(
+        mode: mode,
+        pack: pack,
+        classicPieces: classicPieces,
+        initialAnimatedArena: animatedArena,
+        classicStyle: classicStyle,
+      );
       return;
     }
     var humanSide = Side.white;
-    var timeControl = GameTimeControl.rapid;
+    var timeControl = GameTimeControl.practice;
     var selectedDifficulty = _difficulty;
     final difficulty = await showDialog<ComputerDifficulty>(
       context: context,
@@ -947,12 +995,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: const InputDecoration(labelText: 'Game clock'),
                 items: const [
                   DropdownMenuItem(
-                    value: GameTimeControl.rapid,
-                    child: Text('Rapid · 15 + 10 sec'),
+                    value: GameTimeControl.practice,
+                    child: Text('Unlimited (No timer limit)'),
                   ),
                   DropdownMenuItem(
-                    value: GameTimeControl.practice,
-                    child: Text('Untimed Practice'),
+                    value: GameTimeControl.rapid,
+                    child: Text('15 min · Rapid'),
                   ),
                 ],
                 onChanged: (value) => update(() => timeControl = value!),
@@ -992,6 +1040,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _pushGame(
       mode: mode,
       difficulty: difficulty,
+      pack: pack,
+      classicPieces: classicPieces,
+      initialAnimatedArena: animatedArena,
+      classicStyle: classicStyle,
       humanSide: humanSide,
       timeControl: timeControl,
     );
@@ -1004,23 +1056,33 @@ class _HomeScreenState extends State<HomeScreen> {
     PiecePack? pack,
     ComputerDifficulty? difficulty,
     SavedGame? savedGame,
+    bool? classicPieces,
+    bool? initialAnimatedArena,
+    ClassicPieceStyle? classicStyle,
     Side humanSide = Side.white,
     GameTimeControl timeControl = GameTimeControl.rapid,
   }) {
+    final selectedPack = pack ?? _selected;
+    final selectedClassicPieces = classicPieces ?? _classicPieces;
+    final selectedClassicStyle = classicStyle ?? _classicStyle;
+    final animatedArena = savedGame == null
+        ? initialAnimatedArena ?? !selectedClassicPieces
+        : savedGame.animatedArena;
     Navigator.of(context).push(
       MaterialPageRoute(
         settings: RouteSettings(
           name: mode == PlayerMode.computer ? '/computer' : '/local',
         ),
         builder: (_) => AnimationLabScreen(
-          pack: pack ?? _selected,
+          pack: selectedPack,
           mode: mode,
           difficulty: difficulty ?? _difficulty,
           savedGame: savedGame,
           humanSide: humanSide,
           timeControl: timeControl,
-          initialClassicPieces: _classicPieces,
-          initialClassicStyle: _classicStyle,
+          initialClassicPieces: selectedClassicPieces,
+          initialClassicStyle: selectedClassicStyle,
+          initialAnimatedArena: animatedArena,
         ),
       ),
     );
@@ -1032,7 +1094,8 @@ class _HomeScreenState extends State<HomeScreen> {
         settings: const RouteSettings(name: '/online'),
         builder: (_) => OnlineLobbyScreen(
           pack: _selected,
-          initialClassicPieces: _classicPieces,
+          initialClassicPieces: true,
+          initialAnimatedArena: false,
           initialClassicStyle: _classicStyle,
         ),
       ),

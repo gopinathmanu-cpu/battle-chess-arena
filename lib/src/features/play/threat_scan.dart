@@ -116,6 +116,7 @@ class ThreatScanControls extends StatelessWidget {
       child: Column(
         children: [
           FilledButton.tonalIcon(
+            style: playAssistButtonStyle,
             key: const ValueKey('analyse-threats'),
             onPressed: scan.active
                 ? scan.stop
@@ -166,6 +167,8 @@ class ThreatScanButton extends StatelessWidget {
         : const ThreatActionIcon(size: 18),
     label: Text(
       scan.active ? 'Stop scan' : 'Threat scan',
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
     ),
   );

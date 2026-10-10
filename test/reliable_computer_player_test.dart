@@ -30,8 +30,65 @@ class StubPlayer implements ComputerPlayer {
   }
 }
 
+class _NoMistakeRandom implements Random {
+  int calls = 0;
+  @override
+  double nextDouble() {
+    calls++;
+    return 0;
+  }
+
+  @override
+  int nextInt(int max) => throw StateError('Assistance randomized a move');
+  @override
+  bool nextBool() => throw StateError('Assistance randomized a move');
+}
+
 void main() {
   const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+  test(
+    'assistance delegates maximum profile without changing later opponent requests',
+    () async {
+      final primary = StubPlayer(() async => 'e7e5');
+      final player = ReliableComputerPlayer(primary: primary);
+      expect(await player.bestAssistanceMove(fen), 'e7e5');
+      expect(primary.lastDifficulty, ComputerDifficulty.hard);
+      expect(primary.lastBotLevel, 20);
+      expect(player.reducedStrength, isFalse);
+      expect(
+        await player.bestMove(fen, difficulty: ComputerDifficulty.easy),
+        'e7e5',
+      );
+      expect(primary.lastDifficulty, ComputerDifficulty.easy);
+      expect(primary.lastBotLevel, isNull);
+      player.dispose();
+    },
+  );
+
+  test(
+    'degraded assistance takes a hanging queen without random mistakes',
+    () async {
+      // Quiet king/pawn alternatives are legal, but capturing the queen should
+      // win material even when randomness would trigger a weaker bot's mistakes.
+      const tactical = '7k/8/8/8/8/3q4/4P3/6K1 w - - 0 1';
+      final position = Chess.fromSetup(Setup.parseFen(tactical));
+      final random = _NoMistakeRandom();
+      final primary = StubPlayer(() async => null);
+      final player = ReliableComputerPlayer(primary: primary, random: random);
+      final move = await player.bestAssistanceMove(tactical);
+      expect(move, 'e2d3');
+      final parsed = Move.parse(move!)!;
+      expect(position.isLegal(parsed), isTrue);
+      expect(position.play(parsed).board.pieceAt(Square.d3), Piece.whitePawn);
+      expect(player.reducedStrength, isTrue);
+      expect(primary.disposed, isTrue);
+      expect(random.calls, 1);
+      expect(await player.bestAssistanceMove(tactical), move);
+      expect(primary.calls, 1);
+      expect(random.calls, 2);
+      player.dispose();
+    },
+  );
   test('fixed bot level reaches the native engine', () async {
     final primary = StubPlayer(() async => 'e7e5');
     final player = ReliableComputerPlayer(primary: primary);

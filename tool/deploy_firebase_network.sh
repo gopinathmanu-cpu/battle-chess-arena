@@ -73,7 +73,7 @@ gcloud run deploy "$service_name" \
   --max-instances 1 \
   --session-affinity \
   --service-account "$runtime_service_account" \
-  --set-env-vars "FIRESTORE_PROJECT_ID=$firebase_project_id,FIRESTORE_DATABASE=(default)"
+  --update-env-vars "FIRESTORE_PROJECT_ID=$firebase_project_id,FIRESTORE_DATABASE=(default)"
 
 service_url="$(
   gcloud run services describe "$service_name" \

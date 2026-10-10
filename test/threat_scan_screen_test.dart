@@ -3,6 +3,7 @@ import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/online/online_game_screen.dart';
 import 'package:battle_chess_arena/src/features/play/animation_lab_screen.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
+import 'package:battle_chess_arena/src/features/play/neon_live_game_layout.dart';
 import 'package:battle_chess_arena/src/services/computer_player.dart';
 import 'package:battle_chess_arena/src/services/last_game_storage.dart';
 import 'package:battle_chess_arena/src/services/online_match_client.dart';
@@ -54,17 +55,10 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   Future<void> scan(WidgetTester tester) async {
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('analyse-threats')),
-      150,
-      scrollable: find
-          .descendant(
-            of: find.byType(ListView).first,
-            matching: find.byType(Scrollable),
-          )
-          .first,
+    expect(
+      find.byKey(const ValueKey('analyse-threats')).hitTestable(),
+      findsOneWidget,
     );
-    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('analyse-threats')));
     await tester.pump();
     await tester.pump();
@@ -90,12 +84,15 @@ void main() {
       );
       await tester.pump();
       final threatButton = find.byKey(const ValueKey('analyse-threats'));
-      await tester.scrollUntilVisible(
-        threatButton,
-        150,
-        scrollable: find.byType(Scrollable).first,
+      expect(threatButton.hitTestable(), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('use-computer-lifeline')).hitTestable(),
+        findsOneWidget,
       );
-      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(threatButton).top,
+        greaterThanOrEqualTo(tester.getRect(find.byType(ChessBoard)).bottom),
+      );
       final beforeThreat = tester.getTopLeft(find.byType(ChessBoard));
       await tester.tap(threatButton);
       await tester.pump();
@@ -128,7 +125,7 @@ void main() {
       );
       final originalFen = board(tester).position.fen;
       final startClock = tester
-          .widget<MatchHeader>(find.byType(MatchHeader))
+          .widget<NeonLiveStatusBar>(find.byType(NeonLiveStatusBar))
           .whiteTime;
       await scan(tester);
       expect(board(tester).threatFrom, Square.d5);
@@ -140,18 +137,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 2500));
       expect(board(tester).threatFrom, Square.d6);
       expect(board(tester).threatTarget, Square.h2);
-      await tester.scrollUntilVisible(
-        find.byType(MatchHeader),
-        -150,
-        scrollable: find
-            .descendant(
-              of: find.byType(ListView).first,
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
       expect(
-        tester.widget<MatchHeader>(find.byType(MatchHeader)).whiteTime,
+        tester
+            .widget<NeonLiveStatusBar>(find.byType(NeonLiveStatusBar))
+            .whiteTime,
         startClock - const Duration(seconds: 3),
       );
       await tester.pump(const Duration(seconds: 3));
@@ -210,7 +199,7 @@ void main() {
       final game = GameSession.fromMoves(moves: ['e2e4', 'd7d5', 'b1c3']);
       channel.seat(
         seat: 'b',
-        state: stateJson(game: game),
+        state: stateJson(game: game, whiteComputer: true),
       );
       await tester.pump();
       await tester.pumpWidget(
@@ -233,7 +222,7 @@ void main() {
       game.playUci('g8f6');
       channel.receive({
         'type': 'game_state',
-        'state': stateJson(game: game, sequence: 2),
+        'state': stateJson(game: game, sequence: 2, whiteComputer: true),
       });
       await tester.pump();
       expect(board(tester).threatFrom, isNull);
@@ -246,7 +235,7 @@ void main() {
       game.playUci('g1f3');
       channel.receive({
         'type': 'game_state',
-        'state': stateJson(game: game, sequence: 3),
+        'state': stateJson(game: game, sequence: 3, whiteComputer: true),
       });
       await tester.pump();
       await scan(tester);

@@ -37,6 +37,62 @@ class FakeEngine implements Stockfish {
 
 void main() {
   testWidgets(
+    'assistance removes a prior Elo cap and requests full strongest search',
+    (tester) async {
+      final engine = FakeEngine();
+      final player = StockfishComputerPlayer(engineFactory: () async => engine);
+      final medium = player.bestMove('test-fen');
+      await tester.pump();
+      engine.output.add('readyok');
+      await tester.pump();
+      expect(engine.commands, contains('setoption name UCI_Elo value 1400'));
+      engine.output.add('bestmove e7e5');
+      await tester.pump();
+      expect(await medium, 'e7e5');
+
+      final start = engine.commands.length;
+      final assisted = player.bestAssistanceMove('assisted-fen');
+      await tester.pump();
+      engine.output.add('readyok');
+      await tester.pump();
+      expect(engine.commands.skip(start).toList(), [
+        'isready',
+        'setoption name UCI_LimitStrength value false',
+        'setoption name Skill Level value 20',
+        'ucinewgame',
+        'position fen assisted-fen',
+        'go depth 18 movetime 2625',
+      ]);
+      engine.output.add('bestmove g1f3');
+      await tester.pump();
+      expect(await assisted, 'g1f3');
+
+      // Assistance must not leave the ordinary opponent at maximum strength.
+      final next = engine.commands.length;
+      final easy = player.bestMove(
+        'opponent-fen',
+        difficulty: ComputerDifficulty.easy,
+      );
+      await tester.pump();
+      engine.output.add('readyok');
+      await tester.pump();
+      expect(engine.commands.skip(next).toList(), [
+        'isready',
+        'setoption name UCI_LimitStrength value false',
+        'setoption name Skill Level value 0',
+        'ucinewgame',
+        'position fen opponent-fen',
+        'go depth 2 movetime 250',
+      ]);
+      engine.output.add('bestmove e7e5');
+      await tester.pump();
+      expect(await easy, 'e7e5');
+      player.dispose();
+      await engine.output.close();
+    },
+  );
+
+  testWidgets(
     'all fixed bot levels override user difficulty and disable Elo caps',
     (tester) async {
       final engine = FakeEngine();

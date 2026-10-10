@@ -66,8 +66,10 @@ class _FamilyCard extends StatelessWidget {
     // active app palette. Chess-set accents belong to the board artwork.
     final accent = colors.primary;
     final surface = colors.surfaceContainer;
-    final title = classic ? 'Classic' : 'Themed';
-    final count = classic ? ClassicPieceStyle.values.length : piecePacks.length;
+    final title = classic ? 'Classic' : 'Animated';
+    final count = classic
+        ? ClassicPieceStyle.values.length
+        : availablePiecePacks.length;
     return Semantics(
       button: true,
       selected: selected,
@@ -112,16 +114,20 @@ class _FamilyCard extends StatelessWidget {
               child: Stack(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 14,
+                    // Give the Animated cast more of the existing card without
+                    // moving its label or increasing the normal card height.
+                    padding: EdgeInsets.fromLTRB(
+                      classic ? 8 : 0,
+                      classic ? 14 : 10,
+                      8,
+                      classic ? 14 : 10,
                     ),
                     child: Row(
                       children: [
                         ExcludeSemantics(
                           child: Container(
-                            width: 52,
-                            height: 56,
+                            width: classic ? 52 : 64,
+                            height: classic ? 56 : 64,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               gradient: RadialGradient(
@@ -143,7 +149,7 @@ class _FamilyCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 5),
+                        SizedBox(width: classic ? 5 : 1),
                         Expanded(
                           child: ExcludeSemantics(
                             child: Column(

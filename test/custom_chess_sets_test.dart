@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:battle_chess_arena/src/domain/custom_chess_set.dart';
+import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/services/custom_chess_sets.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/widgets.dart';
@@ -105,7 +106,15 @@ void main() {
         expect(designs[Role.pawn]!.weapon, 2);
         for (final role in Role.values) {
           expect(designs[role]!.costume, side == Side.white ? 0 : 1);
-          expect(restoredMissing.designFor(side, role), designs[role]);
+          expect(
+            designs[role]!.formationPack,
+            side == Side.white ? PiecePackId.anime : PiecePackId.indianEpic,
+          );
+          expect(restoredMissing.designFor(side, role).formationPack, isNull);
+          expect(
+            restoredMissing.designFor(side, role).costume,
+            side == Side.white ? 0 : 1,
+          );
         }
       }
     },
@@ -162,7 +171,9 @@ void main() {
       expect(set.designFor(Side.white, Role.knight).horse, 3);
       expect(
         set.designFor(Side.black, Role.king),
-        defaults.designFor(Side.black, Role.king),
+        CustomChessSet.fromJson({
+          'id': 'legacy-safe',
+        }).designFor(Side.black, Role.king),
       );
       expect(set.pieces.length, 12);
       expect(CustomChessSet.fromJson([]).id, '');

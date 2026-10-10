@@ -33,12 +33,13 @@ export function createMatchServer({
   now = Date.now,
   random = Math.random,
   toss = () => randomInt(2) === 0 ? 'w' : 'b',
-  computerThinkMs = 450,
+  computerThinkMs = 2000,
   inviteNow = Date.now,
   creditNow = Date.now,
   stateStore = null,
   initialState = null,
   securityLimits = {},
+  pushSender = null,
 } = {}) {
   const limits = Object.freeze({
     maxConnections: securityLimits.maxConnections ?? 100,
@@ -52,7 +53,8 @@ export function createMatchServer({
     invalidMessagesPerConnection:
       securityLimits.invalidMessagesPerConnection ?? 5,
   });
-  const capabilities = ['available_players', 'color_toss', 'shared_invites', 'custom_avatars', 'invite_clocks', 'credits',
+  const capabilities = ['available_players', 'color_toss', 'shared_invites', 'custom_avatars', 'invite_clocks', 'credits', 'game_activity',
+    ...(pushSender ? ['game_push'] : []),
     ...(stateStore ? ['daily_games'] : [])];
   const startedAt = Date.now();
   const games = new Map();
@@ -63,11 +65,14 @@ export function createMatchServer({
   const invites = new Map();
   const sharedInvites = new SharedInvites({ now: inviteNow });
   const computerTimers = new Map();
+  const pushEvents = new Map();
   const connectionsByIp = new Map();
   const connectionAttempts = new Map();
   const profileCreations = new Map();
   const durable = { games, profiles, invites, sharedInvites, awardedResults };
   restoreCheckpoint(initialState, durable, { creditNow });
+  const activityPositions = new Map([...games.values()].map(game =>
+    [game.id, { round: game.round, ply: game.chess.history().length, status: game.status }]));
   let persistenceFailed = false;
   let closing = false;
   let outbox = null;
@@ -268,13 +273,14 @@ export function createMatchServer({
     };
     publishCreditChanges(changes);
     publishInvite(invite);
+    publishGameActivity(match, match.snapshot(now()), 'opponent_joined');
     return true;
   };
   const activateDueInvites = () => {
     const wallTime = Date.now();
     for (const invite of invites.values()) {
       if (
-        invite.status === "accepted" &&
+        ["accepted", "credit_required"].includes(invite.status) &&
         !invite.game &&
         (invite.scheduledAt === null || invite.scheduledAt <= wallTime)
       ) {
@@ -305,22 +311,82 @@ export function createMatchServer({
       sendToPlayer(invite.owner.id, 'shared_invite_updated', () => ({ invite: sharedInvites.public(invite) }));
     }
   };
+  const pushGameEvent = (game, state, kind) => {
+    if (!pushSender || !['move', 'opponent_joined'].includes(kind)) return;
+    for (const side of ['w', 'b']) {
+      const player = game.players[side];
+      if (!player || player.computer) continue;
+      const opponent = game.players[side === 'w' ? 'b' : 'w'];
+      if (!opponent) continue;
+      const lastMover = state.san.length % 2 === 1 ? 'w' : 'b';
+      if (kind !== 'opponent_joined' && (state.san.length === 0 || lastMover === side)) continue;
+      const eventKey = `${game.round}:${state.san.length}:${kind}`;
+      const body = kind === 'opponent_joined'
+        ? `${opponent.name} joined. Your game is ready.`
+        : `${opponent.name} played ${state.san.at(-1)}.${state.status === 'complete' ? ' Game complete.' : ' It’s your turn.'}`;
+      for (const [deviceId, device] of Object.entries(player.pushDevices ?? {})) {
+        if (!device.enabled) continue;
+        // Match/account socket activity is ephemeral, so closed apps cannot leave
+        // a stale persisted "active" flag that suppresses future notifications.
+        if ([...peers.values()].some(peer => peer.player?.id === player.id &&
+            peer.pushDeviceId === deviceId && peer.pushActive)) continue;
+        const key = `${game.id}:${deviceId}`;
+        if (pushEvents.get(key) === eventKey) continue;
+        pushEvents.set(key, eventKey);
+        const deliver = () => Promise.resolve().then(() => pushSender.send({ token: device.token,
+          gameId: game.id, title: 'Battle Chess Arena', body })).catch(() => {
+          if (pushEvents.get(key) === eventKey) pushEvents.delete(key);
+        });
+        if (outbox) outbox.push(deliver); else void deliver();
+      }
+    }
+  };
+  const publishGameActivity = (game, state, kind = 'updated') => {
+    const previous = activityPositions.get(game.id);
+    if (kind === 'updated') {
+      if ((previous?.status === 'waiting' || !previous) && state.status === 'active' && state.san.length === 0) {
+        kind = 'opponent_joined';
+      } else if (state.san.length > (previous?.ply ?? 0) &&
+          (!previous || previous.round === state.round)) kind = 'move';
+    }
+    activityPositions.set(game.id, { round: state.round, ply: state.san.length, status: state.status });
+    pushGameEvent(game, state, kind);
+    for (const side of ['w', 'b']) {
+      const player = game.players[side];
+      if (!player || player.computer) continue;
+      sendToPlayer(player.id, 'game_activity', () => ({
+        kind,
+        game: { gameId: game.id, seat: side, seatToken: game.tokens[side], state },
+      }));
+    }
+  };
   const broadcast = (gameId, state) => {
     for (const [socket, peer] of peers) {
       if (peer.gameId === gameId) send(socket, "game_state", { state });
     }
+    const game = games.get(gameId);
+    if (game) publishGameActivity(game, state);
   };
   const scheduleComputerMove = (game) => {
-    if (
-      closing ||
-      game.status !== "active" ||
-      game.players[game.chess.turn()]?.computer !== true ||
-      computerTimers.has(game.id)
-    ) return;
-    const timer = setTimeout(() => serialize(() => {
+    const eligible = !closing && game.status === "active" &&
+      game.players[game.chess.turn()]?.computer === true;
+    const fen = game.chess.fen();
+    const pending = computerTimers.get(game.id);
+    if (pending && (!eligible || pending.round !== game.round || pending.fen !== fen)) {
+      clearTimeout(pending.timer);
+      computerTimers.delete(game.id);
+    }
+    if (!eligible || computerTimers.has(game.id)) return;
+    // A rematch must receive its own full delay, even when the previous round's
+    // reply is waiting behind a durable save or has not fired yet.
+    const reply = { round: game.round, fen, timer: null };
+    reply.timer = setTimeout(() => serialize(() => {
+      if (computerTimers.get(game.id) !== reply) return;
       computerTimers.delete(game.id);
       const side = game.chess.turn();
-      if (game.status !== "active" || game.players[side]?.computer !== true) return;
+      if (closing || games.get(game.id) !== game ||
+          game.status !== "active" || game.players[side]?.computer !== true ||
+          game.round !== reply.round || game.chess.fen() !== reply.fen) return;
       const move = chooseComputerMove(game.chess, game.players[side], random);
       if (!move) return;
       game.play(game.tokens[side], {
@@ -331,8 +397,8 @@ export function createMatchServer({
       awardCompletedRound(game);
       broadcast(game.id, game.snapshot(now()));
     }), computerThinkMs);
-    timer.unref?.();
-    computerTimers.set(game.id, timer);
+    reply.timer.unref?.();
+    computerTimers.set(game.id, reply);
   };
   const awardCompletedRound = (game) => {
     if (game.status !== "complete") return;
@@ -672,6 +738,7 @@ export function createMatchServer({
             invite.status = 'accepted';
             publishCreditChanges(changes);
             sendToPlayer(invite.owner.id, 'shared_invite_updated', () => ({ invite: sharedInvites.public(invite) }));
+            publishGameActivity(match, match.snapshot(now()), 'opponent_joined');
           }
           const match = invite.match;
           if (!match.hasPlayer(peer.player.id))
@@ -791,6 +858,28 @@ export function createMatchServer({
             };
           });
           send(socket, "presence", { statuses });
+          return;
+        }
+        if (message.type === 'set_push_device') {
+          // One installation belongs to the account currently signed in on it.
+          for (const profile of profiles.values()) {
+            if (profile.id === peer.player.id) continue;
+            for (const [id, device] of Object.entries(profile.pushDevices ?? {})) {
+              if (device.token === message.token) delete profile.pushDevices[id];
+            }
+          }
+          const devices = peer.player.pushDevices ??= {};
+          // A refreshed token identifies one installation; bound retained devices.
+          for (const [id, device] of Object.entries(devices)) {
+            if (id !== message.deviceId && device.token === message.token) delete devices[id];
+          }
+          if (!devices[message.deviceId] && Object.keys(devices).length >= 10) {
+            delete devices[Object.keys(devices)[0]];
+          }
+          devices[message.deviceId] = { token: message.token, enabled: message.enabled };
+          peer.pushDeviceId = message.deviceId;
+          peer.pushActive = message.active;
+          send(socket, 'push_device_saved', { enabled: message.enabled });
           return;
         }
         if (message.type === "send_invite") {
@@ -1085,11 +1174,18 @@ export function createMatchServer({
             game = games.get(message.gameId);
             if (!game)
               throw new MatchError("GAME_NOT_FOUND", "Game does not exist");
-            if (game.hasPlayer(peer.player.id))
-              throw new MatchError(
-                "SELF_MATCH",
-                "You cannot join your own game",
-              );
+            if (game.hasPlayer(peer.player.id)) {
+              // Notification links reopen the authenticated owner's existing seat.
+              const side = game.players.w?.id === peer.player.id ? 'w' : 'b';
+              peer.gameId = game.id;
+              peer.token = game.tokens[side];
+              const payload = { commandId: message.commandId, gameId: game.id,
+                seat: side, seatToken: peer.token, state: game.snapshot(now()),
+                ...creditFields(peer.player) };
+              peer.setupReceipts.set(message.commandId, { fingerprint, type: 'seat_resumed', payload });
+              send(socket, 'seat_resumed', payload);
+              return;
+            }
             if (
               [...games.values()].some(
                 (match) =>
@@ -1453,8 +1549,8 @@ export function createMatchServer({
     async close() {
       closing = true;
       clearInterval(timer);
-      for (const computerTimer of computerTimers.values())
-        clearTimeout(computerTimer);
+      for (const computerReply of computerTimers.values())
+        clearTimeout(computerReply.timer);
       await work;
       for (const socket of server.clients) socket.terminate();
       await new Promise((resolve, reject) =>

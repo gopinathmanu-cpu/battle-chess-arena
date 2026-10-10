@@ -5,6 +5,7 @@ import 'package:battle_chess_arena/src/features/play/animation_lab_screen.dart';
 import 'package:battle_chess_arena/src/features/play/board_appearance.dart';
 import 'package:battle_chess_arena/src/features/play/captured_pieces_panel.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
+import 'package:battle_chess_arena/src/features/play/neon_live_game_layout.dart';
 import 'package:battle_chess_arena/src/features/settings/game_settings_sheet.dart';
 import 'package:battle_chess_arena/src/services/computer_player.dart';
 import 'package:battle_chess_arena/src/services/game_display_settings.dart';
@@ -17,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/game_settings.dart';
+import 'support/piece_choice.dart';
 import 'theme_music_test.dart' show FakeMusicOutput;
 import 'support/online_fixtures.dart';
 
@@ -34,6 +36,17 @@ const saved = SavedGame(
   boardPack: PiecePackId.anime,
   updatedAtEpochMs: 1,
 );
+
+Future<void> _tapHeader(WidgetTester tester, String tooltip) async {
+  final icon = find.byTooltip(tooltip);
+  await tester.ensureVisible(icon);
+  await tester.tap(icon);
+}
+
+Future<void> _openSettings(WidgetTester tester, {Finder? target}) async {
+  await tester.ensureVisible(find.byTooltip('Game settings'));
+  await openGameSettings(tester, target: target);
+}
 
 void main() {
   setUp(() {
@@ -60,18 +73,18 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byTooltip('Mute music'), findsOneWidget);
-      await tester.tap(find.byTooltip('Mute music'));
+      await _tapHeader(tester, 'Mute music');
       await tester.pump();
       expect(music.muted, isTrue);
       expect(find.byTooltip('Unmute music'), findsOneWidget);
-      await tester.tap(find.byTooltip('Unmute music'));
+      await _tapHeader(tester, 'Unmute music');
       await tester.pump();
       expect(music.muted, isFalse);
       final fen = tester
           .widget<ChessBoard>(find.byType(ChessBoard))
           .position
           .fen;
-      await openGameSettings(
+      await _openSettings(
         tester,
         target: find.byKey(const ValueKey('background-music-theme')),
       );
@@ -162,13 +175,15 @@ void main() {
       );
       expect(takenBlack.pack.id, PiecePackId.greek);
 
-      await openGameSettings(tester);
+      await _openSettings(tester);
       final clock = tester
-          .widget<MatchHeader>(find.byType(MatchHeader))
+          .widget<NeonLiveStatusBar>(find.byType(NeonLiveStatusBar))
           .whiteTime;
       await tester.pump(const Duration(seconds: 3));
       expect(
-        tester.widget<MatchHeader>(find.byType(MatchHeader)).whiteTime,
+        tester
+            .widget<NeonLiveStatusBar>(find.byType(NeonLiveStatusBar))
+            .whiteTime,
         clock - const Duration(seconds: 3),
       );
       await tester.scrollUntilVisible(
@@ -201,9 +216,9 @@ void main() {
       );
       expect(tester.getRect(find.byType(ChessBoard)), boardRect);
 
-      await tester.tap(find.byTooltip('Hide top bar'));
+      await _tapHeader(tester, 'Hide top bar');
       await tester.pumpAndSettle();
-      await openGameSettings(tester);
+      await _openSettings(tester);
       await tester.tap(
         find.byKey(const ValueKey('show-captured-pieces-toggle')),
       );
@@ -217,9 +232,9 @@ void main() {
             .length,
         2,
       );
-      await tester.tap(find.byTooltip('Show top bar'));
+      await _tapHeader(tester, 'Show top bar');
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Undo'));
+      await _tapHeader(tester, 'Undo');
       await tester.pump();
       expect(
         tester
@@ -245,7 +260,7 @@ void main() {
         .widget<ChessBoard>(find.byType(ChessBoard))
         .appearance!;
 
-    await openGameSettings(
+    await _openSettings(
       tester,
       target: find.byKey(const ValueKey('choose-board-colors')),
     );
@@ -274,12 +289,18 @@ void main() {
     expect(appearance.white.id, original.white.id);
     expect(appearance.black.id, original.black.id);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('quick-board-color-toggle')),
+    );
     await tester.tap(find.byKey(const ValueKey('quick-board-color-toggle')));
     await tester.pumpAndSettle();
     appearance = tester.widget<ChessBoard>(find.byType(ChessBoard)).appearance!;
     expect(appearance.lightSquare, original.lightSquare);
     expect(appearance.darkSquare, original.darkSquare);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('quick-board-color-toggle')),
+    );
     await tester.tap(find.byKey(const ValueKey('quick-board-color-toggle')));
     await tester.pumpAndSettle();
     appearance = tester.widget<ChessBoard>(find.byType(ChessBoard)).appearance!;
@@ -323,13 +344,23 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(CapturedPiecesPanel), findsNothing);
       final sentCount = channel.sent.length;
-      await openGameSettings(tester);
+      await _openSettings(tester);
       await tester.tap(
         find.byKey(const ValueKey('show-captured-pieces-toggle')),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Close settings'));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byType(CapturedPiecesPanel),
+        140,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('portrait-online-match-scroll')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       final panel = tester.widget<CapturedPiecesPanel>(
         find.byType(CapturedPiecesPanel),
       );
@@ -343,9 +374,12 @@ void main() {
       expect(game.playUci('d5d2'), isNotNull);
       channel.receive({
         'type': 'game_state',
+        'synced': true,
         'state': stateJson(game: game, sequence: 6),
       });
-      await tester.pumpAndSettle();
+      // d5d2 checks the king, whose check pulse deliberately keeps animating.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(
         tester
             .widget<CapturedPiecesPanel>(find.byType(CapturedPiecesPanel))
@@ -358,6 +392,17 @@ void main() {
         'state': stateJson(round: 2, sequence: 7),
       });
       await tester.pumpAndSettle();
+      await chooseGamePieces(tester);
+      await tester.scrollUntilVisible(
+        find.byType(CapturedPiecesPanel),
+        140,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('portrait-online-match-scroll')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       expect(
         tester
             .widget<CapturedPiecesPanel>(find.byType(CapturedPiecesPanel))
@@ -367,7 +412,7 @@ void main() {
       expect(tester.takeException(), isNull);
       final beforeReset = client.state!.fen;
       final beforeResetMessages = channel.sent.length;
-      await openGameSettings(
+      await _openSettings(
         tester,
         target: find.byKey(const ValueKey('reset-settings')),
       );
@@ -422,7 +467,7 @@ void main() {
           ),
         ),
       );
-      await openGameSettings(tester, target: find.text('Setting 4'));
+      await _openSettings(tester, target: find.text('Setting 4'));
       expect(
         find.text('Setting 4').hitTestable(),
         findsOneWidget,

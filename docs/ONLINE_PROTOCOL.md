@@ -127,7 +127,7 @@ Before creating, joining, resuming, or listing games, send:
 {"type":"register_player","commandId":"profile-1","name":"Nova Knight","avatarId":"avatar-17","level":"intermediate"}
 ```
 
-Avatar IDs contain 3–20 ASCII letters, numbers, spaces, underscores, or hyphens and
+Avatar IDs contain 3–20 printable ASCII keyboard characters (including @, # and other punctuation) and
 are unique after trimming, whitespace folding, and case normalization. The
 server returns `player_registered` with a private `playerToken`. Save this token
 and include it in later registrations to reclaim the same name. Never display or
@@ -289,19 +289,19 @@ action receipts may include `credits`, `bonusCredits`, `purchasedCredits`, and
 entries, and the same policy. Clients display these fields but never submit a
 balance, grant, charge, refund, or purchase result.
 
-The launch policy charges once per activated round: two credits per player for
-a live human game, three for a Daily human game, and four for the human in a
-server-computer game. Waiting rooms, cancelled searches, invitations,
-reconnection, resume and synchronization do not deduct credits. Rematches use a
-new game-round transaction ID and are charged once when the next round starts.
-Each accepted online `use_lifeline` Move suggestion costs one credit under its
-own command-derived idempotency key; duplicate, invalid, or wrong-turn suggestion
-commands are free. An unfunded request is rejected before its suggestion counter
-changes with `INSUFFICIENT_CREDITS` and “You need 1 Arena Credit for an online
-move suggestion.” On-device suggestions outside online play remain free. An
-insufficient balance also rejects round activation with `INSUFFICIENT_CREDITS`;
-it never interrupts a round that is already active. A due scheduled invitation
-can use `credit_required` until both players can fund it.
+All games and rematches are free. The round-cost fields remain in the protocol
+for compatibility and are zero for live human, Daily human and server-computer
+rounds. Round creation and activation append no spending transactions and do not
+require a credit balance. Legacy `credit_required` scheduled invitations can
+activate under the free-game policy.
+
+Only an accepted, nonduplicate `use_lifeline` Suggest Move request costs one
+credit, using its command-derived idempotency key. Invalid, duplicate, stale or
+wrong-turn requests are free. An unfunded suggestion is rejected with
+`INSUFFICIENT_CREDITS` before its counter changes. Suggestions are unavailable
+against real players. On-device suggestions also cost one credit only after a
+valid result is produced. Auto-play, retries, threat scans and normal moves are
+free.
 
 New and migrated beta profiles receive one idempotent 300-credit welcome grant.
 On later UTC days, registration can receive a Top-up of up to three bonus credits without

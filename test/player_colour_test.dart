@@ -2,12 +2,14 @@ import 'package:battle_chess_arena/src/domain/game_session.dart';
 import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/play/animation_lab_screen.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
+import 'package:battle_chess_arena/src/features/play/neon_live_game_layout.dart';
 import 'package:battle_chess_arena/src/services/computer_player.dart';
 import 'package:battle_chess_arena/src/services/last_game_storage.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'support/piece_choice.dart';
 
 class WhiteComputer implements ComputerPlayer {
   final turns = <Side>[];
@@ -93,11 +95,26 @@ void main() {
           )
           .onPressed!();
       await tester.pump();
-      expect(board().selected, Square.e7);
+      expect(board().suggestedFrom, Square.e7);
+      expect(board().suggestedTo, Square.e5);
+      board().onSquareTap(Square.e7);
+      await tester.pump();
       board().onSquareTap(Square.e5);
+      await tester.pump();
+      expect(board().position.turn, Side.white);
+      for (
+        var frame = 0;
+        board().position.turn != Side.black && frame < 120;
+        frame++
+      ) {
+        // Finish the Animated move, reply pause, and source preview first.
+        await tester.pump(const Duration(milliseconds: 50));
+      }
       await tester.pumpAndSettle();
       expect(board().position.turn, Side.black);
       expect(computer.turns, [Side.white, Side.black, Side.white]);
+      await tester.ensureVisible(find.byTooltip('Undo'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Undo'));
       await tester.pumpAndSettle();
       expect(board().position.board.pieceAt(Square.e7)?.role, Role.pawn);
@@ -120,6 +137,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(board().orientation, Side.black);
       expect(resumed.turns, isEmpty);
+      await tester.ensureVisible(find.byTooltip('Game settings'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Game settings'));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
@@ -132,6 +151,7 @@ void main() {
       );
       await tester.tap(find.text('New game'));
       await tester.pumpAndSettle();
+      expect(find.text('Unlimited (No timer limit)'), findsOneWidget);
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
@@ -139,10 +159,15 @@ void main() {
         ),
       );
       await tester.tap(find.text('New Game'));
+      await chooseGamePieces(tester);
       await tester.pumpAndSettle();
       expect(board().orientation, Side.white);
       expect(board().position.turn, Side.white);
       expect(resumed.turns, isEmpty);
+      expect(
+        tester.widget<NeonLiveStatusBar>(find.byType(NeonLiveStatusBar)).timed,
+        isFalse,
+      );
       await tester.pumpWidget(const SizedBox());
     },
   );

@@ -50,8 +50,8 @@ String normalizedAvatarName(String value) =>
 
 String? avatarNameValidationError(String value) {
   final name = normalizedAvatarName(value);
-  if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$').hasMatch(name)) {
-    return 'Use 3–20 letters, numbers, spaces, _ or -';
+  if (!RegExp(r'^[\x20-\x7E]{3,20}(?![\s\S])').hasMatch(name)) {
+    return 'Use 3–20 standard keyboard characters';
   }
   if (_containsAbusiveAvatarNameTerm(name)) {
     return 'Choose a respectful Avatar ID without abusive or offensive words';

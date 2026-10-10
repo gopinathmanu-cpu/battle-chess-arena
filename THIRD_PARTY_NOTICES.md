@@ -28,6 +28,12 @@ trademark or franchise rights, or resolve these input-origin questions.
 The original Manga Vanguard pawn-duel asset is also distributed under
 GPL-3.0-or-later. Its generation record is stored beside the image.
 
+The three additional Animated worlds use original project-directed battlefield
+and full-body character artwork, with built-in generation prompts recorded in
+`docs/ANIMATED_ARMIES_ART_PROMPTS.json`. Their original synthesized film scores
+and source generator are described in `docs/ANIMATED_ARMIES_ARTWORK.md` and are
+distributed under GPL-3.0-or-later alongside the app.
+
 The modular Chess Set Studio illustrations are original project-directed assets
 distributed under GPL-3.0-or-later. Their generation prompts and local preparation
 record are in `assets/custom_sets/modular-parts.asset.md`.
@@ -44,6 +50,12 @@ informs clothing descriptions; external museum/stock images are not included.
 See `docs/ARTWORK_PROVENANCE.md` for the release-review safeguards. GPL notices
 apply only to rights the project can grant; generation is not a warranty of
 non-infringement or a claim of exclusive copyright in AI-generated elements.
+
+Neon Dominion's live ready/attack companion atlases are original project-directed
+assets made with the built-in image-generation tool. Existing cast references,
+exact prompts, unchanged alpha and renderer preparation are recorded in
+`docs/NEON_LIVE_POSE_ARTWORK.md` and `docs/NEON_LIVE_POSE_PROMPTS.json`.
+They add no runtime dependency, external character pack or voice recording.
 
 ## Milestone 4 resolved dependencies and generated runners
 

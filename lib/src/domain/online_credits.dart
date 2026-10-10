@@ -120,9 +120,9 @@ const defaultOnlineCreditPolicy = OnlineCreditPolicy(
   lowBalanceRecoveryThreshold: 2,
   lowBalanceRecoveryTarget: 5,
   lowBalanceRecoveryCooldownHours: 24,
-  liveHumanRoundCost: 2,
-  dailyHumanRoundCost: 3,
-  computerRoundCost: 4,
+  liveHumanRoundCost: 0,
+  dailyHumanRoundCost: 0,
+  computerRoundCost: 0,
   onlineMoveSuggestionCost: 1,
 );
 

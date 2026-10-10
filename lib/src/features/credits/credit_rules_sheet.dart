@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'package:flutter/material.dart';
 
-import '../../domain/bot_tournament.dart';
 import '../../domain/online_credits.dart';
 import '../../domain/player_progress.dart';
 import '../../services/arena_credit_controller.dart';
@@ -53,7 +52,7 @@ Future<void> showCreditRulesSheet(BuildContext context) {
             icon: Icons.check_circle_outline,
             title: 'Core chess stays free',
             body:
-                'Local multiplayer, home-screen Play Computer, themes, boards, avatars, notifications, reconnecting and resuming never cost credits.',
+                'All games, rematches, tournament and Conquest retries, auto-play, threat scans, themes, boards and avatars are free. Only Suggest Move uses credits.',
           ),
           const _RuleTile(
             icon: Icons.visibility_outlined,
@@ -63,20 +62,11 @@ Future<void> showCreditRulesSheet(BuildContext context) {
           ),
           const SizedBox(height: 14),
           const _RuleHeading('USES CREDITS'),
-          _PriceTile('Live online round', policy.liveHumanRoundCost),
-          _PriceTile('Daily online round', policy.dailyHumanRoundCost),
-          _PriceTile('Server-computer round', policy.computerRoundCost),
           _PriceTile(
             'Move suggestion',
             policy.onlineMoveSuggestionCost,
             note:
                 'Available in computer/practice play only; never in a real-player online game.',
-          ),
-          const _PriceTile(
-            'Immediate tournament or Conquest retry',
-            tournamentImmediateRetryCost,
-            note:
-                'Optional. Wait 15 minutes to retry free. Earlier victories and conquered realms stay safe.',
           ),
           const SizedBox(height: 14),
           const _RuleHeading('EARN CREDITS'),

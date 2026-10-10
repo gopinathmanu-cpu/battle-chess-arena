@@ -13,11 +13,9 @@ import '../../domain/game_time_control.dart';
 import '../../domain/online_player_profile.dart';
 import '../../domain/piece_pack.dart';
 import '../../services/computer_player.dart';
-import '../../services/arena_credit_controller.dart';
 import '../../services/theme_music.dart';
 import '../../services/tournament_storage.dart';
 import '../online/online_avatar_image.dart';
-import '../credits/credit_balance_chip.dart';
 import '../play/animation_lab_screen.dart';
 import '../play/board_appearance.dart';
 import 'tournament_match_config.dart';
@@ -29,7 +27,8 @@ class TournamentsScreen extends StatefulWidget {
     required this.pack,
     this.storage,
     this.computerFactory,
-    this.initialClassicPieces = false,
+    this.initialClassicPieces = true,
+    this.initialAnimatedArena,
     this.initialClassicStyle = ClassicPieceStyle.magneticTeaching,
     this.conquests = false,
     super.key,
@@ -38,6 +37,7 @@ class TournamentsScreen extends StatefulWidget {
   final TournamentStorage? storage;
   final ComputerPlayer Function()? computerFactory;
   final bool initialClassicPieces;
+  final bool? initialAnimatedArena;
   final ClassicPieceStyle initialClassicStyle;
   final bool conquests;
 
@@ -95,6 +95,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
             progress: progress,
             computerFactory: widget.computerFactory,
             initialClassicPieces: widget.initialClassicPieces,
+            initialAnimatedArena: widget.initialAnimatedArena,
             initialClassicStyle: widget.initialClassicStyle,
           ),
         ),
@@ -184,7 +185,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                           const SizedBox(height: 8),
                           Text(
                             cup.isConquest
-                                ? '${cup.conquestSize?.label ?? 'Adaptive'} · ${cup.roundCount} matches · Rapid 15+10'
+                                ? '${cup.conquestSize?.label ?? 'Adaptive'} · ${cup.roundCount} matches · 15 min · Rapid'
                                 : '${cup.level.label} · ${cup.opponents.length} bots + you · ${cup.roundCount} rounds',
                           ),
                           const SizedBox(height: 6),
@@ -266,6 +267,7 @@ class _TournamentDetail extends StatefulWidget {
     required this.progress,
     this.computerFactory,
     required this.initialClassicPieces,
+    required this.initialAnimatedArena,
     required this.initialClassicStyle,
   });
   final BotTournament cup;
@@ -274,6 +276,7 @@ class _TournamentDetail extends StatefulWidget {
   final TournamentProgress progress;
   final ComputerPlayer Function()? computerFactory;
   final bool initialClassicPieces;
+  final bool? initialAnimatedArena;
   final ClassicPieceStyle initialClassicStyle;
 
   @override
@@ -286,25 +289,17 @@ class _TournamentDetailState extends State<_TournamentDetail> {
   bool _busy = false;
   bool _reloadFailed = false;
   bool _tossForColors = false;
-  Timer? _retryTimer;
-  DateTime _now = DateTime.now();
   AdaptiveDifficulty _player = const AdaptiveDifficulty();
   BotTournament get _cup => widget.cup;
 
   @override
   void initState() {
     super.initState();
-    _retryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && _progress.run.lastResult != null) {
-        setState(() => _now = DateTime.now());
-      }
-    });
     _reload();
   }
 
   @override
   void dispose() {
-    _retryTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -326,37 +321,11 @@ class _TournamentDetailState extends State<_TournamentDetail> {
     }
   }
 
-  Future<void> _play({bool immediateRetry = false}) async {
+  Future<void> _play() async {
     if (_busy || _progress.run.completed) return;
-    final runBeforeAttempt = _progress.run;
-    final isEventRetry = runBeforeAttempt.lastResult != null;
-    final wait = runBeforeAttempt.retryWaitAt(_now);
-    final wallet = ArenaCreditScope.maybeOf(context);
-    if (isEventRetry && !immediateRetry && wait > Duration.zero) return;
-    if (isEventRetry &&
-        immediateRetry &&
-        (wallet == null || wallet.credits < tournamentImmediateRetryCost)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Not enough credits. Wait for the free retry timer to finish.',
-          ),
-        ),
-      );
-      return;
-    }
     setState(() => _busy = true);
     try {
       final progress = await widget.storage.beginAttempt(_cup);
-      if (isEventRetry && immediateRetry) {
-        final charged = wallet!.trySpendLocal(
-          cost: tournamentImmediateRetryCost,
-          reason: _cup.isConquest
-              ? 'conquest_immediate_retry'
-              : 'tournament_immediate_retry',
-        );
-        if (!charged) throw StateError('Unable to settle retry credits');
-      }
       final run = progress.run;
       final opponent = run.currentOpponent(_cup);
       final packId = _cup.isConquest
@@ -384,9 +353,10 @@ class _TournamentDetailState extends State<_TournamentDetail> {
             blackPack: pack.id,
             boardPack: pack.id,
             updatedAtEpochMs: DateTime.now().millisecondsSinceEpoch,
-            classicPieces: _cup.isConquest
-                ? false
-                : widget.initialClassicPieces,
+            classicPieces: !_cup.isConquest || widget.initialClassicPieces,
+            animatedArena:
+                _cup.isConquest &&
+                (widget.initialAnimatedArena ?? !widget.initialClassicPieces),
             classicStyle: widget.initialClassicStyle,
           );
       // Persist the assignment before displaying it: resume must not reroll.
@@ -443,6 +413,7 @@ class _TournamentDetailState extends State<_TournamentDetail> {
               ),
             ),
             initialClassicPieces: widget.initialClassicPieces,
+            initialAnimatedArena: widget.initialAnimatedArena,
             initialClassicStyle: widget.initialClassicStyle,
           ),
         ),
@@ -475,8 +446,6 @@ class _TournamentDetailState extends State<_TournamentDetail> {
     final bracket = run.bracket(_cup);
     final opponent = run.completed ? null : run.currentOpponent(_cup);
     final retry = run.lastResult != null;
-    final retryWait = run.retryWaitAt(_now);
-    final retryCoolingDown = retry && retryWait > Duration.zero;
     final conquestActionLabel = run.playing
         ? 'Resume current match'
         : retry
@@ -510,7 +479,7 @@ class _TournamentDetailState extends State<_TournamentDetail> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Choose a colour toss or play White. Wins advance you. Tournament and conquest retries are free after a short cooldown, or available immediately for a few credits. Your clock pauses when you leave or background the app.',
+              'Choose a colour toss or play White. Wins advance you. Tournament and conquest retries are always free. Your clock pauses when you leave or background the app.',
             ),
             const SizedBox(height: 14),
             if (_cup.isConquest)
@@ -608,14 +577,6 @@ class _TournamentDetailState extends State<_TournamentDetail> {
                               ? 'Round lost. Your rematch against ${opponent.name} is ready whenever you are.'
                               : 'Round drawn. Replay ${opponent.name} to decide who advances.',
                         ),
-                      if (retryCoolingDown) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          'Free retry in ${_formatRetryWait(retryWait)}',
-                          key: const ValueKey('tournament-retry-countdown'),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ],
                       Text(
                         '+${_cup.pointsPerWin} points for this win · Earlier points are safe',
                         style: TextStyle(
@@ -645,49 +606,18 @@ class _TournamentDetailState extends State<_TournamentDetail> {
                               : (value) =>
                                     setState(() => _tossForColors = value),
                         ),
-                      if (retryCoolingDown) ...[
-                        FilledButton.icon(
-                          key: const ValueKey('play-tournament-round'),
-                          onPressed: _busy || _reloadFailed
-                              ? null
-                              : () => _play(immediateRetry: true),
-                          icon: const Icon(Icons.replay_circle_filled),
-                          label: const Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              Text('Rematch this round'),
-                              CreditCostBadge(
-                                cost: tournamentImmediateRetryCost,
-                                compact: true,
-                              ),
-                            ],
-                          ),
+                      FilledButton.icon(
+                        key: const ValueKey('play-tournament-round'),
+                        onPressed: _busy || _reloadFailed ? null : _play,
+                        icon: const Icon(Icons.play_arrow),
+                        label: Text(
+                          run.playing
+                              ? 'Resume round'
+                              : retry
+                              ? 'Rematch this round'
+                              : 'Play ${_cup.roundName(run.wonRounds)}',
                         ),
-                        const SizedBox(height: 8),
-                        OutlinedButton.icon(
-                          key: const ValueKey('free-tournament-retry'),
-                          onPressed: null,
-                          icon: const Icon(Icons.hourglass_bottom),
-                          label: Text(
-                            'Free retry in ${_formatRetryWait(retryWait)}',
-                          ),
-                        ),
-                      ] else
-                        FilledButton.icon(
-                          key: const ValueKey('play-tournament-round'),
-                          onPressed: _busy || _reloadFailed ? null : _play,
-                          icon: const Icon(Icons.play_arrow),
-                          label: Text(
-                            run.playing
-                                ? 'Resume round'
-                                : retry
-                                ? 'Free rematch'
-                                : 'Play ${_cup.roundName(run.wonRounds)}',
-                          ),
-                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -699,7 +629,7 @@ class _TournamentDetailState extends State<_TournamentDetail> {
             ),
             Text(
               _cup.isConquest
-                  ? 'Defeat each army in order. Each new round starts with its matching themed chess set. Losses and draws keep your conquered realms safe.'
+                  ? 'Defeat each army in order. Each new round starts with its matching animated chess set. Losses and draws keep your conquered realms safe.'
                   : 'Other bot matches are simulated. Byes advance automatically. Pairings stay fixed for this cup.',
             ),
             const SizedBox(height: 8),
@@ -793,13 +723,5 @@ class _TournamentDetailState extends State<_TournamentDetail> {
         ),
       ),
     );
-  }
-
-  String _formatRetryWait(Duration value) {
-    final totalSeconds =
-        value.inSeconds + (value.inMilliseconds % 1000 > 0 ? 1 : 0);
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

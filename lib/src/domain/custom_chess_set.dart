@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'package:dartchess/dartchess.dart';
 
+import 'piece_pack.dart';
+
 enum CustomBoardSurface { solid, wood, marble, neon }
 
 enum CustomBackground {
@@ -23,6 +25,7 @@ class CustomPieceDesign {
     int weapon = 0,
     int structure = 0,
     double scale = 1,
+    this.formationPack,
   }) : horse = horse < 0 ? 0 : (horse > 3 ? 3 : horse),
        costume = costume < 0 ? 0 : (costume > 3 ? 3 : costume),
        face = face < 0 ? 0 : (face > 3 ? 3 : face),
@@ -45,6 +48,9 @@ class CustomPieceDesign {
   final int structure;
   final double scale;
 
+  /// Explicit artwork for new designs. Missing values retain legacy costumes.
+  final PiecePackId? formationPack;
+
   CustomPieceDesign copyWith({
     int? horse,
     int? costume,
@@ -53,6 +59,7 @@ class CustomPieceDesign {
     int? weapon,
     int? structure,
     double? scale,
+    PiecePackId? formationPack,
   }) => CustomPieceDesign(
     horse: horse ?? this.horse,
     costume: costume ?? this.costume,
@@ -61,6 +68,7 @@ class CustomPieceDesign {
     weapon: weapon ?? this.weapon,
     structure: structure ?? this.structure,
     scale: scale ?? this.scale,
+    formationPack: formationPack ?? this.formationPack,
   );
 
   factory CustomPieceDesign.fromJson(Object? value) {
@@ -75,6 +83,9 @@ class CustomPieceDesign {
       weapon: index('weapon'),
       structure: index('structure'),
       scale: scale is num && scale.isFinite ? scale.toDouble() : 1,
+      formationPack: PiecePackId.values
+          .where((pack) => pack.name == json['formationPack'])
+          .firstOrNull,
     );
   }
 
@@ -86,6 +97,7 @@ class CustomPieceDesign {
     'weapon': weapon,
     'structure': structure,
     'scale': scale,
+    if (formationPack != null) 'formationPack': formationPack!.name,
   };
 
   @override
@@ -97,11 +109,20 @@ class CustomPieceDesign {
       crown == other.crown &&
       weapon == other.weapon &&
       structure == other.structure &&
-      scale == other.scale;
+      scale == other.scale &&
+      formationPack == other.formationPack;
 
   @override
-  int get hashCode =>
-      Object.hash(horse, costume, face, crown, weapon, structure, scale);
+  int get hashCode => Object.hash(
+    horse,
+    costume,
+    face,
+    crown,
+    weapon,
+    structure,
+    scale,
+    formationPack,
+  );
 }
 
 /// Device-local appearance only; no piece design can alter chess rules.
@@ -142,7 +163,19 @@ class CustomChessSet {
   factory CustomChessSet.create({
     required String id,
     String name = defaultName,
-  }) => CustomChessSet(id: id, name: name, pieces: const {});
+  }) => CustomChessSet(
+    id: id,
+    name: name,
+    pieces: {
+      for (final side in Side.values)
+        for (final role in Role.values)
+          pieceKey(side, role): _defaultDesign(side, role).copyWith(
+            formationPack: side == Side.white
+                ? PiecePackId.anime
+                : PiecePackId.indianEpic,
+          ),
+    },
+  );
 
   static String pieceKey(Side side, Role role) => '${side.name}.${role.name}';
 

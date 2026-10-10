@@ -13,6 +13,8 @@ import '../domain/online_credits.dart';
 import '../domain/online_game_state.dart';
 import '../domain/online_player_profile.dart';
 import '../domain/online_social.dart';
+import '../features/play/board_appearance.dart';
+import 'online_game_archive.dart';
 export '../domain/online_game_state.dart';
 
 enum MatchConnection { disconnected, connecting, resuming, ready }
@@ -23,16 +25,38 @@ class OnlineMatchClient extends ChangeNotifier {
   OnlineMatchClient({
     WebSocketChannel Function(Uri)? channelFactory,
     OnlinePlayerProfile? profile,
+    OnlineGameArchive? gameArchive,
     this.retryDelay = const Duration(seconds: 2),
     this.heartbeatInterval = const Duration(seconds: 5),
     this.connectionTimeout = const Duration(seconds: 8),
   }) : _channelFactory = channelFactory ?? WebSocketChannel.connect,
-       _profile = profile;
+       _profile = profile,
+       gameArchive = gameArchive ?? OnlineGameArchive(),
+       _ownsArchive = gameArchive == null {
+    this.gameArchive.addListener(_notify);
+  }
 
   final WebSocketChannel Function(Uri) _channelFactory;
   final Duration retryDelay;
   final Duration heartbeatInterval;
   final Duration connectionTimeout;
+  final OnlineGameArchive gameArchive;
+  final bool _ownsArchive;
+  String? get historySaveError => gameArchive.error;
+  Future<void> retryHistorySave() => gameArchive.retryFailed();
+
+  Future<void> rememberGameAppearance(BoardAppearance appearance) {
+    final current = state;
+    final currentSeat = seat;
+    if (current == null || currentSeat == null) return Future.value();
+    return gameArchive.rememberAppearance(
+      gameId: current.gameId,
+      round: current.round,
+      seat: currentSeat,
+      appearance: appearance,
+    );
+  }
+
   final session = OnlineGameSession();
   final _elapsed = Stopwatch()..start();
   final _idPrefix = List.generate(
@@ -73,6 +97,8 @@ class OnlineMatchClient extends ChangeNotifier {
   OnlinePlayerSearchResult? playerSearchResult;
   bool playerSearchCompleted = false;
   bool supportsAvailablePlayers = false;
+  bool supportsGamePush = false;
+  Map<String, dynamic>? _pushDevice;
   List<OnlinePlayerSearchResult> availablePlayers = [];
   bool availablePlayersLoading = false;
   bool availablePlayersOpened = false;
@@ -314,6 +340,7 @@ class OnlineMatchClient extends ChangeNotifier {
     required OnlinePlayerLevel level,
   }) {
     if (_profile == null || profileSavePending) return false;
+    error = null;
     _pendingProfileEdit = OnlinePlayerProfile(
       name: name,
       avatarId: avatarId,
@@ -323,6 +350,44 @@ class OnlineMatchClient extends ChangeNotifier {
     _sendPendingProfileEdit();
     _notify();
     return true;
+  }
+
+  /// Completes only after the server has accepted the unique public name.
+  Future<OnlinePlayerProfile> updateProfileConfirmed({
+    required String name,
+    required String avatarId,
+    required OnlinePlayerLevel level,
+  }) async {
+    if (!connected) {
+      throw StateError('Connect to save and verify your Avatar Name.');
+    }
+    if (!updateProfile(name: name, avatarId: avatarId, level: level)) {
+      throw StateError(
+        'Another profile change is still saving. Please try again shortly.',
+      );
+    }
+    final result = Completer<OnlinePlayerProfile>();
+    void check() {
+      if (profileSavePending) return;
+      if (error != null) {
+        if (!result.isCompleted) result.completeError(StateError(error!));
+      } else if (!result.isCompleted) {
+        result.complete(_profile!);
+      }
+    }
+
+    addListener(check);
+    check();
+    try {
+      return await result.future.timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw StateError(
+          'Could not verify your Avatar Name. Reconnect and try again.',
+        ),
+      );
+    } finally {
+      removeListener(check);
+    }
   }
 
   void _sendPendingProfileEdit() {
@@ -616,6 +681,22 @@ class OnlineMatchClient extends ChangeNotifier {
     if (connected) _send({'type': 'presence', 'names': names.toList()});
   }
 
+  void setPushDevice({
+    required String deviceId,
+    required String token,
+    required bool enabled,
+    required bool active,
+  }) {
+    _pushDevice = {
+      'type': 'set_push_device',
+      'deviceId': deviceId,
+      'token': token,
+      'enabled': enabled,
+      'active': active,
+    };
+    if (connected && supportsGamePush) _send(_pushDevice!);
+  }
+
   void sendInvitation(
     String opponentName, {
     DateTime? scheduledAt,
@@ -706,6 +787,8 @@ class OnlineMatchClient extends ChangeNotifier {
       if (type == 'pong') {
         // The frame timestamp above is the heartbeat acknowledgement.
       } else if (type == 'connected') {
+        supportsGamePush =
+            (frame['capabilities'] as List?)?.contains('game_push') ?? false;
         supportsInviteClocks =
             (frame['capabilities'] as List?)?.contains('invite_clocks') ??
             false;
@@ -774,6 +857,7 @@ class OnlineMatchClient extends ChangeNotifier {
           connection = MatchConnection.ready;
           _syncing = false;
         }
+        if (_pushDevice != null && supportsGamePush) _send(_pushDevice!);
         loadLeaderboard();
         loadPointHistory();
         loadInvitations();
@@ -854,14 +938,55 @@ class OnlineMatchClient extends ChangeNotifier {
             ? null
             : OnlinePlayerSearchResult.fromJson(player.cast<String, dynamic>());
         playerSearchCompleted = true;
+      } else if (type == 'game_activity') {
+        final game = OnlineInviteGame.fromJson(
+          (frame['game'] as Map).cast<String, dynamic>(),
+        );
+        if (game.gameId != game.state.gameId ||
+            !['w', 'b'].contains(game.seat)) {
+          throw const FormatException('Invalid activity seat');
+        }
+        final previous = activeGames
+            .where((g) => g.gameId == game.gameId)
+            .firstOrNull;
+        if (previous == null ||
+            game.state.sequence >= previous.state.sequence) {
+          activeGames = List.unmodifiable([
+            game,
+            ...activeGames.where((g) => g.gameId != game.gameId),
+          ]);
+          activeGamesLoaded = true;
+          unawaited(
+            gameArchive.recordAcceptedState(game.state, seat: game.seat),
+          );
+        }
       } else if (type == 'active_games') {
-        activeGames = List<OnlineInviteGame>.unmodifiable(
+        final games = List<OnlineInviteGame>.unmodifiable(
           (frame['games'] as List).map(
             (item) => OnlineInviteGame.fromJson(
               (item as Map).cast<String, dynamic>(),
             ),
           ),
         );
+        if (games.any(
+          (game) =>
+              game.gameId != game.state.gameId ||
+              !['w', 'b'].contains(game.seat),
+        )) {
+          throw const FormatException('Invalid active game seat');
+        }
+        activeGames = games;
+        for (final game in games) {
+          final current = state;
+          if (current != null &&
+              current.gameId == game.gameId &&
+              current.sequence > game.state.sequence) {
+            continue;
+          }
+          unawaited(
+            gameArchive.recordAcceptedState(game.state, seat: game.seat),
+          );
+        }
         activeGamesLoaded = true;
       } else if (type == 'presence') {
         presence = {
@@ -1000,7 +1125,9 @@ class OnlineMatchClient extends ChangeNotifier {
         if (replacedGameId != null && replacedGameId != next.gameId) {
           session.clear();
         }
-        session.apply(next, animate: false);
+        if (session.apply(next, animate: false)) {
+          unawaited(gameArchive.recordAcceptedState(next, seat: nextSeat));
+        }
         activeGames = List.unmodifiable([
           OnlineInviteGame(
             gameId: next.gameId,
@@ -1027,7 +1154,13 @@ class OnlineMatchClient extends ChangeNotifier {
           frame['state'] as Map<String, dynamic>,
         );
         if (next.gameId != gameId) return;
-        session.apply(next, animate: connected && frame['synced'] != true);
+        if (session.apply(
+              next,
+              animate: connected && frame['synced'] != true,
+            ) &&
+            seat != null) {
+          unawaited(gameArchive.recordAcceptedState(next, seat: seat!));
+        }
         if (_seatToken != null && seat != null) {
           final remaining = activeGames.where(
             (game) => game.gameId != next.gameId,
@@ -1204,6 +1337,8 @@ class OnlineMatchClient extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    gameArchive.removeListener(_notify);
+    if (_ownsArchive) gameArchive.dispose();
     unawaited(disconnect());
     super.dispose();
   }

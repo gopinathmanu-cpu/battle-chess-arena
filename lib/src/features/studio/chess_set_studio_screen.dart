@@ -109,6 +109,19 @@ class _ChessSetStudioScreenState extends State<ChessSetStudioScreen> {
   @override
   Widget build(BuildContext context) {
     final library = CustomChessSetScope.of(context);
+    // The application's remaining entry opens an existing saved set only.
+    // Keep its parent route free of creation/duplication controls while the
+    // editor opens, or if that saved set has since been removed.
+    if (widget.initialSetId != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Edit saved chess set')),
+        body:
+            !library.loaded ||
+                library.sets.any((set) => set.id == widget.initialSetId)
+            ? const Center(child: CircularProgressIndicator())
+            : const Center(child: Text('This saved chess set is unavailable.')),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Chess Set Studio')),
       body: !library.loaded
@@ -145,7 +158,7 @@ class _ChessSetStudioScreenState extends State<ChessSetStudioScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Build both armies from complete themed formations. Riders stay locked to their elephant, horse or chariot, so every combination remains seamless.',
+                        'Build both armies from complete animated formations. Riders stay locked to their elephant, horse or chariot, so every combination remains seamless.',
                       ),
                       const SizedBox(height: 18),
                       FilledButton.icon(
@@ -234,7 +247,7 @@ class _ChessSetStudioScreenState extends State<ChessSetStudioScreen> {
                         ? null
                         : () => _operation(() => library.activate(null)),
                     icon: const Icon(Icons.layers_outlined),
-                    label: const Text('Use my Classic / Themed set instead'),
+                    label: const Text('Use my Classic / Animated set instead'),
                   ),
               ],
             ),
@@ -736,7 +749,7 @@ class _ChessSetEditorState extends State<_ChessSetEditor> {
         ],
       ),
       const SizedBox(height: 18),
-      _SectionTitle(CustomPieceParts.formationName(_role)),
+      _SectionTitle(_roleName(_role)),
       const Text(
         'Choose one complete, pre-aligned formation. Mount, rider, face, costume and weapon move together.',
         style: TextStyle(color: Colors.white60),
@@ -750,7 +763,11 @@ class _ChessSetEditorState extends State<_ChessSetEditor> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              for (var variant = 0; variant < 4; variant++)
+              for (
+                var variant = 0;
+                variant < CustomPieceParts.availableFormationPacks.length;
+                variant++
+              )
                 SizedBox(
                   width: width,
                   child: _PartOption(
@@ -759,7 +776,8 @@ class _ChessSetEditorState extends State<_ChessSetEditor> {
                     variant: variant,
                     role: _role,
                     side: _side,
-                    label: CustomPieceParts.labels(_category)[variant],
+                    label:
+                        CustomPieceParts.availableFormationPacks[variant].name,
                     selected: _partValue(_category) == variant,
                     onTap: _saving ? null : () => _setPart(_category, variant),
                   ),
@@ -768,6 +786,13 @@ class _ChessSetEditorState extends State<_ChessSetEditor> {
           );
         },
       ),
+      if (_partValue(_category) < 0)
+        const Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+            'Saved formation retained. Choose an Animated set to replace it.',
+          ),
+        ),
       const Text(
         'All formations share one baseline and full-square height. Black formations mirror as a whole and keep bright faces and accessories.',
         style: TextStyle(color: Colors.white60),
@@ -775,7 +800,7 @@ class _ChessSetEditorState extends State<_ChessSetEditor> {
       const SizedBox(height: 12),
       OutlinedButton.icon(
         key: const ValueKey('studio-apply-army-formation'),
-        onPressed: _saving
+        onPressed: _saving || _partValue(_category) < 0
             ? null
             : () {
                 var next = _draft;
@@ -785,14 +810,18 @@ class _ChessSetEditorState extends State<_ChessSetEditor> {
                     role,
                     next
                         .designFor(_side, role)
-                        .copyWith(costume: _design.costume, scale: 1),
+                        .copyWith(
+                          costume: _design.costume,
+                          formationPack: _design.formationPack,
+                          scale: 1,
+                        ),
                   );
                 }
                 _update(next);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      '${CustomPieceParts.labels(_category)[_design.costume]} applied to the whole ${_side.name} army.',
+                      '${CustomPieceParts.packForDesign(_design).name} applied to the whole ${_side.name} army.',
                     ),
                   ),
                 );
@@ -822,10 +851,16 @@ class _ChessSetEditorState extends State<_ChessSetEditor> {
     ];
   }
 
-  int _partValue(String category) => _design.costume;
+  int _partValue(String category) => CustomPieceParts.availableFormationPacks
+      .indexWhere((pack) => pack.id == _design.formationPack);
 
-  void _setPart(String category, int value) =>
-      _updateDesign(_design.copyWith(costume: value, scale: 1));
+  void _setPart(String category, int value) => _updateDesign(
+    _design.copyWith(
+      costume: value,
+      formationPack: CustomPieceParts.availableFormationPacks[value].id,
+      scale: 1,
+    ),
+  );
 
   List<Widget> _boardControls(BuildContext context) {
     const palettes = [
@@ -1086,6 +1121,7 @@ class _PartOption extends StatelessWidget {
                   variant: variant,
                   role: role,
                   side: side,
+                  pack: CustomPieceParts.availableFormationPacks[variant],
                 ),
               ),
               const SizedBox(height: 8),

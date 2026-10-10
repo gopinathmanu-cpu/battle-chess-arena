@@ -1,16 +1,20 @@
 # Kingdom chess sets
 
-The app includes 31 built-in themed sets and the unchanged four Classic styles.
-Beta 16 adds the common-height piece and per-set board-contrast pass.
+New selections offer four Animated Fantasy sets and four Classic styles.
+The complete 31-army artwork catalog remains bundled for older saved games,
+recordings and custom designs.
 
-On Home choose **Themed**, then filter **All / Historical / Legendary / Fantasy**.
+On Home choose **Animated** to browse the four Fantasy sets.
 Swipe the full-board previews or use the arrows. The selected set is remembered
 and used for a new game. In an ongoing game, **Game settings → Armies & board**
 can choose White's army, Black's army and the board world independently.
 Home previews hide role-letter badges so the artwork stays visible at small
 sizes; gameplay keeps its existing role labels.
 
-## Catalogue
+## Bundled catalogue
+
+Only the Fantasy row is currently selectable for new Animated choices.
+Historical and Legendary artwork is retained for existing data.
 
 | Group | Sets |
 | --- | --- |

@@ -45,6 +45,10 @@ class MobileNotificationService {
     'at': at.millisecondsSinceEpoch,
   });
 
+  Future<void> playAlert() => isSupported
+      ? _invoke('playAlert')
+      : SystemSound.play(SystemSoundType.alert);
+
   Future<void> cancel(String id) => _invoke('cancel', {'id': id});
 
   Future<void> cancelAll() => _invoke('cancelAll');

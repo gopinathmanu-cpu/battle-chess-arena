@@ -5,7 +5,52 @@ import 'package:dartchess/dartchess.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Themed pieces share one large visual height. Wide mounts are compressed
+import '../../domain/animated_army_theme.dart';
+import 'neon_illustrated_stage.dart';
+
+/// The board uses the live avatar's exact character and measured resting crop.
+/// Each piece fills its own square at native proportions, including weapons and
+/// mounts, with a shared bottom baseline. Scene actors retain their own sizing.
+class AnimatedArmyBoardSprite extends StatelessWidget {
+  const AnimatedArmyBoardSprite({
+    required this.piece,
+    required this.theme,
+    super.key,
+  });
+
+  final Piece piece;
+  final AnimatedArmyTheme theme;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final extent = box.biggest.shortestSide;
+      final inset = extent * .01;
+      final fittedBodyHeight = animatedFigureBodyHeight(
+        theme: theme,
+        space: Size.square(extent - inset * 2),
+        pieces: [piece],
+        poses: const [NeonFigurePose.rest],
+      );
+      return ClipRect(
+        child: Padding(
+          padding: EdgeInsets.all(inset),
+          child: NeonFigureSprite(
+            key: ValueKey(
+              'animated-board-${theme.name}-${piece.color.name}-${piece.role.name}',
+            ),
+            piece: piece,
+            theme: theme,
+            faceRight: piece.color == Side.white,
+            bodyHeight: fittedBodyHeight,
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// Legacy themed pieces share one large visual height. Wide mounts are compressed
 /// horizontally when needed, while pawns keep the same height with a deliberately
 /// lean silhouette for role distinction and maximum small-screen visibility.
 abstract final class ThemedPieceMetrics {

@@ -2,13 +2,13 @@ import 'package:battle_chess_arena/src/domain/online_credits.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('launch credit policy keeps casual and offline play inexpensive', () {
+  test('only move suggestions have a nonzero credit cost', () {
     expect(defaultOnlineCreditPolicy.starterCredits, 300);
     expect(defaultOnlineCreditPolicy.dailyLoginCredits, 3);
     expect(defaultOnlineCreditPolicy.dailyAllowanceCap, 300);
-    expect(defaultOnlineCreditPolicy.liveHumanRoundCost, 2);
-    expect(defaultOnlineCreditPolicy.dailyHumanRoundCost, 3);
-    expect(defaultOnlineCreditPolicy.computerRoundCost, 4);
+    expect(defaultOnlineCreditPolicy.liveHumanRoundCost, 0);
+    expect(defaultOnlineCreditPolicy.dailyHumanRoundCost, 0);
+    expect(defaultOnlineCreditPolicy.computerRoundCost, 0);
     expect(defaultOnlineCreditPolicy.onlineMoveSuggestionCost, 1);
     expect(defaultOnlineCreditPolicy.completionRewardCredits, 1);
     expect(defaultOnlineCreditPolicy.dailyCompletionRewardCap, 5);

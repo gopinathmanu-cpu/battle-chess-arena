@@ -7,6 +7,7 @@ import 'package:battle_chess_arena/src/domain/game_session.dart';
 import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/home/home_screen.dart';
 import 'package:battle_chess_arena/src/features/online/online_game_screen.dart';
+import 'package:battle_chess_arena/src/features/online/online_lobby_screen.dart';
 import 'package:battle_chess_arena/src/features/play/animation_lab_screen.dart';
 import 'package:battle_chess_arena/src/features/play/board_appearance.dart';
 import 'package:battle_chess_arena/src/features/play/capture_battle_overlay.dart';
@@ -14,7 +15,9 @@ import 'package:battle_chess_arena/src/features/play/captured_pieces_panel.dart'
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
 import 'package:battle_chess_arena/src/features/studio/custom_board_surface.dart';
 import 'package:battle_chess_arena/src/features/studio/custom_piece.dart';
+import 'package:battle_chess_arena/src/features/tournaments/tournaments_screen.dart';
 import 'package:battle_chess_arena/src/services/custom_chess_sets.dart';
+import 'package:battle_chess_arena/src/services/home_chess_set.dart';
 import 'package:battle_chess_arena/src/services/online_match_client.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/online_fixtures.dart';
 import 'theme_music_test.dart' show FakeMusicOutput;
+import 'support/piece_choice.dart';
 
 CustomChessSet _royalSet() =>
     CustomChessSet.create(
@@ -86,6 +90,35 @@ void main() {
     matching: find.byType(CustomPiece),
   );
 
+  testWidgets('a new player has no custom-theme creation entry', (
+    tester,
+  ) async {
+    await phone(tester);
+    await openApp(tester);
+    expect(find.byKey(const ValueKey('create-custom-theme')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('choose-themed')));
+    await tester.pumpAndSettle();
+    final filter = tester.widget<DropdownButton>(
+      find.byKey(const ValueKey('chess-set-group-filter')),
+    );
+    expect(
+      filter.items!.map((item) => (item.child as Text).data),
+      isNot(contains('My Themes')),
+    );
+    await tester.tap(find.byKey(const ValueKey('home-settings-button')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('settings-chess-set-studio')),
+      findsNothing,
+    );
+    await tester.tap(find.byTooltip('Close settings'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('choose-classic')), findsOneWidget);
+    expect(find.byKey(const ValueKey('choose-themed')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
     'the full board uses all 32 custom designs, chosen square colors and texture',
     (tester) async {
@@ -145,7 +178,7 @@ void main() {
   );
 
   testWidgets(
-    'home opens the studio and restored custom selection starts a new computer game',
+    'saved custom editing and games remain available without theme creation entries',
     (tester) async {
       await phone(tester);
       await savedLibrary();
@@ -158,11 +191,21 @@ void main() {
       expect(find.byKey(const ValueKey('my-themes-selector')), findsNothing);
       expect(find.byKey(const ValueKey('my-themes-carousel')), findsOneWidget);
       expect(find.text(_royalSet().name), findsWidgets);
+      expect(find.byKey(const ValueKey('create-custom-theme')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('home-settings-button')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('settings-chess-set-studio')),
+        findsNothing,
+      );
+      await tester.tap(find.byTooltip('Close settings'));
+      await tester.pumpAndSettle();
       final edit = find.byKey(const ValueKey('edit-custom-theme'));
       await tester.ensureVisible(edit);
       await tester.tap(edit);
       await tester.pumpAndSettle();
       expect(find.text('Design your set'), findsOneWidget);
+      expect(find.byKey(const ValueKey('create-custom-set')), findsNothing);
       await tester.pageBack();
       await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox());
@@ -175,10 +218,18 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('computer-difficulty-easy')));
       await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+      await chooseGamePieces(tester, classic: false);
       await tester.pumpAndSettle();
       expect(find.byType(AnimationLabScreen), findsOneWidget);
+      final game = tester.widget<AnimationLabScreen>(
+        find.byType(AnimationLabScreen),
+      );
+      expect(game.initialClassicPieces, isFalse);
+      expect(game.initialAnimatedArena, isFalse);
+      expect((await HomeChessSet.load()).classic, isTrue);
       final board = tester.widget<ChessBoard>(find.byType(ChessBoard));
       expect(board.appearance?.customSet?.id, _royalSet().id);
+      expect(board.appearance?.animatedArena, isFalse);
       expect(board.position.fen, Chess.initial.fen);
       expect(boardArt(), findsNWidgets(32));
       expect(
@@ -192,6 +243,47 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  for (final route in ['Play Online', 'Tournaments', 'Conquests']) {
+    testWidgets(
+      'saved custom selection reaches $route without replacing its artwork',
+      (tester) async {
+        await phone(tester);
+        await savedLibrary();
+        await openApp(tester);
+        final launch = find.text(route);
+        await tester.ensureVisible(launch);
+        await tester.pumpAndSettle();
+        await tester.tap(launch);
+        await tester.pumpAndSettle();
+        if (route == 'Play Online') {
+          final lobby = tester.widget<OnlineLobbyScreen>(
+            find.byType(OnlineLobbyScreen),
+          );
+          expect(lobby.initialClassicPieces, isFalse);
+          expect(lobby.initialAnimatedArena, isFalse);
+        } else {
+          final event = tester.widget<TournamentsScreen>(
+            find.byType(TournamentsScreen),
+          );
+          expect(event.initialClassicPieces, isFalse);
+          expect(event.initialAnimatedArena, isFalse);
+          expect(event.conquests, route == 'Conquests');
+        }
+        expect((await HomeChessSet.load()).classic, isTrue);
+        final destination = route == 'Play Online'
+            ? find.byType(OnlineLobbyScreen)
+            : find.byType(TournamentsScreen);
+        expect(
+          CustomChessSetScope.of(tester.element(destination)).activeId,
+          _royalSet().id,
+        );
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      },
+    );
+  }
 
   testWidgets('My Themes swipes and arrows activate custom sets', (
     tester,

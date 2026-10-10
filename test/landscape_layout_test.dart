@@ -73,7 +73,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: AnimationLabScreen(
-            pack: piecePacks.first,
+            pack: piecePacks.singleWhere((p) => p.id == PiecePackId.japanese),
             mode: PlayerMode.local,
           ),
         ),
@@ -91,6 +91,7 @@ void main() {
       expect(board.bottom, lessThanOrEqualTo(360));
       expect(find.text('Fast battle mode'), findsNothing);
       expect(find.byTooltip('Game settings'), findsOneWidget);
+      await tester.ensureVisible(find.byTooltip('Hide top bar'));
       await tester.tap(find.byTooltip('Hide top bar'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('Show top bar'), findsOneWidget);
@@ -99,7 +100,13 @@ void main() {
       expect(restore.bottom, lessThanOrEqualTo(blackClockLabel.top));
       final expandedBoard = tester.getRect(find.byType(ChessBoard));
       expect(expandedBoard.height, greaterThan(board.height));
-      expect(expandedBoard.height, closeTo(344, .1));
+      final scan = find.byKey(const ValueKey('analyse-threats'));
+      expect(scan.hitTestable(), findsOneWidget);
+      expect(
+        tester.getRect(scan).top,
+        greaterThanOrEqualTo(expandedBoard.bottom),
+      );
+      expect(tester.getRect(scan).bottom, lessThanOrEqualTo(360));
       expect(expandedBoard.top, closeTo(8, .1));
       expect(expandedBoard.bottom, lessThanOrEqualTo(360));
       await tester.tap(find.byTooltip('Show top bar'));
@@ -109,21 +116,34 @@ void main() {
     },
   );
 
-  testWidgets('hidden top bar expands portrait board to screen width', (
+  testWidgets('portrait board and quick actions fit with or without top bar', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MaterialApp(home: AnimationLabScreen(pack: piecePacks.first)),
+      MaterialApp(
+        home: AnimationLabScreen(
+          pack: piecePacks.singleWhere((p) => p.id == PiecePackId.japanese),
+        ),
+      ),
     );
     await tester.pump();
     final board = tester.getRect(find.byType(ChessBoard));
+    await tester.ensureVisible(find.byTooltip('Hide top bar'));
     await tester.tap(find.byTooltip('Hide top bar'));
     await tester.pumpAndSettle();
     final expandedBoard = tester.getRect(find.byType(ChessBoard));
-    expect(expandedBoard.width, greaterThan(board.width));
+    expect(expandedBoard.width, greaterThanOrEqualTo(board.width));
     expect(expandedBoard.width, closeTo(374, .1));
     expect(expandedBoard.left, closeTo(8, .1));
+    final scan = find.byKey(const ValueKey('analyse-threats'));
+    expect(scan.hitTestable(), findsOneWidget);
+    expect(
+      tester.getRect(scan).top,
+      greaterThanOrEqualTo(expandedBoard.bottom),
+    );
+    expect(tester.getRect(scan).bottom, lessThanOrEqualTo(844));
+    expect(find.byTooltip('Hide top bar'), findsNothing);
   });
 }

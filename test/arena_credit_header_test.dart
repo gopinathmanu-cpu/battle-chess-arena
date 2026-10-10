@@ -19,6 +19,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final semantics = tester.ensureSemantics();
     final controller = ArenaCreditController();
 
     await tester.pumpWidget(
@@ -29,7 +30,13 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('arena-credit-header')), findsOneWidget);
-    expect(find.text('Credits'), findsOneWidget);
+    expect(find.text('Credits'), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('Credits, 300\\.')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('arena-credit-header'))).width,
+      lessThanOrEqualTo(100),
+    );
+    semantics.dispose();
     expect(find.text('300'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
@@ -182,6 +189,99 @@ void main() {
     controller.dispose();
     music.dispose();
   });
+
+  for (final width in [320.0, 390.0]) {
+    for (final compact in [false, true]) {
+      for (final scale in [1.0, 2.0]) {
+        testWidgets(
+          'compact credit counter stays fixed width=$width compact=$compact scale=$scale',
+          (tester) async {
+            tester.view.physicalSize = Size(width, 640);
+            tester.view.devicePixelRatio = 1;
+            addTearDown(tester.view.resetPhysicalSize);
+            addTearDown(tester.view.resetDevicePixelRatio);
+            final semantics = tester.ensureSemantics();
+            final controller = ArenaCreditController();
+            controller.acceptServerAccount(
+              profileToken: 'stable-player',
+              account: _account(100),
+              policy: defaultOnlineCreditPolicy,
+            );
+            await tester.pumpWidget(
+              _AppHarness(
+                controller: controller,
+                compact: compact,
+                neighbour: true,
+                textScaler: TextScaler.linear(scale),
+              ),
+            );
+            final keys = [
+              'arena-credit-header',
+              'arena-credit-header-balance',
+              'arena-credit-header-amount-slot',
+              'arena-credit-header-neighbour',
+              'arena-credit-delta-slot',
+            ];
+            final before = {
+              for (final key in keys)
+                key: tester.getRect(find.byKey(ValueKey(key))),
+            };
+            expect(
+              before['arena-credit-header']!.width,
+              lessThanOrEqualTo(100),
+            );
+            expect(
+              before['arena-credit-header']!.right,
+              lessThanOrEqualTo(width),
+            );
+            void expectStable() {
+              for (final key in keys) {
+                expect(
+                  tester.getRect(find.byKey(ValueKey(key))),
+                  before[key],
+                  reason: '$key must stay fixed throughout the credit change',
+                );
+              }
+              expect(tester.takeException(), isNull);
+            }
+
+            for (final change in [(99, -1), (9, -90), (999999, 999990)]) {
+              controller.acceptServerAccount(
+                profileToken: 'stable-player',
+                account: _account(
+                  change.$1,
+                  transactionId: 'change-${change.$1}',
+                  delta: change.$2,
+                ),
+                policy: defaultOnlineCreditPolicy,
+              );
+              await tester.pump();
+              expectStable();
+              await tester.pump(const Duration(milliseconds: 250));
+              expectStable();
+              await tester.pumpAndSettle();
+              expectStable();
+              expect(find.text('${change.$1}'), findsOneWidget);
+              expect(
+                find.bySemanticsLabel(RegExp('Credits, ${change.$1}\\.')),
+                findsOneWidget,
+              );
+            }
+            controller.markDisconnected(profileToken: 'stable-player');
+            await tester.pump();
+            expectStable();
+            expect(
+              find.byKey(const ValueKey('arena-credit-header-cached')),
+              findsOneWidget,
+            );
+            await tester.pumpWidget(const SizedBox());
+            controller.dispose();
+            semantics.dispose();
+          },
+        );
+      }
+    }
+  }
 }
 
 class _AppHarness extends StatelessWidget {
@@ -191,6 +291,8 @@ class _AppHarness extends StatelessWidget {
     this.disableAnimations = false,
     this.textScaler,
     this.music,
+    this.compact = false,
+    this.neighbour = false,
   });
 
   final ArenaCreditController controller;
@@ -198,6 +300,8 @@ class _AppHarness extends StatelessWidget {
   final bool disableAnimations;
   final TextScaler? textScaler;
   final ThemeMusic? music;
+  final bool compact;
+  final bool neighbour;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -210,8 +314,23 @@ class _AppHarness extends StatelessWidget {
         ArenaCreditScope(controller: controller, child: child!),
       ),
     ),
-    home: const Scaffold(
-      body: Column(children: [ArenaCreditHeader(), Text('Home route')]),
+    home: Scaffold(
+      body: Column(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ArenaCreditHeader(compact: compact),
+              if (neighbour)
+                const Icon(
+                  Icons.settings,
+                  key: ValueKey('arena-credit-header-neighbour'),
+                ),
+            ],
+          ),
+          const Text('Home route'),
+        ],
+      ),
     ),
   );
 

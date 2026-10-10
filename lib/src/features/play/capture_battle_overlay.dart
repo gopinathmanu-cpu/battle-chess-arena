@@ -62,6 +62,7 @@ class CaptureBattleOverlay extends StatefulWidget {
     this.fast = false,
     this.appearance,
     this.orientation = Side.white,
+    this.liveArena = false,
     super.key,
   });
   final BoardAppearance? appearance;
@@ -72,6 +73,10 @@ class CaptureBattleOverlay extends StatefulWidget {
   final bool useCharacterAsset;
   final VoidCallback onSkip;
   final Side orientation;
+
+  /// The illustrated arena already presents the fighters. Keep its board clear
+  /// and retain the existing skip action without replaying a second battlefield.
+  final bool liveArena;
 
   @override
   State<CaptureBattleOverlay> createState() => CaptureBattleOverlayState();
@@ -100,6 +105,9 @@ class CaptureBattleOverlayState extends State<CaptureBattleOverlay>
     super.didChangeDependencies();
     if (_soundScheduled) return;
     _soundScheduled = true;
+    // The live arena owns its strike cue on the same paused animation clock as
+    // its figures. This compact skip control can disappear before that strike.
+    if (widget.liveArena) return;
     final music = MusicScope.of(context);
     unawaited(music?.playEffect(CinematicSound.attack));
     final duration = captureBattleDuration(
@@ -120,203 +128,226 @@ class CaptureBattleOverlayState extends State<CaptureBattleOverlay>
   }
 
   @override
-  Widget build(BuildContext context) => Positioned.fill(
-    child: AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        final value = _controller.value;
-        final travel = Curves.easeInOutCubic.transform(
-          (value / .32).clamp(0.0, 1.0),
-        );
-        final cinematic = Curves.easeOutCubic.transform(
-          ((value - .38) / .62).clamp(0.0, 1.0),
-        );
-        final backdropOpacity = ((value - .34) / .18).clamp(0.0, 1.0) * .95;
-        final impact = ((value - .27) / .22).clamp(0.0, 1.0);
-        final flash = (1 - ((value - .32).abs() / .07)).clamp(0.0, 1.0);
-        return Opacity(
-          opacity: widget.reduced ? value : 1,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ColoredBox(
-                  color: const Color(
-                    0xFF0A0812,
-                  ).withValues(alpha: backdropOpacity),
-                ),
+  Widget build(BuildContext context) => widget.liveArena
+      ? Positioned(
+          right: 8,
+          bottom: 8,
+          child: Semantics(
+            label: captureDescription(widget.battle),
+            child: TextButton.icon(
+              key: const ValueKey('live-capture-skip'),
+              style: TextButton.styleFrom(
+                backgroundColor: const Color(0xE6D6E4F5),
+                foregroundColor: const Color(0xFF243C58),
               ),
-              if (!widget.reduced)
-                _BoardCaptureFlight(
-                  battle: widget.battle,
-                  appearance: widget.appearance,
-                  orientation: widget.orientation,
-                  accent: widget.accent,
-                  progress: travel,
-                  opacity: 1 - ((value - .32) / .12).clamp(0.0, 1.0),
-                ),
-              if (!widget.reduced)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: _ImpactBurstPainter(
-                        progress: impact,
-                        color: widget.accent,
+              onPressed: widget.onSkip,
+              icon: const Icon(Icons.fast_forward),
+              label: const Text('Skip'),
+            ),
+          ),
+        )
+      : Positioned.fill(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final value = _controller.value;
+              final travel = Curves.easeInOutCubic.transform(
+                (value / .32).clamp(0.0, 1.0),
+              );
+              final cinematic = Curves.easeOutCubic.transform(
+                ((value - .38) / .62).clamp(0.0, 1.0),
+              );
+              final backdropOpacity =
+                  ((value - .34) / .18).clamp(0.0, 1.0) * .95;
+              final impact = ((value - .27) / .22).clamp(0.0, 1.0);
+              final flash = (1 - ((value - .32).abs() / .07)).clamp(0.0, 1.0);
+              return Opacity(
+                opacity: widget.reduced ? value : 1,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: const Color(
+                          0xFF0A0812,
+                        ).withValues(alpha: backdropOpacity),
                       ),
                     ),
-                  ),
-                ),
-              if (!widget.reduced && flash > 0)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: ColoredBox(
-                      color: Colors.white.withValues(alpha: flash * .24),
-                    ),
-                  ),
-                ),
-              if (!widget.reduced)
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: cinematic,
-                    child: CustomPaint(
-                      painter: _SpeedLinesPainter(
-                        progress: cinematic,
-                        color: widget.accent,
+                    if (!widget.reduced)
+                      _BoardCaptureFlight(
+                        battle: widget.battle,
+                        appearance: widget.appearance,
+                        orientation: widget.orientation,
+                        accent: widget.accent,
+                        progress: travel,
+                        opacity: 1 - ((value - .32) / .12).clamp(0.0, 1.0),
                       ),
-                    ),
-                  ),
-                ),
-              Opacity(
-                opacity: widget.reduced ? value : cinematic,
-                child: Center(
-                  child: Transform.translate(
-                    offset: const Offset(0, 18),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Transform.translate(
-                          offset: Offset(
-                            widget.reduced ? 0 : -50 * (1 - cinematic),
-                            0,
-                          ),
-                          child: _Fighter(
-                            piece: widget.battle.attacker,
-                            pack:
-                                widget.appearance?.army(
-                                  widget.battle.attacker.color,
-                                ) ??
-                                piecePacks.first,
-                            accent: widget.accent,
-                            useCharacterAsset: widget.useCharacterAsset,
-                            victorious: true,
-                            progress: cinematic,
-                            standard:
-                                widget.appearance?.standardPieces ?? false,
-                            classicStyle:
-                                widget.appearance?.classicStyle ??
-                                ClassicPieceStyle.magneticTeaching,
-                            customSet: widget.appearance?.customSet,
-                          ),
-                        ),
-                        Transform.scale(
-                          scale: widget.reduced ? 1 : .4 + cinematic,
-                          child: Icon(
-                            Icons.bolt,
-                            size: 60,
-                            color: widget.accent,
-                          ),
-                        ),
-                        Transform.translate(
-                          offset: Offset(
-                            widget.reduced ? 0 : 50 * (1 - cinematic),
-                            0,
-                          ),
-                          child: Opacity(
-                            opacity:
-                                1 -
-                                (_controller.value > .72
-                                    ? (_controller.value - .72) / .28
-                                    : 0),
-                            child: _Fighter(
-                              piece: widget.battle.defender!,
-                              pack:
-                                  widget.appearance?.army(
-                                    widget.battle.defender!.color,
-                                  ) ??
-                                  piecePacks.first,
-                              accent: Colors.white70,
-                              useCharacterAsset: widget.useCharacterAsset,
-                              victorious: false,
-                              progress: cinematic,
-                              standard:
-                                  widget.appearance?.standardPieces ?? false,
-                              classicStyle:
-                                  widget.appearance?.classicStyle ??
-                                  ClassicPieceStyle.magneticTeaching,
-                              customSet: widget.appearance?.customSet,
+                    if (!widget.reduced)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: CustomPaint(
+                            painter: _ImpactBurstPainter(
+                              progress: impact,
+                              color: widget.accent,
                             ),
                           ),
                         ),
-                      ],
+                      ),
+                    if (!widget.reduced && flash > 0)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: ColoredBox(
+                            color: Colors.white.withValues(alpha: flash * .24),
+                          ),
+                        ),
+                      ),
+                    if (!widget.reduced)
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: cinematic,
+                          child: CustomPaint(
+                            painter: _SpeedLinesPainter(
+                              progress: cinematic,
+                              color: widget.accent,
+                            ),
+                          ),
+                        ),
+                      ),
+                    Opacity(
+                      opacity: widget.reduced ? value : cinematic,
+                      child: Center(
+                        child: Transform.translate(
+                          offset: const Offset(0, 18),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Transform.translate(
+                                offset: Offset(
+                                  widget.reduced ? 0 : -50 * (1 - cinematic),
+                                  0,
+                                ),
+                                child: _Fighter(
+                                  piece: widget.battle.attacker,
+                                  pack:
+                                      widget.appearance?.army(
+                                        widget.battle.attacker.color,
+                                      ) ??
+                                      piecePacks.first,
+                                  accent: widget.accent,
+                                  useCharacterAsset: widget.useCharacterAsset,
+                                  victorious: true,
+                                  progress: cinematic,
+                                  standard:
+                                      widget.appearance?.standardPieces ??
+                                      false,
+                                  classicStyle:
+                                      widget.appearance?.classicStyle ??
+                                      ClassicPieceStyle.magneticTeaching,
+                                  customSet: widget.appearance?.customSet,
+                                ),
+                              ),
+                              Transform.scale(
+                                scale: widget.reduced ? 1 : .4 + cinematic,
+                                child: Icon(
+                                  Icons.bolt,
+                                  size: 60,
+                                  color: widget.accent,
+                                ),
+                              ),
+                              Transform.translate(
+                                offset: Offset(
+                                  widget.reduced ? 0 : 50 * (1 - cinematic),
+                                  0,
+                                ),
+                                child: Opacity(
+                                  opacity:
+                                      1 -
+                                      (_controller.value > .72
+                                          ? (_controller.value - .72) / .28
+                                          : 0),
+                                  child: _Fighter(
+                                    piece: widget.battle.defender!,
+                                    pack:
+                                        widget.appearance?.army(
+                                          widget.battle.defender!.color,
+                                        ) ??
+                                        piecePacks.first,
+                                    accent: Colors.white70,
+                                    useCharacterAsset: widget.useCharacterAsset,
+                                    victorious: false,
+                                    progress: cinematic,
+                                    standard:
+                                        widget.appearance?.standardPieces ??
+                                        false,
+                                    classicStyle:
+                                        widget.appearance?.classicStyle ??
+                                        ClassicPieceStyle.magneticTeaching,
+                                    customSet: widget.appearance?.customSet,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 28,
-                left: 0,
-                right: 0,
-                child: Opacity(
-                  opacity: widget.reduced ? value : cinematic,
-                  child: Text(
-                    widget.battle.san.endsWith('#')
-                        ? 'FINAL STRIKE'
-                        : 'CAPTURE',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: widget.accent,
-                      fontSize: 27,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 4,
+                    Positioned(
+                      top: 28,
+                      left: 0,
+                      right: 0,
+                      child: Opacity(
+                        opacity: widget.reduced ? value : cinematic,
+                        child: Text(
+                          widget.battle.san.endsWith('#')
+                              ? 'FINAL STRIKE'
+                              : 'CAPTURE',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: widget.accent,
+                            fontSize: 27,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 4,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 68,
-                left: 16,
-                right: 16,
-                child: Opacity(
-                  opacity: widget.reduced ? value : cinematic,
-                  child: Text(
-                    captureDescription(widget.battle),
-                    key: const ValueKey('capture-description'),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      shadows: [Shadow(color: Colors.black, blurRadius: 8)],
+                    Positioned(
+                      top: 68,
+                      left: 16,
+                      right: 16,
+                      child: Opacity(
+                        opacity: widget.reduced ? value : cinematic,
+                        child: Text(
+                          captureDescription(widget.battle),
+                          key: const ValueKey('capture-description'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            shadows: [
+                              Shadow(color: Colors.black, blurRadius: 8),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      right: 12,
+                      bottom: 12,
+                      child: TextButton.icon(
+                        onPressed: widget.onSkip,
+                        icon: const Icon(Icons.fast_forward),
+                        label: const Text('Skip'),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              Positioned(
-                right: 12,
-                bottom: 12,
-                child: TextButton.icon(
-                  onPressed: widget.onSkip,
-                  icon: const Icon(Icons.fast_forward),
-                  label: const Text('Skip'),
-                ),
-              ),
-            ],
+              );
+            },
           ),
         );
-      },
-    ),
-  );
 }
 
 class _BoardCaptureFlight extends StatelessWidget {

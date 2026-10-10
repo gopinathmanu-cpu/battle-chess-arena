@@ -1,7 +1,9 @@
+import 'package:battle_chess_arena/src/domain/animated_army_theme.dart';
 import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/play/board_appearance.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
 import 'package:battle_chess_arena/src/features/play/themed_piece_sprite.dart';
+import 'package:battle_chess_arena/src/features/play/neon_illustrated_stage.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -150,7 +152,7 @@ void main() {
     );
   });
 
-  testWidgets('themed set uses the Bishop walking atlas', (tester) async {
+  testWidgets('Animated board uses its stage cast artwork', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: SizedBox.square(
@@ -163,14 +165,12 @@ void main() {
       ),
     );
 
-    final image = tester.widget<ThemedPieceSprite>(
-      find.byType(ThemedPieceSprite),
-    );
+    final image = tester.widget<Image>(find.byType(Image));
     expect(
-      image.asset,
-      'assets/characters/themed-piece-atlas-fantasy-vivid-v5.png',
+      (image.image as AssetImage).assetName,
+      AnimatedArmyTheme.manga.castAsset(Side.white),
     );
-    expect(find.byType(OverflowBox), findsNothing);
+    expect(find.byType(ThemedPieceSprite), findsNothing);
     expect(CharacterPiece.atlasWidth / 6, CharacterPiece.atlasCellSize);
     expect(CharacterPiece.atlasHeight / 8, CharacterPiece.atlasCellSize);
   });
@@ -275,7 +275,7 @@ void main() {
   testWidgets('black themed characters mirror toward their opponents', (
     tester,
   ) async {
-    Future<bool> flipsHorizontally(Side side) async {
+    Future<bool> facesRight(Side side) async {
       await tester.pumpWidget(
         MaterialApp(
           home: SizedBox.square(
@@ -288,12 +288,12 @@ void main() {
         ),
       );
       return tester
-          .widget<ThemedPieceSprite>(find.byType(ThemedPieceSprite))
-          .flipX;
+          .widget<NeonFigureSprite>(find.byType(NeonFigureSprite))
+          .faceRight!;
     }
 
-    expect(await flipsHorizontally(Side.white), isFalse);
-    expect(await flipsHorizontally(Side.black), isTrue);
+    expect(await facesRight(Side.white), isTrue);
+    expect(await facesRight(Side.black), isFalse);
   });
 
   test(

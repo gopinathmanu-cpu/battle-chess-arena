@@ -51,12 +51,37 @@ class CapturedPiecesPanel extends StatelessWidget {
                     child: SizedBox.square(
                       key: ValueKey('captured-${captor.name}-$i'),
                       dimension: 34,
-                      child: CharacterPiece(
-                        piece: victims[i],
-                        pack: appearance.army(victims[i].color),
-                        standard: appearance.standardPieces,
-                        classicStyle: appearance.classicStyle,
-                        customSet: appearance.customSet,
+                      child: DecoratedBox(
+                        key: ValueKey('captured-tile-${captor.name}-$i'),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7894AE),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(
+                            color: victims[i].color == Side.white
+                                ? const Color(0xFF3D536F)
+                                : const Color(0xFFC5D9EC),
+                            width: victims[i].color == Side.white ? 1.2 : 1,
+                          ),
+                          boxShadow: victims[i].color == Side.white
+                              ? const [
+                                  BoxShadow(
+                                    color: Color(0x40213650),
+                                    blurRadius: 3,
+                                    offset: Offset(0, 1),
+                                  ),
+                                ]
+                              : const [],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(1.5),
+                          child: CharacterPiece(
+                            piece: victims[i],
+                            pack: appearance.army(victims[i].color),
+                            standard: appearance.standardPieces,
+                            classicStyle: appearance.classicStyle,
+                            customSet: appearance.customSet,
+                          ),
+                        ),
                       ),
                     ),
                   ),

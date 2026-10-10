@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-03",
+  "tool": "built-in image_gen.imagegen",
+  "mode": "built-in",
+  "generations": [
+    {
+      "id": "city",
+      "prompt": "Use case: stylized-concept. Asset type: high-resolution illustrated environment layer for a playable 2.5D Neon Dominion chess cinematic. Create a premium hand-painted animated-film background, landscape 16:9, target 2560x1440 or larger. Futuristic fantasy neon city at night, wet obsidian avenue through monumental luminous towers, mist, layered depth, cyan left-side accent lights and magenta right-side lights with restrained gold architecture. Wide low camera viewpoint, dramatic atmospheric directional lighting, foreground street with ample open space across lower 65 percent for overlaying characters, distant city focus above center. Strong painterly brushwork and silhouettes, stylized illustration rather than photorealistic 3D. City depth that works with slow pan/zoom and independently drawn foreground haze. Ground on lower third, distant skyline upper third. Beautiful readable composition on phones. No characters, soldiers, chess pieces, text, UI, borders, logos, watermark, vehicles blocking stage, explosions, checkerboard, or baked interface. The city is the continuous environment for cyan White / magenta Black armored fantasy-tech armies. Deep navy with rich atmospheric contrast, avoid excessive bright cyan all over the image.",
+      "transparent_background": false,
+      "reference_paths": [],
+      "selected": "assets/cinematics/neon/city.png",
+      "source_filename": "exec-53a03480-2d47-4093-9dfc-1842cce58d7d.png"
+    },
+    {
+      "id": "white-pose-source",
+      "prompt": "Use case: style-transfer. Asset type: transparent six-column cinematic character atlas. Edit and reillustrate the six White Neon Dominion characters in the reference into high-resolution painted battle character poses for an illustrated motion-comic film. Preserve recognizable white/silver/gold futuristic fantasy armor, cyan blue energy details, royal crowns, cybernetic elephant, cybernetic horse, siege chariot and sentinel identity. Remove every circular chess pedestal and base. Preserve exact role order left to right KING, QUEEN, BISHOP ON MECH ELEPHANT, KNIGHT ON CYBER HORSE, ROOK ON MECH CHARIOT, PAWN SENTINEL. Six characters only, exactly one role per evenly spaced column.\n\nLayout strict: very wide 3:1 canvas, requested3840x1280, TRANSPARENT BACKGROUND. Divide width into SIX EQUAL COLUMNS. Each complete full-body silhouette must fit entirely inside its own column with at least 7% margin from column edges and 8% above and below. No inter-column overlaps, no cropped crowns/weapons/mounts/feet, no text or role labels. All face generally right (the White attack direction), with slight three-quarter view for visible faces and illuminated cyan eyes. Dynamic but legible film poses: king raises a compact energy shield/command staff; queen leans into compact diagonal blade attack; bishop rides its armored mech elephant with bright cyan tusks, staff ready; knight mounted on cyber horse advancing mid-stride with raised compact sword; rook driver on a low armored siege chariot aiming cyan cannon; sentinel humanoid braces with compact cyan spear and energy shield. Keep mounts integral and correct role identity. No giant horizontal weapon extending outside column. Each role fills around80% of its allotted height but full silhouettes within column. Strong hand-painted cinematic texture, beautiful sharp detailed armor, cool directional highlights, coherent soft grounding shadow allowed attached to feet but no pedestal, no scenery. The output is a reusable alpha sprite atlas; preserve real transparency (no black, white, checkerboard or colored backdrop).",
+      "transparent_background": true,
+      "reference_paths": [
+        "assets/characters/fantasy-v4-sources/neon-white.png"
+      ],
+      "selected": "assets/cinematics/neon-source/white-cast-v1.png",
+      "source_filename": "exec-01107321-9032-4116-a256-09dbdc724030.png"
+    },
+    {
+      "id": "black-pose-source",
+      "prompt": "Use case: style-transfer. Asset type: transparent six-column cinematic character atlas. Edit and reillustrate the six Black Neon Dominion characters in the reference into high-resolution painted battle character poses for an illustrated motion-comic film. Preserve recognizable black/charcoal/gold futuristic fantasy armor, magenta pink-red energy details, royal crowns, cybernetic elephant, cybernetic horse, siege chariot and sentinel identity. Remove every circular chess pedestal and base. Preserve exact role order left to right KING, QUEEN, BISHOP ON MECH ELEPHANT, KNIGHT ON CYBER HORSE, ROOK ON MECH CHARIOT, PAWN SENTINEL. Six characters only, exactly one role per evenly spaced column.\n\nLayout strict: very wide 3:1 canvas, requested3840x1280, TRANSPARENT BACKGROUND. Divide width into SIX EQUAL COLUMNS. Each complete full-body silhouette must fit entirely inside its own column with at least7% margin from column edges and8% above and below. No inter-column overlaps, no cropped crowns/weapons/mounts/feet, no text or role labels. All face generally left (the Black attack direction), with slight three-quarter view for visible faces and illuminated magenta eyes. Dynamic but legible film poses: king raises a compact energy shield/command staff; queen leans into compact diagonal blade attack; bishop rides its armored mech elephant with bright magenta tusks, staff ready; knight mounted on cyber horse advancing mid-stride with raised compact sword; rook driver on a low armored siege chariot aiming magenta cannon; sentinel humanoid braces with compact magenta spear and energy shield. Keep mounts integral and correct role identity. No giant horizontal weapon extending outside column. Each role fills around80% of allotted height but full silhouettes within column. Strong hand-painted cinematic texture, beautiful sharp detailed armor, warm directional highlights, coherent soft grounding shadow allowed attached to feet but no pedestal, no scenery. The output is a reusable alpha sprite atlas; preserve real transparency (no black, white, checkerboard or colored backdrop).",
+      "transparent_background": true,
+      "reference_paths": [
+        "assets/characters/fantasy-v4-sources/neon-black.png"
+      ],
+      "selected": "assets/cinematics/neon-source/black-cast-v1.png",
+      "source_filename": "exec-d7199601-90ed-46fa-aaa7-21a1d7a77add.png"
+    },
+    {
+      "id": "white-cast-layout",
+      "prompt": "Use case: precise-object-edit. This is a production transparent sprite atlas LAYOUT CORRECTION. Preserve the six illustrated character identities, poses, colors and painted style from the reference, but CHANGE THEIR SCALE AND PLACEMENT so each sprite is cleanly separable. Keep a true transparent background and the wide 3:1 canvas. No extra characters, no text, no pedestal, no scenery.\n\nDivide the canvas into SIX EXACTLY EQUAL columns. Each column must contain ONLY ONE full character. From left to right: king, queen, mounted elephant bishop, mounted horse knight, mech chariot rook, sentinel pawn. There must be a fully empty, transparent vertical strip between every neighboring pair, running from top edge to bottom edge. Absolutely no character, cloth, weapon, energy effect, wheel, cape, staff or mount may cross a column boundary. If the existing character is wider than its slot, SHRINK the whole character until it fits. Keep full silhouette; do not cut it. In each equal column keep AT LEAST 10 percent of the COLUMN width transparent on EACH side and at least 8 percent of canvas height transparent on top and bottom. All six column centerlines must be exactly at 1/12,3/12,5/12,7/12,9/12,11/12 of canvas width. Each complete silhouette must fit within the central80percent of its column. Especially shrink the elephant bishop, horse knight, wide king cape and chariot cannon to avoid bleeding into neighbor slots. Do not stretch characters. Full feet and crown and weapon tips must remain inside image. Smaller but correctly spaced figures are better than larger overlapping ones.\n\nDeliver a high-resolution transparent atlas ready to crop into six equal-width rectangles. Preserve smooth clean alpha edges and the cyan or magenta illumination from the source.",
+      "transparent_background": true,
+      "reference_paths": [
+        "assets/cinematics/neon-source/white-cast-v1.png"
+      ],
+      "selected": "assets/cinematics/neon/white-cast.png",
+      "source_filename": "exec-e5e94b23-50dd-4c97-8a80-09cb8752aab4.png"
+    },
+    {
+      "id": "black-cast-layout",
+      "prompt": "Use case: precise-object-edit. This is a production transparent sprite atlas LAYOUT CORRECTION. Preserve the six illustrated character identities, poses, colors and painted style from the reference, but CHANGE THEIR SCALE AND PLACEMENT so each sprite is cleanly separable. Keep a true transparent background and the wide 3:1 canvas. No extra characters, no text, no pedestal, no scenery.\n\nDivide the canvas into SIX EXACTLY EQUAL columns. Each column must contain ONLY ONE full character. From left to right: king, queen, mounted elephant bishop, mounted horse knight, mech chariot rook, sentinel pawn. There must be a fully empty, transparent vertical strip between every neighboring pair, running from top edge to bottom edge. Absolutely no character, cloth, weapon, energy effect, wheel, cape, staff or mount may cross a column boundary. If the existing character is wider than its slot, SHRINK the whole character until it fits. Keep full silhouette; do not cut it. In each equal column keep AT LEAST 10 percent of the COLUMN width transparent on EACH side and at least 8 percent of canvas height transparent on top and bottom. All six column centerlines must be exactly at 1/12,3/12,5/12,7/12,9/12,11/12 of canvas width. Each complete silhouette must fit within the central80percent of its column. Especially shrink the elephant bishop, horse knight, wide king cape and chariot cannon to avoid bleeding into neighbor slots. Do not stretch characters. Full feet and crown and weapon tips must remain inside image. Smaller but correctly spaced figures are better than larger overlapping ones.\n\nDeliver a high-resolution transparent atlas ready to crop into six equal-width rectangles. Preserve smooth clean alpha edges and the cyan or magenta illumination from the source.",
+      "transparent_background": true,
+      "reference_paths": [
+        "assets/cinematics/neon-source/black-cast-v1.png"
+      ],
+      "selected": "assets/cinematics/neon/black-cast.png",
+      "source_filename": "exec-b9a45edb-cbe0-416c-b967-8a868657b2d7.png"
+    }
+  ]
+}

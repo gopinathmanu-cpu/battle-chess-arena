@@ -48,6 +48,9 @@ class GameSession {
   final List<Piece?> _captures = <Piece?>[];
 
   Position get position => _position;
+
+  /// The immutable position immediately before the last committed move.
+  Position? get positionBeforeLastMove => _positions.lastOrNull;
   List<String> get sanMoves => List.unmodifiable(_sanMoves);
   List<String> get uciMoves => List.unmodifiable(_uciMoves);
 

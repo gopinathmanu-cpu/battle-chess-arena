@@ -1,0 +1,73 @@
+{
+  "mode": "built-in image_gen",
+  "use": "Project-bound original artwork; generated images copied intact; rendering crops atlas cells without editing raster files.",
+  "jobs": [
+    {
+      "key": "manga-cast",
+      "dest": "assets/cinematics/manga/cast.png",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: transparent character atlas for the original chess game Manga Vanguard, full-body figures animated by a renderer. Create a wide 2:1 image as exactly SIX equally spaced columns and TWO equally spaced rows, twelve isolated complete figures. Top row: White army in ivory, gold and sapphire; bottom row: Black army in charcoal, silver and magenta. BOTH rows ALL figures face toward the RIGHT in ready-to-attack three-quarter profile. Exact order left to right in EACH row: 1 crowned youthful sword king with cape; 2 regal long-haired staff queen; 3 elderly sorcerer riding a richly armored elephant, clearly include whole elephant; 4 female armored lancer mounted on horse, whole horse; 5 shield guardian driving a two-wheel armored chariot, whole chariot; 6 youthful spear-and-round-shield foot soldier. Original expressive anime fantasy illustration, strong clean outlines, nuanced painted shading, flowing capes and hair, jewel highlights. Each unit entirely inside its own equal cell, full feet/wheels/weapons visible, identical ground baseline within each row, generous transparent gutters at all cell edges. No overlaps between cells. No chess bases, no pedestals, no ground shadows beyond character, no background scenery, no labels, no text, no watermark. GENUINE alpha transparency outside all twelve figures, not a painted checkerboard. No existing franchise characters. All twelve subjects have distinct readable silhouettes while remaining one cohesive army world.",
+      "finalDimensions": [
+        1774,
+        887
+      ],
+      "sha256": "23730d0a2c1ce6ca62b3357f2f2b37b859fed6e9bb8d8b86701739604c40ed10"
+    },
+    {
+      "key": "epic-cast",
+      "dest": "assets/cinematics/epic/cast.png",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: genuine transparent full-body character atlas for original chess world Epic Guardians. Produce wide 2:1 image exactly SIX equally spaced columns by TWO equally spaced rows. Top White army wears ivory saffron gold and turquoise; bottom Black army wears deep indigo bronze amethyst. All twelve figures face RIGHT, three-quarter ready-for-action profile. In each row left to right: 1 original bearded royal warrior king with jeweled crown, curved sword and flowing shawl; 2 warrior queen with lotus-tipped staff and intricate armor; 3 wise sage carried by a fully visible armored elephant with ornate cloth; 4 lancer riding fully visible warhorse; 5 archer warrior on a fully visible two-wheel chariot with round shield; 6 spear-and-shield foot guardian. Inspired by the visual richness of Indian epic fantasy with original fictional heroes, elegant fabric, embossed armor, warm painterly detail, luminous golden astral accents, dignified faces and active poised bodies. No named religious figures or depictions of existing characters. Each figure fully inside its equal cell, feet/wheels/weapons/trunk intact, consistent baseline per row, generous transparent gutters so renderer can crop each cell. No touching or overlap between neighboring cells. No chess plinths or bases, no scenery, no words, no letters, no watermark. Real alpha-transparent canvas outside characters, no checkerboard pixels.",
+      "finalDimensions": [
+        1774,
+        887
+      ],
+      "sha256": "845862b93ff6e3fea493b48b7c943966c9efd9f6136a4b1dc4d90c09e76c5440"
+    },
+    {
+      "key": "olympian-cast",
+      "dest": "assets/cinematics/olympian/cast.png",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: transparent full-body character atlas for original chess world Olympian Legion. Wide 2:1 composition arranged as exactly SIX equally spaced columns and TWO equally spaced rows, twelve isolated original figures. Top White army ivory marble, gold bronze and sky blue; bottom Black army dark bronze, charcoal and crimson. Both armies' source figures ALL face RIGHT in assertive three-quarter battle profile. Each row left to right: 1 original crowned bearded storm king with lightning-tipped scepter and cloak; 2 armored strategist queen with spear and flowing cloak; 3 elder oracle astride a fully visible armored elephant bearing bronze geometric cloth; 4 crested hoplite lancer mounted on full warhorse; 5 bronze-shield chariot captain in full two-wheel chariot; 6 hoplite with spear and round sun shield. Mythic Hellenic fantasy illustration, sculptural believable anatomy, engraved bronze, laurel ornaments, marble-white cloth, storm-blue glows, premium painterly game art. Entire silhouette of each subject confined within its equal cell, whole feet/wheels/elephant/horse visible, baseline consistent in each row, generous clear transparent gutters. No overlaps or cropping at cell boundaries. No chess bases, no pedestals, no scenery, no text or watermark, no existing franchise characters. Genuinely transparent alpha background outside twelve figures, no painted checkerboard.",
+      "finalDimensions": [
+        1774,
+        887
+      ],
+      "sha256": "949778069232f9fdc203fb7865cf48c9c2554e1b60b6d1610d7fd53c2f3d77b8"
+    },
+    {
+      "key": "manga-world",
+      "dest": "assets/cinematics/manga/world.png",
+      "transparent": false,
+      "prompt": "Use case: illustration-story. Asset type: wide cinematic battlefield background for Manga Vanguard, an original animated chess world. Premium anime fantasy matte painting at dusk: a broad empty slate arena terrace in foreground, luminous crystal citadel beyond, floating pennant banners, distant angular mountains and violet sky with a comet arc. Sapphire light from left and rose-magenta glow from right establish two rival armies. Composition 16:9 landscape, camera at character eye level, wide open lower-middle foreground for two opposing full-body characters with room on far left and right, architecture pushed to upper/distant background. Layered atmospheric depth, detailed painterly linework, dramatic but readable lighting; subdued foreground avoids competing with characters and game labels. No people, no units, no chess pieces, no literal chessboard, no text, no logos, no watermark.",
+      "finalDimensions": [
+        1672,
+        941
+      ],
+      "sha256": "a11fdc19f7cb9274ad456f69e1ac77e3b49a2682105c01b69f4c50cdf6d51696"
+    },
+    {
+      "key": "epic-world",
+      "dest": "assets/cinematics/epic/world.png",
+      "transparent": false,
+      "prompt": "Use case: illustration-story. Asset type: original Epic Guardians cinematic battlefield matte painting. Wide 16:9 landscape, magnificent Indian epic fantasy palace courtyard at sunset with carved sandstone arches, distant palace towers, hanging fabric banners, subtle lotus motifs, a broad empty golden-stone terrace filling lower half. Radiant amber sunlight at left, amethyst twilight at right for two fictional rival guardian armies. Character eye-level camera, open center foreground and open left/right areas for animated figures, rich architecture beyond rather than foreground clutter. Warm dignified painterly game illustration, layered depth, soft dust motes and restrained celestial rays, elegant original architecture rather than a real named religious site. No people, no figures, no chessboard, no text, no letters, no watermark, no logos.",
+      "finalDimensions": [
+        1672,
+        941
+      ],
+      "sha256": "507e0129feed849c6a9f823faff69a08858bff68018cfaf060d4623a992b5db7"
+    },
+    {
+      "key": "olympian-world",
+      "dest": "assets/cinematics/olympian/world.png",
+      "transparent": false,
+      "prompt": "Use case: illustration-story. Asset type: original Olympian Legion cinematic battlefield background. Wide 16:9 landscape matte painting: broad empty pale-marble arena terrace on a high mountain, immense classical columns and broken bronze shields at distant edges, cloud sea beyond, a majestic temple in background, storm-blue sky with one restrained lightning fork far away. Dawn cyan light from left contrasts warm copper twilight from right for opposing armies. Eye-level character camera, large uncluttered lower-middle foreground with open areas at both sides to composite full-body fighters, columns behind subjects. Mythic painterly premium game art, engraved stone detail, bronze accents, billowing atmosphere and strong layered depth. No figures, no people, no named gods, no chessboard, no words or lettering, no watermark or logos.",
+      "finalDimensions": [
+        1672,
+        941
+      ],
+      "sha256": "3feb410a1d366a46649a4e8c55e25185eac397b14077f6097bd54a6e8ebbb7a8"
+    }
+  ],
+  "generationDate": "2026-10-03"
+}

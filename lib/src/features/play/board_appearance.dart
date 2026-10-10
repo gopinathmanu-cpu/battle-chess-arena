@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/piece_pack.dart';
 import '../../domain/custom_chess_set.dart';
+import '../../domain/animated_army_theme.dart';
 import '../../services/theme_music.dart';
 import '../../services/app_color_scheme_controller.dart';
 import '../studio/custom_piece.dart';
@@ -15,6 +16,7 @@ class BoardAppearance {
     required this.black,
     required this.board,
     this.standardPieces = false,
+    this.animatedArena = true,
     this.classicStyle = ClassicPieceStyle.magneticTeaching,
     this.customSet,
     this.lightSquareOverride,
@@ -26,16 +28,29 @@ class BoardAppearance {
   final PiecePack black;
   final PiecePack board;
   final bool standardPieces;
+
+  /// Page presentation is independent of swiping the board's piece artwork.
+  final bool animatedArena;
   final ClassicPieceStyle classicStyle;
   final CustomChessSet? customSet;
   final Color? lightSquareOverride;
   final Color? darkSquareOverride;
   Color get lightSquare =>
       lightSquareOverride ??
-      (customSet == null ? board.lightSquare : Color(customSet!.lightSquare));
+      (customSet != null
+          ? Color(customSet!.lightSquare)
+          : _animatedBoardTheme != null
+          ? Color(_animatedBoardTheme!.lightSquareArgb)
+          : board.lightSquare);
   Color get darkSquare =>
       darkSquareOverride ??
-      (customSet == null ? board.darkSquare : Color(customSet!.darkSquare));
+      (customSet != null
+          ? Color(customSet!.darkSquare)
+          : _animatedBoardTheme != null
+          ? Color(_animatedBoardTheme!.darkSquareArgb)
+          : board.darkSquare);
+  AnimatedArmyTheme? get _animatedBoardTheme =>
+      animatedArena ? AnimatedArmyTheme.forPack(board.id) : null;
   PiecePack army(Side side) => side == Side.white ? white : black;
 
   BoardAppearance withCustomSet(CustomChessSet? set) => BoardAppearance(
@@ -43,6 +58,7 @@ class BoardAppearance {
     black: black,
     board: board,
     standardPieces: standardPieces,
+    animatedArena: animatedArena,
     classicStyle: classicStyle,
     customSet: set,
     lightSquareOverride: lightSquareOverride,
@@ -54,6 +70,7 @@ class BoardAppearance {
     black: black,
     board: board,
     standardPieces: standardPieces,
+    animatedArena: animatedArena,
     classicStyle: classicStyle,
     customSet: customSet,
     lightSquareOverride: light,
@@ -68,6 +85,7 @@ class BoardAppearance {
       black: black,
       board: board,
       standardPieces: true,
+      animatedArena: animatedArena,
       classicStyle: style,
       lightSquareOverride: lightSquareOverride,
       darkSquareOverride: darkSquareOverride,
@@ -222,6 +240,7 @@ class CharacterPiece extends StatelessWidget {
           child: _ClassicChessPiece(piece: piece, style: classicStyle),
         );
       }
+      final animatedTheme = AnimatedArmyTheme.forPack(pack.id);
       return SizedBox.square(
         dimension: size,
         child: Stack(
@@ -230,15 +249,20 @@ class CharacterPiece extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(.5),
                 child: ExcludeSemantics(
-                  child: ThemedPieceSprite(
-                    asset: atlasAsset,
-                    row: atlasRow,
-                    column: atlasColumn,
-                    rows: atlasRows,
-                    role: piece.role,
-                    flipX: piece.color == Side.black,
-                    brightenDarkArmy: piece.color == Side.black,
-                  ),
+                  child: animatedTheme != null
+                      ? AnimatedArmyBoardSprite(
+                          piece: piece,
+                          theme: animatedTheme,
+                        )
+                      : ThemedPieceSprite(
+                          asset: atlasAsset,
+                          row: atlasRow,
+                          column: atlasColumn,
+                          rows: atlasRows,
+                          role: piece.role,
+                          flipX: piece.color == Side.black,
+                          brightenDarkArmy: piece.color == Side.black,
+                        ),
                 ),
               ),
             ),
@@ -246,37 +270,46 @@ class CharacterPiece extends StatelessWidget {
               Positioned(
                 right: 1,
                 bottom: 1,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 3,
-                    vertical: 1,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: size * .35,
+                    maxHeight: size * .35,
                   ),
-                  decoration: BoxDecoration(
-                    color: piece.color == Side.white
-                        ? const Color(0xFFF8F0DD)
-                        : const Color(0xFF161525),
-                    borderRadius: BorderRadius.circular(3),
-                    border: Border.all(
-                      color: pack.accent.withValues(alpha: .7),
-                      width: .6,
-                    ),
-                  ),
-                  child: Text(
-                    switch (piece.role) {
-                      Role.king => 'K',
-                      Role.queen => 'Q',
-                      Role.rook => 'R',
-                      Role.bishop => 'B',
-                      Role.knight => 'N',
-                      Role.pawn => 'P',
-                    },
-                    style: TextStyle(
-                      fontSize: 8,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                      color: piece.color == Side.white
-                          ? Colors.black87
-                          : Colors.white,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 3,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: piece.color == Side.white
+                            ? const Color(0xFFF8F0DD)
+                            : const Color(0xFF161525),
+                        borderRadius: BorderRadius.circular(3),
+                        border: Border.all(
+                          color: pack.accent.withValues(alpha: .7),
+                          width: .6,
+                        ),
+                      ),
+                      child: Text(
+                        switch (piece.role) {
+                          Role.king => 'K',
+                          Role.queen => 'Q',
+                          Role.rook => 'R',
+                          Role.bishop => 'B',
+                          Role.knight => 'N',
+                          Role.pawn => 'P',
+                        },
+                        style: TextStyle(
+                          fontSize: 8,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: piece.color == Side.white
+                              ? Colors.black87
+                              : Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -294,6 +327,8 @@ class PieceStyleToggleButton extends StatelessWidget {
     required this.themedPack,
     required this.onPressed,
     this.compact = false,
+    this.cycleClassicSets = false,
+    this.classicStyle = ClassicPieceStyle.magneticTeaching,
     super.key,
   });
 
@@ -301,11 +336,15 @@ class PieceStyleToggleButton extends StatelessWidget {
   final PiecePack themedPack;
   final VoidCallback onPressed;
   final bool compact;
+  final bool cycleClassicSets;
+  final ClassicPieceStyle classicStyle;
 
   @override
   Widget build(BuildContext context) => IconButton(
-    tooltip: classic
-        ? 'Use themed character pieces'
+    tooltip: cycleClassicSets
+        ? 'Next Classic set'
+        : classic
+        ? 'Use animated character pieces'
         : 'Use classic chess pieces',
     padding: compact ? const EdgeInsets.all(1) : null,
     constraints: compact
@@ -327,7 +366,19 @@ class PieceStyleToggleButton extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          if (classic)
+          if (cycleClassicSets)
+            SizedBox.square(
+              dimension: 27,
+              child: CharacterPiece(
+                piece: const Piece(color: Side.white, role: Role.knight),
+                pack: themedPack,
+                standard: true,
+                classicStyle:
+                    ClassicPieceStyle.values[(classicStyle.index + 1) %
+                        ClassicPieceStyle.values.length],
+              ),
+            )
+          else if (classic)
             SizedBox.square(
               key: const ValueKey('switch-to-themed-icon'),
               dimension: 27,
@@ -434,13 +485,15 @@ Future<BoardAppearance?> chooseBoardAppearance(
           ValueChanged<PiecePack> changed, {
           bool enabled = true,
         }) => DropdownButtonFormField<PiecePack>(
-          initialValue: value,
+          initialValue: availablePiecePacks.contains(value) ? value : null,
+          hint: Text(value.name),
+          disabledHint: Text(value.name),
           isExpanded: true,
           decoration: InputDecoration(
             labelText: label,
             suffixIcon: enabled ? null : const Icon(Icons.lock_outline),
           ),
-          items: piecePacks
+          items: availablePiecePacks
               .map((p) => DropdownMenuItem(value: p, child: Text(p.name)))
               .toList(),
           onChanged: enabled
@@ -461,7 +514,7 @@ Future<BoardAppearance?> chooseBoardAppearance(
                     ButtonSegment(
                       value: false,
                       icon: Icon(Icons.groups_2_outlined),
-                      label: Text('Themed'),
+                      label: Text('Animated'),
                     ),
                     ButtonSegment(
                       value: true,

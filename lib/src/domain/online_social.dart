@@ -7,12 +7,14 @@ class SharedInvitation {
     required this.avatarName,
     required this.status,
     this.expiresAt,
+    this.gameId,
   });
   factory SharedInvitation.fromJson(Map<String, dynamic> json) =>
       SharedInvitation(
         inviteId: json['inviteId'] as String,
         avatarName: json['avatarName'] as String,
         status: json['status'] as String,
+        gameId: json['gameId'] as String?,
         expiresAt: json['expiresAt'] == null
             ? null
             : DateTime.fromMillisecondsSinceEpoch(json['expiresAt'] as int),
@@ -20,6 +22,7 @@ class SharedInvitation {
   final String inviteId;
   final String avatarName;
   final String status;
+  final String? gameId;
   final DateTime? expiresAt;
   bool get isExpired =>
       status == 'expired' ||

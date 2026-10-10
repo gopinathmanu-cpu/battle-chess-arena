@@ -143,3 +143,41 @@ test('rejected custom-avatar edits leave stored and public profiles unchanged', 
   assert.equal(leader.avatarId, defaultId);
   assert.equal(app.profiles.size, 1);
 });
+
+test('keyboard punctuation works across avatar registration, editing, discovery and invites', () => {
+  for (let code = 33; code <= 126; code++) {
+    const name = `${String.fromCharCode(code)}Knight`;
+    for (const type of ['register_player', 'update_player']) {
+      assert.equal(validateMessage({...profile(defaultId, type), name}).name, name);
+    }
+    assert.equal(validateMessage({type: 'find_player', query: name}).query, name);
+    assert.deepEqual(validateMessage({type: 'presence', names: [name]}).names, [name]);
+    assert.equal(validateMessage({type: 'send_invite', commandId: 'invite', opponentName: name}).opponentName, name);
+  }
+  for (const name of ['ab', 'A'.repeat(21), 'Knight\u0000', 'Knight\u007f', 'Knight\n']) {
+    assert.throws(() => validateMessage({...profile(defaultId), name}), {code: 'INVALID_MESSAGE'});
+    assert.throws(() => validateMessage({type: 'presence', names: [name]}), {code: 'INVALID_MESSAGE'});
+  }
+});
+
+test('symbol names remain unique on creation and editing', async (t) => {
+  const app = createMatchServer({port: 0, host: '127.0.0.1', tickMs: 60_000});
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const owner = await connect(url);
+  owner.send({...profile(defaultId), name: '@Nova#42'});
+  const registered = await owner.next(message => message.type === 'player_registered');
+  const other = await connect(url);
+  other.send({...profile(defaultId), name: '@nova#42'});
+  assert.equal((await other.next(message => message.type === 'error')).code, 'AVATAR_NAME_TAKEN');
+  other.send({...profile(defaultId), commandId: 'own-name', name: 'Other#Knight'});
+  await other.next(message => message.type === 'player_registered');
+  other.send({...profile(maximumId, 'update_player'), commandId: 'taken-edit', name: '@NOVA#42'});
+  assert.equal((await other.next(message => message.type === 'error')).code, 'AVATAR_NAME_TAKEN');
+  owner.send({...profile(maximumId, 'update_player'), commandId: 'own-edit', name: '@NOVA#42'});
+  const updated = await owner.next(message => message.type === 'player_updated');
+  assert.equal(updated.playerToken, registered.playerToken);
+  owner.send({type: 'find_player', query: 'Other#Knight'});
+  assert.equal((await owner.next(message => message.type === 'player_found')).player.avatarId, defaultId);
+});

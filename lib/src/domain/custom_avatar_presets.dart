@@ -1,0 +1,158 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import 'custom_avatar.dart';
+
+/// Editable starting points, using the same portable appearance format.
+const customAvatarPresets = <(String, CustomAvatarDesign)>[
+  (
+    'Soft waves',
+    CustomAvatarDesign(
+      presentation: 1,
+      hairStyle: 8,
+      hairColor: 1,
+      skinTone: 2,
+      outfit: 5,
+      outfitColor: 6,
+      background: 2,
+    ),
+  ),
+  (
+    'Modern quiff',
+    CustomAvatarDesign(
+      hairStyle: 3,
+      hairColor: 0,
+      skinTone: 2,
+      outfit: 1,
+      outfitColor: 0,
+      background: 5,
+    ),
+  ),
+  (
+    'Curly charm',
+    CustomAvatarDesign(
+      presentation: 1,
+      face: 1,
+      hairStyle: 4,
+      hairColor: 4,
+      skinTone: 1,
+      outfit: 0,
+      outfitColor: 3,
+      background: 1,
+    ),
+  ),
+  (
+    'Sharp jacket',
+    CustomAvatarDesign(
+      face: 2,
+      hairStyle: 2,
+      hairColor: 1,
+      skinTone: 3,
+      beard: 3,
+      outfit: 3,
+      outfitColor: 0,
+      background: 1,
+    ),
+  ),
+  (
+    'Golden bob',
+    CustomAvatarDesign(
+      presentation: 1,
+      face: 3,
+      hairStyle: 6,
+      hairColor: 5,
+      skinTone: 0,
+      outfit: 5,
+      outfitColor: 1,
+      background: 3,
+    ),
+  ),
+  (
+    'Natural curls',
+    CustomAvatarDesign(
+      hairStyle: 5,
+      hairColor: 0,
+      skinTone: 6,
+      outfit: 1,
+      outfitColor: 2,
+      background: 4,
+    ),
+  ),
+  (
+    'Braided glow',
+    CustomAvatarDesign(
+      presentation: 1,
+      hairStyle: 9,
+      hairColor: 0,
+      skinTone: 5,
+      outfit: 4,
+      outfitColor: 4,
+      background: 3,
+    ),
+  ),
+  (
+    'Studio glasses',
+    CustomAvatarDesign(
+      hairStyle: 2,
+      hairColor: 0,
+      skinTone: 2,
+      eyewear: 2,
+      outfit: 2,
+      outfitColor: 3,
+      background: 1,
+    ),
+  ),
+  (
+    'Silver elegance',
+    CustomAvatarDesign(
+      presentation: 1,
+      age: 3,
+      hairStyle: 10,
+      hairColor: 6,
+      skinTone: 1,
+      eyewear: 3,
+      outfit: 5,
+      outfitColor: 5,
+      background: 2,
+    ),
+  ),
+  (
+    'Distinguished',
+    CustomAvatarDesign(
+      age: 3,
+      hairStyle: 2,
+      hairColor: 7,
+      skinTone: 3,
+      beard: 3,
+      eyewear: 1,
+      outfit: 3,
+      outfitColor: 7,
+      background: 5,
+    ),
+  ),
+  (
+    'Violet ponytail',
+    CustomAvatarDesign(
+      presentation: 1,
+      age: 1,
+      face: 3,
+      hairStyle: 11,
+      hairColor: 9,
+      skinTone: 2,
+      outfit: 1,
+      outfitColor: 5,
+      background: 3,
+    ),
+  ),
+  (
+    'Bright explorer',
+    CustomAvatarDesign(
+      age: 1,
+      face: 1,
+      hairStyle: 4,
+      hairColor: 3,
+      skinTone: 2,
+      outfit: 1,
+      outfitColor: 6,
+      background: 5,
+    ),
+  ),
+];

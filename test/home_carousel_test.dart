@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 
 import 'package:battle_chess_arena/src/app.dart';
 import 'package:battle_chess_arena/src/domain/online_player_profile.dart';
+import 'package:battle_chess_arena/src/domain/game_session.dart';
+import 'package:battle_chess_arena/src/domain/game_time_control.dart';
 import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/home/chess_set_carousel.dart';
 import 'package:battle_chess_arena/src/features/home/chess_set_family_selector.dart';
@@ -10,9 +12,13 @@ import 'package:battle_chess_arena/src/features/online/online_avatar_image.dart'
 import 'package:battle_chess_arena/src/features/play/animation_lab_screen.dart';
 import 'package:battle_chess_arena/src/features/play/board_appearance.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
+import 'package:battle_chess_arena/src/features/play/neon_illustrated_stage.dart';
 import 'package:battle_chess_arena/src/services/home_chess_set.dart';
+import 'package:battle_chess_arena/src/services/computer_player.dart';
+import 'package:battle_chess_arena/src/services/game_history_storage.dart';
+import 'package:battle_chess_arena/src/services/last_game_storage.dart';
 import 'package:battle_chess_arena/src/services/online_game_history.dart';
-import 'package:dartchess/dartchess.dart' show Chess;
+import 'package:dartchess/dartchess.dart' show Chess, Side;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +26,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'theme_music_test.dart' show FakeMusicOutput;
+import 'support/piece_choice.dart';
 
 // Optional screenshots: --dart-define=HOME_VISUALS=true and
 // --dart-define=HOME_FONT_DIR=<flutter>/bin/cache/artifacts/material_fonts
@@ -81,6 +88,11 @@ void main() {
               : piece.atlasAsset,
         )
         .toSet();
+    visibleAtlases.addAll(
+      tester
+          .widgetList<NeonFigureSprite>(find.byType(NeonFigureSprite))
+          .map((figure) => figure.theme.castAsset(figure.piece.color)),
+    );
     await tester.runAsync(() async {
       for (final asset in visibleAtlases) {
         await precacheImage(
@@ -177,7 +189,7 @@ void main() {
       expect(artwork.first.standard, isTrue);
       expect(artwork.last.standard, isFalse);
       expect(artwork.every((piece) => !piece.showRole), isTrue);
-      final themed = find.bySemanticsLabel('Themed chess sets, 31 variations');
+      final themed = find.bySemanticsLabel('Animated chess sets, 4 variations');
       final classic = find.bySemanticsLabel('Classic chess sets, 4 variations');
       expect(
         tester.getTopLeft(classic).dx,
@@ -200,7 +212,7 @@ void main() {
       expect(
         tester.getSemantics(themed),
         matchesSemantics(
-          label: 'Themed chess sets, 31 variations',
+          label: 'Animated chess sets, 4 variations',
           isButton: true,
           isSelected: true,
           hasSelectedState: true,
@@ -215,6 +227,202 @@ void main() {
       semantics.dispose();
     }
   });
+
+  for (final width in [320.0, 390.0]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'Animated family artwork stays enlarged while browsing at $width / $scale',
+        (tester) async {
+          await tester.binding.setSurfaceSize(Size(width, 844));
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          tester.platformDispatcher.textScaleFactorTestValue = scale;
+          addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+          SharedPreferences.setMockInitialValues({});
+          await openHome(tester);
+          await chooseFamily(tester, 'choose-themed');
+          final animated = find.byKey(const ValueKey('choose-themed'));
+          final classic = find.byKey(const ValueKey('choose-classic'));
+          for (var index = 0; index < availablePiecePacks.length; index++) {
+            await tester.ensureVisible(animated);
+            await tester.pumpAndSettle();
+            final artwork = find.descendant(
+              of: animated,
+              matching: find.byType(CharacterPiece),
+            );
+            final classicArtwork = find.descendant(
+              of: classic,
+              matching: find.byType(CharacterPiece),
+            );
+            expect(tester.getSize(artwork), const Size.square(64));
+            expect(tester.getSize(classicArtwork), const Size(52, 56));
+            expect(
+              tester.widget<CharacterPiece>(artwork).pack.id,
+              availablePiecePacks[index].id,
+            );
+            expect(tester.widget<CharacterPiece>(artwork).standard, isFalse);
+            expect(
+              tester.widget<CharacterPiece>(classicArtwork).standard,
+              isTrue,
+            );
+            for (final (card, title) in [
+              (animated, 'Animated'),
+              (classic, 'Classic'),
+            ]) {
+              final cardRect = tester.getRect(card);
+              final label = find.descendant(
+                of: card,
+                matching: find.text(title),
+              );
+              final labelRect = tester.getRect(label);
+              expect(labelRect.left - cardRect.left, closeTo(65, .001));
+              expect(labelRect.right, lessThanOrEqualTo(cardRect.right));
+              expect(labelRect.top, greaterThanOrEqualTo(cardRect.top));
+              expect(labelRect.bottom, lessThanOrEqualTo(cardRect.bottom));
+              final icon = find.descendant(
+                of: card,
+                matching: find.byType(CharacterPiece),
+              );
+              final iconRect = tester.getRect(icon);
+              expect(iconRect.left, greaterThanOrEqualTo(cardRect.left));
+              expect(iconRect.right, lessThan(labelRect.left));
+              expect(iconRect.top, greaterThanOrEqualTo(cardRect.top));
+              expect(iconRect.bottom, lessThanOrEqualTo(cardRect.bottom));
+            }
+            expect(tester.takeException(), isNull);
+            if (index + 1 < availablePiecePacks.length) {
+              final carousel = find.byType(PageView);
+              await tester.ensureVisible(carousel);
+              await tester.pumpAndSettle();
+              await tester.drag(carousel, Offset(-width * .65, 0));
+              await tester.pumpAndSettle();
+            }
+          }
+          await chooseFamily(tester, 'choose-classic');
+          expect(
+            tester
+                .widget<ChessSetCarousel>(find.byType(ChessSetCarousel))
+                .classic,
+            isTrue,
+          );
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox());
+          await tester.pumpAndSettle();
+        },
+      );
+    }
+  }
+
+  testWidgets(
+    'old Home preference cannot introduce an unavailable new-game army',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      const old = HomeChessSet(pack: PiecePackId.japanese, classic: false);
+      await old.save();
+      await openHome(tester);
+      final carousel = tester.widget<ChessSetCarousel>(
+        find.byType(ChessSetCarousel),
+      );
+      expect(carousel.pack.id, PiecePackId.anime);
+      expect(carousel.themedPacks, availablePiecePacks);
+      expect(carousel.count, 4);
+      expect(find.text('Manga Vanguard'), findsOneWidget);
+      // Loading the picker does not rewrite the persisted old preference.
+      expect((await HomeChessSet.load()).pack, PiecePackId.japanese);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'resuming an old army keeps it on the match and leaves new choices curated',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await LastGameStorage.clear();
+      await LastGameStorage.save(
+        const SavedGame(
+          mode: PlayerMode.local,
+          humanSide: Side.white,
+          homePack: PiecePackId.japanese,
+          difficulty: ComputerDifficulty.medium,
+          moves: ['e2e4', 'e7e5'],
+          whiteMilliseconds: 600000,
+          blackMilliseconds: 600000,
+          fastBattles: true,
+          whitePack: PiecePackId.japanese,
+          blackPack: PiecePackId.japanese,
+          boardPack: PiecePackId.japanese,
+          updatedAtEpochMs: 1,
+          timeControl: GameTimeControl.practice,
+        ),
+      );
+      Future<void> until(Finder target) async {
+        for (var frame = 0; target.evaluate().isEmpty && frame < 50; frame++) {
+          await tester.pump(const Duration(milliseconds: 20));
+        }
+        expect(target, findsOneWidget);
+      }
+
+      try {
+        await openHome(tester);
+        await tester.tap(find.byKey(const ValueKey('play-computer-button')));
+        await until(find.text('Resume Last Game'));
+        await tester.tap(find.text('Resume Last Game'));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('piece-type-choice')), findsNothing);
+        expect(
+          tester
+              .widget<AnimationLabScreen>(find.byType(AnimationLabScreen))
+              .pack
+              .id,
+          PiecePackId.japanese,
+        );
+        expect(
+          tester
+              .widget<ChessBoard>(find.byType(ChessBoard))
+              .appearance!
+              .white
+              .id,
+          PiecePackId.japanese,
+        );
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<ChessSetCarousel>(find.byType(ChessSetCarousel))
+              .pack
+              .id,
+          PiecePackId.anime,
+        );
+        await tester.tap(find.byKey(const ValueKey('play-computer-button')));
+        await until(find.text('New Game'));
+        await tester.tap(find.text('New Game'));
+        await until(find.byKey(const ValueKey('computer-difficulty-easy')));
+        await tester.tap(
+          find.byKey(const ValueKey('computer-difficulty-easy')),
+        );
+        await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+        await chooseGamePieces(tester);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<AnimationLabScreen>(find.byType(AnimationLabScreen))
+              .pack
+              .id,
+          PiecePackId.anime,
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+        var drained = false;
+        GameHistoryStorage().loadSnapshot().then((_) => drained = true);
+        for (var frame = 0; !drained && frame < 40; frame++) {
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+        expect(drained, isTrue);
+        await LastGameStorage.clear();
+      }
+    },
+  );
 
   testWidgets('guest edit action opens the name and avatar editor', (
     tester,
@@ -271,7 +479,16 @@ void main() {
     );
     expect(avatar.avatarId, 'avatar-07');
     expect(avatar.size, 60);
-    expect(find.text('Experience 0 XP  ·  Trophies 0'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            RegExp(
+              r'^(Experience|Exp) 0 XP  ·  Trophies 0$',
+            ).hasMatch(widget.data ?? ''),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('home-avatar-details')), findsOneWidget);
     expect(find.byKey(const ValueKey('badge-subtitle')), findsOneWidget);
     expect(find.text('♙ Arena Rookie  ·  0 pts'), findsOneWidget);
@@ -317,7 +534,7 @@ void main() {
     );
     await tester.enterText(
       find.byKey(const ValueKey('settings-online-avatar-name')),
-      'Public Rook',
+      'ab',
     );
     final secondAvatar = find.byKey(const ValueKey('avatar-avatar-02'));
     tester.widget<InkWell>(secondAvatar).onTap!();
@@ -327,20 +544,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final saved = await OnlineGameHistory.loadProfile();
-    expect(saved?.name, 'Public Rook');
-    expect(saved?.avatarId, 'avatar-02');
-    await tester.tap(find.byTooltip('Close settings'));
-    await tester.pumpAndSettle();
-    expect(find.text('Public Rook'), findsOneWidget);
-    expect(
-      tester
-          .widget<OnlineAvatarImage>(
-            find.byKey(const ValueKey('home-avatar-image')),
-          )
-          .avatarId,
-      'avatar-02',
-    );
+    expect(find.text('Use 3–20 standard keyboard characters'), findsOneWidget);
+    expect(await OnlineGameHistory.loadProfile(), isNull);
   });
 
   testWidgets('double tapping the board preview triggers Play Computer', (
@@ -485,7 +690,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('theme filters browse groups and preserve the chosen realm', (
+  testWidgets('only available Fantasy filters browse the four Animated sets', (
     tester,
   ) async {
     if (captureVisuals) {
@@ -509,29 +714,23 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await chooseGroup('Historical');
-    expect(find.text('Japanese Shogunate'), findsOneWidget);
-    expect(find.text('1 / 19 · Swipe to choose'), findsOneWidget);
-    expect((await HomeChessSet.load()).pack, PiecePackId.japanese);
-    final previous = find.byKey(const ValueKey('previous-chess-set'));
-    await tester.ensureVisible(previous);
-    await tester.pumpAndSettle();
-    await tester.tap(previous);
-    await tester.pumpAndSettle();
-    expect(find.text('Kingdom of Mewar'), findsOneWidget);
-    expect((await HomeChessSet.load()).pack, PiecePackId.mewar);
-
-    await chooseGroup('Legendary');
-    expect(find.text('Legendary Lanka'), findsOneWidget);
-    expect(find.text('1 / 8 · Swipe to choose'), findsOneWidget);
-    await capture(tester, 'legendary-lanka');
+    final dropdown = tester.widget<DropdownButton>(filter);
+    expect(dropdown.items!.map((item) => (item.child as Text).data), [
+      'All themes',
+      'Fantasy',
+    ]);
+    expect(find.byKey(const ValueKey('create-custom-theme')), findsNothing);
+    await chooseGroup('Fantasy');
+    expect(find.text('Manga Vanguard'), findsOneWidget);
+    expect(find.text('1 / 4 · Swipe to choose'), findsOneWidget);
     await next(tester);
-    expect(find.text('Ayodhya Kingdom'), findsOneWidget);
-    expect((await HomeChessSet.load()).pack, PiecePackId.ayodhya);
-    await capture(tester, 'legendary-ayodhya');
+    expect(find.text('Epic Guardians'), findsOneWidget);
+    expect((await HomeChessSet.load()).pack, PiecePackId.indianEpic);
     await chooseGroup('All themes');
-    expect(find.text('Ayodhya Kingdom'), findsOneWidget);
-    expect(find.text('25 / 31 · Swipe to choose'), findsOneWidget);
+    expect(find.text('Epic Guardians'), findsOneWidget);
+    expect(find.text('2 / 4 · Swipe to choose'), findsOneWidget);
+    expect(find.text('Historical'), findsNothing);
+    expect(find.text('Legendary'), findsNothing);
 
     await chooseFamily(tester, 'choose-classic');
     expect(filter, findsNothing);
@@ -539,11 +738,6 @@ void main() {
     expect(find.text('Wooden 3D'), findsOneWidget);
     await chooseFamily(tester, 'choose-themed');
     expect(filter, findsOneWidget);
-    expect(find.text('Ayodhya Kingdom'), findsOneWidget);
-    await chooseGroup('Fantasy');
-    expect(find.text('Manga Vanguard'), findsOneWidget);
-    expect(find.text('1 / 4 · Swipe to choose'), findsOneWidget);
-    await next(tester);
     expect(find.text('Epic Guardians'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -555,7 +749,7 @@ void main() {
   });
 
   testWidgets(
-    'all thirty-five previews use the correct complete game artwork',
+    'all eight available previews use the correct complete game artwork',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       await openHome(tester);
@@ -563,7 +757,7 @@ void main() {
         if (!classic) await chooseFamily(tester, 'choose-themed');
         final count = classic
             ? ClassicPieceStyle.values.length
-            : piecePacks.length;
+            : availablePiecePacks.length;
         for (var index = 0; index < count; index++) {
           final board = tester.widget<ChessBoard>(find.byType(ChessBoard));
           final pieces = tester.widgetList<CharacterPiece>(boardPieces);
@@ -572,6 +766,7 @@ void main() {
           expect(pieces.every((piece) => !piece.showRole), isTrue);
           expect(board.position.fen, Chess.initial.fen);
           expect(board.appearance!.standardPieces, classic);
+          expect(board.appearance!.animatedArena, !classic);
           if (classic) {
             expect(
               pieces.every(
@@ -585,7 +780,8 @@ void main() {
             expect(
               pieces.every(
                 (piece) =>
-                    !piece.standard && piece.pack.id == piecePacks[index].id,
+                    !piece.standard &&
+                    piece.pack.id == availablePiecePacks[index].id,
               ),
               isTrue,
             );
@@ -607,7 +803,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(previous);
     await tester.pumpAndSettle();
-    expect(find.text('Troy'), findsOneWidget);
+    expect(find.text('Neon Dominion'), findsOneWidget);
     await next(tester);
     expect(find.text('Manga Vanguard'), findsOneWidget);
     await next(tester);
@@ -632,13 +828,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('computer-difficulty-easy')));
     await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+    await chooseGamePieces(tester);
     await tester.pumpAndSettle();
     final game = tester.widget<AnimationLabScreen>(
       find.byType(AnimationLabScreen),
     );
     expect(game.pack.id, PiecePackId.indianEpic);
     expect(game.initialClassicPieces, isTrue);
+    expect(game.initialAnimatedArena, isFalse);
     expect(game.initialClassicStyle, ClassicPieceStyle.plastic);
+    expect(game.timeControl.timed, isFalse);
     expect(
       tester.widget<ChessBoard>(find.byType(ChessBoard)).showPieceRoles,
       isTrue,
@@ -650,6 +849,70 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets(
+    'Home Settings offers all eight sets and launches the selected family',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await openHome(tester);
+      await tester.tap(find.byKey(const ValueKey('home-settings-button')));
+      await tester.pumpAndSettle();
+      final settingsScroll = find
+          .descendant(
+            of: find.byKey(const ValueKey('game-settings-list')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      for (final style in ClassicPieceStyle.values) {
+        final option = find.byKey(ValueKey('settings-classic-${style.name}'));
+        await tester.scrollUntilVisible(
+          option,
+          150,
+          scrollable: settingsScroll,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(option);
+        await tester.pumpAndSettle();
+        final saved = await HomeChessSet.load();
+        expect(saved.classic, isTrue);
+        expect(saved.style, style);
+      }
+      for (final pack in availablePiecePacks) {
+        final option = find.byKey(
+          ValueKey('settings-animated-${pack.id.name}'),
+        );
+        await tester.scrollUntilVisible(
+          option,
+          150,
+          scrollable: settingsScroll,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(option);
+        await tester.pumpAndSettle();
+        final saved = await HomeChessSet.load();
+        expect(saved.classic, isFalse);
+        expect(saved.pack, pack.id);
+      }
+      await tester.tap(find.byTooltip('Close settings'));
+      await tester.pumpAndSettle();
+      final play = find.byKey(const ValueKey('play-computer-button'));
+      await tester.ensureVisible(play);
+      await tester.pumpAndSettle();
+      await tester.tap(play);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('computer-difficulty-easy')));
+      await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+      await chooseGamePieces(tester, classic: false);
+      final game = tester.widget<AnimationLabScreen>(
+        find.byType(AnimationLabScreen),
+      );
+      expect(game.pack.id, availablePiecePacks.last.id);
+      expect(game.initialAnimatedArena, isTrue);
+      expect(game.timeControl.timed, isFalse);
+      expect(find.byKey(const ValueKey('piece-type-choice')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('home opens separate tournament and conquest catalogs', (
     tester,
@@ -757,64 +1020,65 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('narrow appearance picker can reach all thirty-one realms', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(320, 568);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-    BoardAppearance? chosen;
-    final initial = BoardAppearance.forPack(
-      piecePacks.firstWhere((pack) => pack.id == PiecePackId.chinese),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: FilledButton(
-                onPressed: () async {
-                  chosen = await chooseBoardAppearance(context, initial);
-                },
-                child: const Text('Choose realm'),
+  testWidgets(
+    'narrow picker offers four Fantasy realms while retaining a saved army',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 568);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      BoardAppearance? chosen;
+      final initial = BoardAppearance.forPack(
+        piecePacks.firstWhere((pack) => pack.id == PiecePackId.chinese),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: FilledButton(
+                  onPressed: () async {
+                    chosen = await chooseBoardAppearance(context, initial);
+                  },
+                  child: const Text('Choose realm'),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.tap(find.text('Choose realm'));
-    await tester.pumpAndSettle();
-    final fields = find.byType(DropdownButtonFormField<PiecePack>);
-    expect(fields, findsNWidgets(3));
-    for (final field in tester.widgetList<DropdownButton<PiecePack>>(
-      find.byType(DropdownButton<PiecePack>),
-    )) {
-      expect(field.items, hasLength(31));
-    }
-    expect(tester.takeException(), isNull);
-    await tester.tap(fields.first);
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Troy'),
-      200,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
-    if (find.text('Troy').hitTestable().evaluate().isEmpty) {
-      await tester.drag(find.byType(Scrollable).last, const Offset(0, -80));
+      );
+      await tester.tap(find.text('Choose realm'));
       await tester.pumpAndSettle();
-    }
-    expect(find.text('Troy').hitTestable(), findsOneWidget);
-    await tester.tap(find.text('Troy').last);
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    await tester.tap(find.text('Apply'));
-    await tester.pumpAndSettle();
-    expect(chosen?.white.id, PiecePackId.troy);
-    expect(chosen?.black.id, PiecePackId.chinese);
-    expect(chosen?.board.id, PiecePackId.chinese);
-    expect(tester.takeException(), isNull);
-  });
+      final fields = find.byType(DropdownButtonFormField<PiecePack>);
+      expect(fields, findsNWidgets(3));
+      for (final field in tester.widgetList<DropdownButton<PiecePack>>(
+        find.byType(DropdownButton<PiecePack>),
+      )) {
+        expect(field.items, hasLength(4));
+      }
+      expect(tester.takeException(), isNull);
+      await tester.tap(fields.first);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Neon Dominion'),
+        200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      if (find.text('Neon Dominion').hitTestable().evaluate().isEmpty) {
+        await tester.drag(find.byType(Scrollable).last, const Offset(0, -80));
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('Neon Dominion').hitTestable(), findsOneWidget);
+      await tester.tap(find.text('Neon Dominion').last);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+      expect(chosen?.white.id, PiecePackId.futuristic);
+      expect(chosen?.black.id, PiecePackId.chinese);
+      expect(chosen?.board.id, PiecePackId.chinese);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

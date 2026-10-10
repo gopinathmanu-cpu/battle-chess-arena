@@ -22,48 +22,21 @@ finishing a game rather than winning it, so rating, colour, opponent strength
 and result do not change the reward. A timeout, agreement or resignation before
 the two-half-move threshold does not earn it.
 
-The following charges apply once per player, per round:
-
-| Online round | Cost |
-| --- | ---: |
-| Live game against a person | 2 credits |
-| Daily game against a person | 3 credits |
-| Game against a server computer | 4 credits |
-
-Each successfully produced **Move suggestion costs 1 credit**. Suggestions are
+Only a successfully produced **Suggest Move costs 1 credit**. Suggestions are
 disabled in real-player online games for fair play and remain available in
-computer/practice play. A failed, stale or unavailable suggestion is not
-charged.
+computer/practice play. Failed, stale, duplicate or unavailable suggestions are
+not charged.
 
-After a tournament or Conquest loss or draw, an immediate retry costs **5
-credits**. Waiting through the displayed **15-minute cooldown** makes the retry
-free. Earlier tournament wins and conquered realms are never removed.
+Every game is free, including live and Daily online play, server-computer games,
+local games, tournaments, Conquests and rematches. Auto-play and immediate
+Tournament/Conquest retries are also free and work with zero credits. Earlier
+wins and conquered realms remain safe.
 
-A rematch is a new round and therefore has its own charge. A round charge
-covers the whole round; the game never charges by move, minute, capture or
-reconnection. The separately disclosed online Move suggestion is the only
-per-use server feature in this beta policy.
-
-There is no credit charge for:
-
-- waiting for matchmaking, searching for players or viewing available players;
-- creating, receiving, declining or scheduling invitations (acceptance itself
-  is free, but an acceptance that starts a round triggers that round's clearly
-  disclosed charge);
-- reconnecting, resuming or synchronizing a game;
-- local multiplayer or on-device computer games;
-- entering and progressing through offline tournaments and Conquests (only the
-  optional immediate retry after a loss or draw costs credits);
-- avatars, chess sets, boards or any other customization;
-- threat scans and other play assists apart from Move suggestion; or
-- invitations, scheduled-game reminders or mobile notifications.
-
-Credits are never deducted merely because a player opened the online lobby or
-because a matchmaking search or invitation failed to produce a game.
+Avatars, chess sets, boards, threat scans, invitations, notifications, searching,
+reconnecting and resuming never use credits.
 
 If a server wallet falls below **2 credits**, reconnecting after a **24-hour
-cooldown** restores it to **5 credits**. This safety grant prevents permanent
-online lockout without allowing passive stockpiling.
+cooldown** restores it to **5 credits**. This safety grant restores access to suggestions without allowing passive stockpiling.
 
 Every tappable activity that can create a charge displays its exact price beside
 the same gold star-coin used by the single global balance; no confirmation
@@ -77,11 +50,10 @@ the animation or sound.
 
 ## Charging, refunds and reliability
 
-The server is authoritative for the balance. A round charge must be atomic with
-the creation or activation of the billable round, and every charge must use a
-stable idempotency key derived from the player, game and round. Retrying the same
-request, reconnecting, receiving a duplicate frame or restoring the service
-must never charge twice.
+The server is authoritative for online suggestion charges. Every suggestion uses
+a stable idempotency key derived from its command and game. Retrying the same
+request, reconnecting or receiving duplicate frames must never charge twice.
+Offline suggestions deduct locally only after a valid result is produced.
 
 Every balance-bearing server response includes the complete public account and
 recent transaction IDs, not only a number. The lobby and active game both feed
@@ -89,15 +61,8 @@ that account into the global header, so navigation cannot interrupt wallet
 synchronization and a charge cannot be animated or described before its reason
 is known.
 
-The beta deducts only when the round is activated; waiting matchmaking,
-unanswered/declined invitations and an opponent that never joins therefore
-need no refund. If durable activation cannot be committed, no success response
-or committed deduction is emitted. Once activation is committed, the room is
-recoverable through Active games and resume. A future production support refund
-must be idempotent and return credits to the same bucket from which they were
-spent.
-
-Once a round has started, a low or zero balance never interrupts that round.
+Game creation, activation and rematches append no spending transactions.
+A low or zero balance never prevents a game from starting or continuing.
 Normal game actions, reconnection and recovery remain available until it ends.
 
 ## Bonus and purchased credits
@@ -137,7 +102,7 @@ For a future paid launch, the provisional pack sizes are:
 
 Prices are not fixed in this repository. Google Play and Apple App Store prices
 must be localized through their store catalogs, inclusive of the applicable
-regional tax and platform rules. Pack pricing and round costs remain provisional
+regional tax and platform rules. Pack pricing remains provisional
 until real operating-cost and usage data have been measured. Purchased credits
 must not be advertised or accepted until the production safeguards below are
 complete.

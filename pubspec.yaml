@@ -1,7 +1,7 @@
 name: battle_chess_arena
 description: GPL-licensed animated multi-theme chess platform.
 publish_to: "none"
-version: 0.9.0-beta.36+51
+version: 0.9.0-beta.50+65
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
@@ -18,6 +18,8 @@ dependencies:
   app_links: ^7.2.1
   shared_preferences: ^2.5.5
   url_launcher: ^6.3.2
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +66,19 @@ flutter:
     - assets/characters/classic-piece-variations-atlas.png
     - assets/characters/manga-vanguard-pawn-duel.png
     - assets/audio/
+    - assets/cinematics/neon/city.png
+    - assets/cinematics/neon/white-cast-rook-v1.png
+    - assets/cinematics/neon/black-cast-bright-rook-v1.png
+    - assets/cinematics/neon/ready-cast-bright-rook-v1.png
+    - assets/cinematics/neon/attack-cast-bright-rook-v1.png
+    - assets/cinematics/neon/ready-cast-bright-v1.png
+    - assets/cinematics/neon/attack-cast-bright-v1.png
+    - assets/cinematics/manga/world.png
+    - assets/cinematics/manga/cast-bright-v1.png
+    - assets/cinematics/epic/world.png
+    - assets/cinematics/epic/cast-bright-v1.png
+    - assets/cinematics/olympian/world.png
+    - assets/cinematics/olympian/cast-bright-hair-v1.png
     - LICENSE
     - THIRD_PARTY_NOTICES.md
     - third_party/stockfish/LICENSE

@@ -39,8 +39,7 @@ test('legacy and new profiles start at exactly 300 with no first-day login grant
 test('daily allowance refills at most three bonus credits to 300 and never stacks', () => {
   const partial = player('partial');
   ensureCreditAccount(partial, epoch);
-  chargeRound([partial], { gameId: 'g1', round: 1, cost: 5,
-    reason: 'test_round', now: epoch });
+  for (let i = 0; i < 5; i++) chargeOnlineMoveSuggestion(partial, {gameId: 'g1', round: 1, commandId: `hint-${i}`, now: epoch});
   const refill = grantDailyLogin(partial, epoch + day);
   assert.equal(refill.transaction.delta, 3);
   assert.equal(publicCreditAccount(partial, epoch + day).bonusCredits, 298);
@@ -49,8 +48,7 @@ test('daily allowance refills at most three bonus credits to 300 and never stack
 
   const nearlyFull = player('nearly-full');
   ensureCreditAccount(nearlyFull, epoch);
-  chargeRound([nearlyFull], { gameId: 'g2', round: 1, cost: 2,
-    reason: 'test_round', now: epoch });
+  for (let i = 0; i < 2; i++) chargeOnlineMoveSuggestion(nearlyFull, {gameId: 'g2', round: 1, commandId: `hint-${i}`, now: epoch});
   grantPurchasedCredits(nearlyFull, { transactionId: 'store:one', amount: 100, now: epoch });
   assert.equal(grantDailyLogin(nearlyFull, epoch + day).transaction.delta, 2);
   assert.equal(publicCreditAccount(nearlyFull, epoch + day).credits, 400);
@@ -83,33 +81,18 @@ test('low-balance recovery restores play access once per rolling day', () => {
   assert.equal(publicCreditAccount(profile, epoch + day).credits, 5);
 });
 
-test('round charges are atomic, idempotent, and spend bonus before purchased credits', () => {
-  const first = player('first');
-  const second = player('second');
-  ensureCreditAccount(first, epoch).account.bonusBalance = 1;
-  ensureCreditAccount(second, epoch);
-  assert.throws(
-    () => chargeRound([first, second], { gameId: 'atomic', round: 1, cost: 2,
-      reason: 'live_human_round', now: epoch }),
-    { code: 'INSUFFICIENT_CREDITS' },
-  );
-  assert.equal(publicCreditAccount(first, epoch).credits, 1);
-  assert.equal(publicCreditAccount(second, epoch).credits, 300);
-
-  const funded = player('funded');
-  ensureCreditAccount(funded, epoch).account.bonusBalance = 1;
-  grantPurchasedCredits(funded, { transactionId: 'store:funded', amount: 10, now: epoch });
-  const charged = chargeRound([funded], { gameId: 'paid', round: 1, cost: 4,
-    reason: 'server_computer_round', now: epoch });
-  assert.equal(charged[0].transaction.bonusDelta, -1);
-  assert.equal(charged[0].transaction.purchasedDelta, -3);
-  assert.equal(publicCreditAccount(funded, epoch).bonusCredits, 0);
-  assert.equal(publicCreditAccount(funded, epoch).purchasedCredits, 7);
-  assert.equal(publicCreditAccount(funded, epoch).lifetimeSpent, 4);
-  const replay = chargeRound([funded], { gameId: 'paid', round: 1, cost: 4,
-    reason: 'server_computer_round', now: epoch });
-  assert.equal(replay[0].duplicate, true);
-  assert.equal(publicCreditAccount(funded, epoch).credits, 7);
+test('all rounds are free and append no spending transactions even at zero balance', () => {
+  const profile = player('free-player');
+  ensureCreditAccount(profile, epoch).account.bonusBalance = 0;
+  const before = publicCreditAccount(profile, epoch);
+  for (const cost of [0, 2, 3, 4]) {
+    assert.deepEqual(chargeRound([profile], {gameId: 'free', round: cost + 1, cost, now: epoch}), []);
+    assert.deepEqual(publicCreditAccount(profile, epoch), before);
+  }
+  assert.equal(creditPolicy.costs.liveHumanRound, 0);
+  assert.equal(creditPolicy.costs.dailyHumanRound, 0);
+  assert.equal(creditPolicy.costs.computerRound, 0);
+  assert.equal(creditPolicy.costs.onlineMoveSuggestion, 1);
 });
 
 test('meaningful completion grants are idempotent and capped at five per UTC day', () => {

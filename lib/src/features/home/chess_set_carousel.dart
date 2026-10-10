@@ -14,7 +14,7 @@ class ChessSetCarousel extends StatefulWidget {
     required this.classic,
     required this.style,
     required this.onChanged,
-    this.themedPacks = piecePacks,
+    this.themedPacks = availablePiecePacks,
     this.onDoubleTap,
     super.key,
   });
@@ -24,7 +24,7 @@ class ChessSetCarousel extends StatefulWidget {
   final ClassicPieceStyle style;
   final List<PiecePack> themedPacks;
 
-  /// Themed selections use the global catalogue index, even when filtered.
+  /// Animated selections use the global catalogue index, even when filtered.
   /// Classic selections use the classic-style index.
   final ValueChanged<int> onChanged;
   final VoidCallback? onDoubleTap;
@@ -118,7 +118,12 @@ class _ChessSetCarouselState extends State<ChessSetCarousel> {
                     final pack = widget.classic
                         ? widget.pack
                         : widget.themedPacks[index];
-                    var appearance = BoardAppearance.forPack(pack);
+                    var appearance = BoardAppearance(
+                      white: pack,
+                      black: pack,
+                      board: pack,
+                      animatedArena: !widget.classic,
+                    );
                     final label = widget.classic
                         ? ClassicPieceStyle.values[index].label
                         : pack.name;

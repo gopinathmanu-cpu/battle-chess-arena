@@ -5,6 +5,7 @@ import 'package:battle_chess_arena/src/domain/game_session.dart';
 import 'package:battle_chess_arena/src/domain/online_player_profile.dart';
 import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/services/last_game_storage.dart';
+import 'package:battle_chess_arena/src/services/game_history_storage.dart';
 import 'package:battle_chess_arena/src/services/tournament_storage.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,19 +14,25 @@ import 'package:shared_preferences/shared_preferences.dart';
 SavedGame tournamentSave(
   BotTournament cup, {
   List<String> moves = const ['e2e4', 'e7e5'],
+  String? historyGameId,
+  String? historyResultTitle,
+  int whiteMilliseconds = 570000,
+  int blackMilliseconds = 580000,
 }) => SavedGame(
   mode: PlayerMode.computer,
   homePack: PiecePackId.anime,
   difficulty: tournamentDifficulty(cup.level),
   moves: moves,
-  whiteMilliseconds: 570000,
-  blackMilliseconds: 580000,
+  whiteMilliseconds: whiteMilliseconds,
+  blackMilliseconds: blackMilliseconds,
   fastBattles: true,
   whitePack: PiecePackId.anime,
   blackPack: PiecePackId.greek,
   boardPack: PiecePackId.anime,
   updatedAtEpochMs: 1,
   lifelinesRemaining: 2,
+  historyGameId: historyGameId,
+  historyResultTitle: historyResultTitle,
 );
 
 void main() {
@@ -342,6 +349,161 @@ void main() {
           expect(restored.run.currentOpponent(cup).level, cup.level);
         }
         expect(await LastGameStorage.load(), isNull);
+      },
+    );
+
+    test(
+      'staged checkmate archives full moves then advances exactly once',
+      () async {
+        final cup = builtInTournaments.first;
+        final storage = TournamentStorage();
+        await storage.enter(cup);
+        final attempt = (await storage.beginAttempt(cup)).run;
+        final terminal = tournamentSave(
+          cup,
+          moves: const ['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7'],
+          historyGameId: 'staged-tournament-mate',
+          historyResultTitle: 'White wins by checkmate',
+        );
+        Future<void> save(TournamentRoundResult? result) => storage.saveMatch(
+          cup,
+          runId: attempt.runId,
+          attempt: attempt.attempt,
+          game: terminal,
+          result: result,
+        );
+        await save(null);
+        final pending = (await TournamentStorage().load(cup))!;
+        expect(pending.run.playing, isTrue);
+        expect(pending.run.wonRounds, 0);
+        expect(pending.game!.canResume, isFalse);
+        expect(pending.game!.moves, terminal.moves);
+        expect(pending.game!.historyResultTitle, terminal.historyResultTitle);
+        await GameHistoryStorage().migrateRetainedGames();
+        final record = (await GameHistoryStorage().load()).single;
+        expect(record.mode, GameHistoryMode.tournament);
+        expect(record.status, GameHistoryStatus.completed);
+        expect(record.id, terminal.historyGameId);
+        expect(record.moves, terminal.moves);
+        expect(record.resultTitle, terminal.historyResultTitle);
+        await save(TournamentRoundResult.win);
+        await Future.wait([
+          save(TournamentRoundResult.win),
+          save(TournamentRoundResult.loss),
+          save(null),
+        ]);
+        final finished = (await TournamentStorage().load(cup))!;
+        expect(finished.run.wonRounds, 1);
+        expect(finished.run.results.first, [TournamentRoundResult.win]);
+        expect(finished.run.playing, isFalse);
+        expect(finished.game, isNull);
+        expect((await storage.loadPlayerScore()).points, cup.pointsPerWin);
+        expect(
+          (await GameHistoryStorage().load()).single.toJson(),
+          record.toJson(),
+        );
+      },
+    );
+
+    for (final timeout in [false, true]) {
+      test(
+        'pending ${timeout ? 'timeout' : 'resignation'} can reopen and finish the same attempt',
+        () async {
+          final cup = builtInTournaments.first;
+          final storage = TournamentStorage();
+          await storage.enter(cup);
+          final attempt = (await storage.beginAttempt(cup)).run;
+          final pendingGame = tournamentSave(
+            cup,
+            moves: timeout ? const [] : const ['e2e4', 'e7e5'],
+            historyGameId: timeout ? 'tournament-timeout' : 'tournament-resign',
+            historyResultTitle: timeout
+                ? 'Black wins by timeout'
+                : 'Black wins by resignation',
+            whiteMilliseconds: timeout ? 0 : 570000,
+          );
+          await storage.saveMatch(
+            cup,
+            runId: attempt.runId,
+            attempt: attempt.attempt,
+            game: pendingGame,
+          );
+          final restored = (await TournamentStorage().beginAttempt(cup));
+          expect(restored.run.attempt, attempt.attempt);
+          expect(restored.game!.canResume, isFalse);
+          expect(
+            restored.game!.historyResultTitle,
+            pendingGame.historyResultTitle,
+          );
+          expect(restored.game!.moves, pendingGame.moves);
+          await GameHistoryStorage().migrateRetainedGames();
+          final record = (await GameHistoryStorage().load()).single;
+          expect(record.resultTitle, pendingGame.historyResultTitle);
+          expect(record.status, GameHistoryStatus.completed);
+          await TournamentStorage().saveMatch(
+            cup,
+            runId: restored.run.runId,
+            attempt: restored.run.attempt,
+            game: restored.game!,
+            result: TournamentRoundResult.loss,
+          );
+          final finished = (await storage.load(cup))!;
+          expect(finished.game, isNull);
+          expect(finished.run.lastResult, TournamentRoundResult.loss);
+          expect(finished.run.wonRounds, 0);
+          expect(
+            (await GameHistoryStorage().load()).single.moves,
+            pendingGame.moves,
+          );
+        },
+      );
+    }
+
+    test(
+      'pending marker does not bypass legality or normal save validation',
+      () async {
+        final cup = builtInTournaments.first;
+        final storage = TournamentStorage();
+        await storage.enter(cup);
+        final run = (await storage.beginAttempt(cup)).run;
+        final preferences = await SharedPreferences.getInstance();
+        final cases = <Map<String, Object>>[
+          tournamentSave(
+            cup,
+            moves: const ['f2f3', 'e7e5', 'g2g4', 'd8h4'],
+          ).toJson(),
+          tournamentSave(cup, whiteMilliseconds: 0).toJson(),
+          tournamentSave(cup, historyResultTitle: ' ').toJson(),
+          tournamentSave(
+            cup,
+            historyResultTitle: 'Black wins by timeout',
+            whiteMilliseconds: -1,
+          ).toJson(),
+          tournamentSave(
+            cup,
+            historyResultTitle: 'Black wins by resignation',
+            moves: const ['e2e5'],
+          ).toJson(),
+          tournamentSave(
+            cup,
+            historyResultTitle: 'Black wins by resignation',
+          ).toJson()..['mode'] = 'local',
+          tournamentSave(
+            cup,
+            historyResultTitle: 'Black wins by resignation',
+          ).toJson()..['lifelinesRemaining'] = 4,
+          tournamentSave(
+            cup,
+            historyResultTitle: 'Black wins by resignation',
+          ).toJson()..['difficulty'] = 'hard',
+        ];
+        for (final game in cases) {
+          await preferences.setString(
+            'bot_tournament_${cup.id}',
+            jsonEncode({'version': 1, 'run': run.toJson(), 'game': game}),
+          );
+          await expectLater(storage.load(cup), throwsFormatException);
+        }
       },
     );
   });

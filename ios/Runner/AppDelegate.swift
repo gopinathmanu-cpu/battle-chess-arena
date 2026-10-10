@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import UserNotifications
+import AudioToolbox
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -25,6 +26,9 @@ import UserNotifications
     channel.setMethodCallHandler { call, result in
       let center = UNUserNotificationCenter.current()
       switch call.method {
+      case "playAlert":
+        AudioServicesPlaySystemSound(1007)
+        result(nil)
       case "requestPermission":
         center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
           DispatchQueue.main.async { result(granted) }

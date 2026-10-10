@@ -20,6 +20,7 @@ abstract final class CustomPieceParts {
     PiecePackId.chinese,
     PiecePackId.asgard,
   ];
+  static const availableFormationPacks = availablePiecePacks;
 
   static String categoryLabel(String category) => 'Complete formation';
 
@@ -36,6 +37,11 @@ abstract final class CustomPieceParts {
     final id = formationPacks[variant.clamp(0, formationPacks.length - 1)];
     return piecePacks.singleWhere((pack) => pack.id == id);
   }
+
+  static PiecePack packForDesign(CustomPieceDesign design) =>
+      design.formationPack == null
+      ? packForVariant(design.costume)
+      : piecePacks.singleWhere((pack) => pack.id == design.formationPack);
 
   static String formationName(Role role) => switch (role) {
     Role.king => 'King',
@@ -65,6 +71,7 @@ class CustomPiece extends StatelessWidget {
     return _FormationSprite(
       piece: piece,
       variant: design.costume,
+      packOverride: CustomPieceParts.packForDesign(design),
       showRole: showRole,
       accent: Color(
         piece.color == Side.white ? chessSet.whiteAccent : chessSet.blackAccent,
@@ -79,6 +86,7 @@ class CustomPartThumbnail extends StatelessWidget {
     required this.variant,
     required this.role,
     this.side = Side.white,
+    this.pack,
     super.key,
   });
 
@@ -86,17 +94,19 @@ class CustomPartThumbnail extends StatelessWidget {
   final int variant;
   final Role role;
   final Side side;
+  final PiecePack? pack;
 
   @override
   Widget build(BuildContext context) => Semantics(
     image: true,
     label:
-        '${CustomPieceParts.labels(category)[variant.clamp(0, 3)]}, ${CustomPieceParts.formationName(role)}',
+        '${pack?.name ?? CustomPieceParts.labels(category)[variant.clamp(0, 3)]}, ${pack == null ? CustomPieceParts.formationName(role) : role.name}',
     child: _FormationSprite(
       piece: Piece(color: side, role: role),
       variant: variant,
       showRole: false,
-      accent: CustomPieceParts.packForVariant(variant).accent,
+      accent: (pack ?? CustomPieceParts.packForVariant(variant)).accent,
+      packOverride: pack,
     ),
   );
 }
@@ -107,12 +117,14 @@ class _FormationSprite extends StatelessWidget {
     required this.variant,
     required this.showRole,
     required this.accent,
+    this.packOverride,
   });
 
   final Piece piece;
   final int variant;
   final bool showRole;
   final Color accent;
+  final PiecePack? packOverride;
 
   static const roles = [
     Role.king,
@@ -125,7 +137,7 @@ class _FormationSprite extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pack = CustomPieceParts.packForVariant(variant);
+    final pack = packOverride ?? CustomPieceParts.packForVariant(variant);
     final kingdom = pack.id.index >= 4;
     final asset = kingdom
         ? 'assets/characters/kingdoms/${pack.id.name}-v3.png'

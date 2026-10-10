@@ -12,6 +12,14 @@ val releaseProperties = Properties()
 val mobileTestPackage = providers.gradleProperty("mobileTestPackage")
     .map(String::toBoolean)
     .getOrElse(false)
+// Public Firebase app registration values, selected by the actual APK package.
+val firebasePropertiesFile = file(
+    if (mobileTestPackage) "firebase/mobiletest.properties" else "firebase/production.properties"
+)
+val firebaseProperties = Properties()
+if (firebasePropertiesFile.exists()) {
+    firebasePropertiesFile.inputStream().use(firebaseProperties::load)
+}
 val buildingRelease = gradle.startParameter.taskNames.any {
     it.contains("release", ignoreCase = true)
 }
@@ -38,6 +46,21 @@ android {
             "com.manugopinath.battlechessarena.mobiletest"
         } else {
             "com.manugopinath.battlechessarena"
+        }
+        if (firebasePropertiesFile.exists()) {
+            val firebaseResources = mapOf(
+                "google_app_id" to "appId",
+                "gcm_defaultSenderId" to "senderId",
+                "google_api_key" to "apiKey",
+                "project_id" to "projectId",
+            )
+            firebaseResources.forEach { (resource, property) ->
+                val value = firebaseProperties.getProperty(property)?.trim()
+                require(!value.isNullOrEmpty()) {
+                    "Missing $property in ${firebasePropertiesFile.name}"
+                }
+                resValue("string", resource, value)
+            }
         }
         manifestPlaceholders["appLabel"] = if (mobileTestPackage) {
             "Battle Chess Arena Beta"

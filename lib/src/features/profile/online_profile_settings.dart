@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../domain/avatar_name_policy.dart';
 import '../../domain/online_player_profile.dart';
 import '../../services/online_game_history.dart';
+import '../../services/online_profile_save.dart';
 import '../online/online_avatar_image.dart';
 
 Future<OnlinePlayerProfile?> showOnlineProfileSettings(
@@ -62,13 +63,18 @@ class _OnlineProfileEditorDialogState
       playerToken: widget.saved?.playerToken,
     );
     try {
-      await OnlineGameHistory.saveProfile(profile);
-      if (mounted) Navigator.pop(context, profile);
-    } catch (_) {
+      final accepted = await saveOnlineProfileConfirmed(
+        profile,
+        previous: widget.saved,
+      );
+      if (mounted) Navigator.pop(context, accepted);
+    } catch (error) {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Could not save your online avatar. Try again.';
+          _error = error is StateError
+              ? error.message.toString()
+              : 'Could not verify and save your online avatar. Try again.';
         });
       }
     }

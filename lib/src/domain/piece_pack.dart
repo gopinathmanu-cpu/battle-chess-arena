@@ -80,7 +80,9 @@ class PiecePack {
   final PiecePackGroup group;
 }
 
-const piecePacks = <PiecePack>[
+/// Animated sets currently offered by new-game and appearance pickers.
+/// The complete catalog below retains stable IDs and atlas indices for saves.
+const availablePiecePacks = <PiecePack>[
   PiecePack(
     id: PiecePackId.anime,
     name: 'Manga Vanguard',
@@ -109,6 +111,10 @@ const piecePacks = <PiecePack>[
     accent: Color(0xFF5CF2E7),
     icon: Icons.memory,
   ),
+];
+
+const piecePacks = <PiecePack>[
+  ...availablePiecePacks,
   PiecePack(
     id: PiecePackId.japanese,
     group: PiecePackGroup.historical,

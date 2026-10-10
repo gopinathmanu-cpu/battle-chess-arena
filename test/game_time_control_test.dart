@@ -6,6 +6,7 @@ import 'package:battle_chess_arena/src/domain/online_game_session.dart';
 import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/play/animation_lab_screen.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
+import 'package:battle_chess_arena/src/features/play/neon_live_game_layout.dart';
 import 'package:battle_chess_arena/src/services/last_game_storage.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
@@ -79,12 +80,18 @@ void main() {
   testWidgets(
     'Rapid adds one increment to mover, undo revokes it, and save retains rules',
     (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(home: AnimationLabScreen(pack: piecePacks.first)),
       );
       ChessBoard board() => tester.widget<ChessBoard>(find.byType(ChessBoard));
-      MatchHeader header() =>
-          tester.widget<MatchHeader>(find.byType(MatchHeader));
+      NeonLiveStatusBar header() =>
+          tester.widget<NeonLiveStatusBar>(find.byType(NeonLiveStatusBar));
+      expect(
+        tester.getRect(find.byType(NeonLiveStatusBar)).bottom,
+        lessThanOrEqualTo(tester.getRect(find.byType(ChessBoard)).top),
+      );
       expect(header().whiteTime.inMilliseconds, 900000);
       board().onSquareTap(Square.e2);
       await tester.pump();
@@ -97,6 +104,7 @@ void main() {
       expect(header().blackTime.inMilliseconds, 900000);
       final saved = (await LastGameStorage.load())!;
       expect(saved.timeControl.incrementMs, 10000);
+      await tester.ensureVisible(find.byTooltip('Undo'));
       await tester.tap(find.byTooltip('Undo'));
       await tester.pump();
       expect(header().whiteTime.inMilliseconds, lessThanOrEqualTo(900000));
@@ -108,6 +116,8 @@ void main() {
   testWidgets(
     'Untimed Practice does not decrement or increment and can resume',
     (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         MaterialApp(
           home: AnimationLabScreen(
@@ -121,7 +131,9 @@ void main() {
       await tester.pump();
       board().onSquareTap(Square.e4);
       await tester.pump(const Duration(seconds: 3));
-      final header = tester.widget<MatchHeader>(find.byType(MatchHeader));
+      final header = tester.widget<NeonLiveStatusBar>(
+        find.byType(NeonLiveStatusBar),
+      );
       expect(header.timed, false);
       expect(header.whiteTime.inMilliseconds, 900000);
       expect(header.blackTime.inMilliseconds, 900000);

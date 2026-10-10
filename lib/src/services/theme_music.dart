@@ -127,11 +127,28 @@ class ThemeMusic extends ChangeNotifier {
   bool get muted => _muted;
   bool unavailable = false;
   bool _active = true;
+  int _backgroundHolds = 0;
   bool _closed = false;
   PiecePackId? _theme;
   Future<void> _pending = Future.value();
   int _effectSequence = 0;
   Future<void> get settled => _pending;
+
+  /// A temporary film soundtrack can own audio without changing saved settings.
+  /// Independent leases keep route replacement and lifecycle resumes silent
+  /// until every temporary soundtrack has released its hold.
+  VoidCallback suspendBackground() {
+    _effectSequence++;
+    _backgroundHolds++;
+    _sync();
+    var released = false;
+    return () {
+      if (released) return;
+      released = true;
+      _backgroundHolds--;
+      _sync();
+    };
+  }
 
   void select(PiecePackId theme) {
     if (_theme == theme) return;
@@ -195,7 +212,7 @@ class ThemeMusic extends ChangeNotifier {
   }
 
   Future<void> _playEffect(CinematicSound effect) async {
-    if (_closed || _muted || !_active) return;
+    if (_closed || _muted || !_active || _backgroundHolds > 0) return;
     try {
       await output.playEffect(effect);
     } catch (_) {
@@ -256,7 +273,7 @@ class ThemeMusic extends ChangeNotifier {
     _pending = _pending.then((_) async {
       if (_closed) return;
       try {
-        if (_muted || !_active || _theme == null) {
+        if (_muted || !_active || _theme == null || _backgroundHolds > 0) {
           await output.pause();
         } else {
           await output.play(_theme!, selection: _selection);

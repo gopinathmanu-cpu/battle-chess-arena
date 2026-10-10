@@ -113,7 +113,12 @@ test('shared invite claims once, keeps toss seats, and revocation preserves the 
   assert.equal(joined.seat, 'w');
   assert.equal(joined.state.players.b.name, owner.profile.name);
   assert.equal(joined.state.tossForColors, true);
-  assert.equal((await owner.next((frame) => frame.type === 'shared_invite_updated')).invite.status, 'accepted');
+  const ownerUpdate = await owner.next((frame) => frame.type === 'shared_invite_updated');
+  assert.equal(ownerUpdate.invite.status, 'accepted');
+  assert.equal(ownerUpdate.invite.gameId, joined.gameId);
+  const ownerActivity = await owner.next(frame => frame.type === 'game_activity');
+  assert.equal(ownerActivity.game.seat, 'b');
+  assert.equal(ownerActivity.game.gameId, joined.gameId);
   friend.send({ type: 'open_shared_invite', commandId: 'retry-open', inviteId: id });
   const retried = await friend.next((frame) => frame.type === 'seat_joined');
   assert.equal(retried.gameId, joined.gameId);
@@ -255,6 +260,73 @@ test('online computer opens as White when the human tosses Black', async (t) => 
   assert.equal(started.seat, 'b');
   assert.equal(started.state.players.w.botLevel, 1);
   const moved = await human.next((frame) => frame.type === 'game_state' && frame.state.san.length === 1);
+  assert.equal(moved.state.turn, 'b');
+});
+
+test('default computer replies allow a full animation gap without changing opponent strength', async (t) => {
+  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60000, random: () => 0 });
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const human = await client(`ws://127.0.0.1:${app.server.address().port}`);
+  human.send({ type: 'start_computer_game', commandId: 'delayed-bot', opponentId: 'priya-nair' });
+  const started = await human.next((frame) => frame.type === 'computer_match_found');
+  assert.equal(started.state.players.b.botLevel, 8);
+  const requestedAt = performance.now();
+  human.send({ type: 'move', gameId: started.gameId, round: 1, commandId: 'delayed-e4',
+    ply: 0, move: { from: 'e2', to: 'e4' } });
+  await human.next((frame) => frame.type === 'command_result' && frame.commandId === 'delayed-e4');
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  assert.equal(app.games.get(started.gameId).chess.history().length, 1,
+    'The computer must not interrupt the move animation with an immediate reply');
+  const moved = await human.next((frame) => frame.type === 'game_state' && frame.state.san.length === 2);
+  // Allow only timer scheduling precision; the configured wait is 2000ms.
+  assert.ok(performance.now() - requestedAt >= 1990);
+  assert.equal(moved.state.turn, 'w');
+  assert.equal(moved.state.players.b.botLevel, 8);
+});
+
+test('finishing a round cancels its pending computer reply', async (t) => {
+  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60000,
+    computerThinkMs: 100, toss: () => 'b', random: () => 0 });
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const human = await client(`ws://127.0.0.1:${app.server.address().port}`);
+  human.send({ type: 'start_computer_game', commandId: 'finish-before-reply',
+    opponentId: computerOpponents[0].id, tossForColors: true });
+  const started = await human.next((frame) => frame.type === 'computer_match_found');
+  human.send({ type: 'resign', gameId: started.gameId, round: 1, commandId: 'cancel-reply' });
+  await human.next((frame) => frame.type === 'command_result' && frame.commandId === 'cancel-reply');
+  const game = app.games.get(started.gameId);
+  const sequence = game.sequence;
+  await new Promise((resolve) => setTimeout(resolve, 180));
+  assert.equal(game.status, 'complete');
+  assert.equal(game.chess.history().length, 0);
+  assert.equal(game.sequence, sequence);
+});
+
+test('rematching replaces an old pending computer reply with a fresh full delay', async (t) => {
+  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60000,
+    computerThinkMs: 500, toss: () => 'b', random: () => 0 });
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const human = await client(`ws://127.0.0.1:${app.server.address().port}`);
+  human.send({ type: 'start_computer_game', commandId: 'rematch-before-reply',
+    opponentId: computerOpponents[0].id, tossForColors: true });
+  const started = await human.next((frame) => frame.type === 'computer_match_found');
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  human.send({ type: 'resign', gameId: started.gameId, round: 1, commandId: 'round-one-resign' });
+  await human.next((frame) => frame.type === 'command_result' && frame.commandId === 'round-one-resign');
+  const restartedAt = performance.now();
+  human.send({ type: 'rematch', gameId: started.gameId, round: 1, commandId: 'fresh-bot-round' });
+  await human.next((frame) => frame.type === 'command_result' && frame.commandId === 'fresh-bot-round');
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const game = app.games.get(started.gameId);
+  assert.equal(game.round, 2);
+  assert.equal(game.chess.history().length, 0,
+    'A timer from round one must not play early in round two');
+  const moved = await human.next((frame) => frame.type === 'game_state' &&
+    frame.state.round === 2 && frame.state.san.length === 1);
+  assert.ok(performance.now() - restartedAt >= 490);
   assert.equal(moved.state.turn, 'b');
 });
 
@@ -1006,7 +1078,7 @@ test("favourite presence and immediate or scheduled invitations", async (t) => {
   assert.equal(scheduledGame.invite.game.seat, "b");
 });
 
-test('credits charge only activated rounds, keep retries and resumes free, and reward meaningful play', async (t) => {
+test('games and rematches are free while suggestions and completion rewards retain their rules', async (t) => {
   const creditTime = Date.UTC(2026, 8, 26, 12);
   const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60_000,
     creditNow: () => creditTime, computerThinkMs: 60_000 });
@@ -1019,7 +1091,7 @@ test('credits charge only activated rounds, keep retries and resumes free, and r
   assert.ok(connected.capabilities.includes('credits'));
   assert.equal(alice.registered.credits, 300);
   assert.equal(alice.registered.account.credits, 300);
-  assert.equal(alice.registered.creditPolicy.costs.liveHumanRound, 2);
+  assert.equal(alice.registered.creditPolicy.costs.liveHumanRound, 0);
   assert.equal((await alice.next((frame) => frame.type === 'credit_balance')).account.credits, 300);
 
   const create = { type: 'create_game', commandId: 'credit-room', baseMs: 600_000 };
@@ -1033,17 +1105,16 @@ test('credits charge only activated rounds, keep retries and resumes free, and r
 
   bob.send({ type: 'join_game', commandId: 'credit-join', gameId: waiting.gameId });
   const joined = await bob.next((frame) => frame.type === 'seat_joined');
-  assert.equal(joined.credits, 298);
-  assert.equal(joined.account.credits, 298);
-  assert.equal(joined.account.recentTransactions[0].reason, 'live_human_round');
-  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 298);
-  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 298);
-  assert.equal((await alice.next((frame) =>
-    frame.type === 'credit_balance' && frame.account.credits === 298)).account.credits, 298);
+  assert.equal(joined.credits, 300);
+  assert.equal(joined.account.credits, 300);
+  assert.ok(joined.account.recentTransactions.every(transaction => transaction.type !== 'round_fee'));
+  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 300);
+  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 300);
+
 
   bob.send({ type: 'resume_game', gameId: joined.gameId, seatToken: joined.seatToken });
-  assert.equal((await bob.next((frame) => frame.type === 'seat_resumed')).credits, 298);
-  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 298);
+  assert.equal((await bob.next((frame) => frame.type === 'seat_resumed')).credits, 300);
+  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 300);
 
   const suggestion = { type: 'use_lifeline', commandId: 'paid-suggestion',
     gameId: joined.gameId, round: 1 };
@@ -1051,28 +1122,28 @@ test('credits charge only activated rounds, keep retries and resumes free, and r
   const suggested = await alice.next((frame) =>
     frame.type === 'error' && frame.commandId === 'paid-suggestion');
   assert.equal(suggested.code, 'ASSIST_NOT_AVAILABLE');
-  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 298);
+  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 300);
   assert.equal(app.games.get(joined.gameId).lifelineRequests.w, 0);
   bob.send({ ...suggestion, commandId: 'wrong-turn-suggestion' });
   const wrongTurnSuggestion = await bob.next((frame) =>
     frame.type === 'command_result' && frame.commandId === 'wrong-turn-suggestion');
   assert.equal(wrongTurnSuggestion.accepted, false);
   assert.equal(wrongTurnSuggestion.code, 'NOT_YOUR_TURN');
-  assert.equal(wrongTurnSuggestion.credits, 298);
+  assert.equal(wrongTurnSuggestion.credits, 300);
   assert.equal(app.games.get(joined.gameId).lifelineRequests.b, 0);
 
   alice.send({ type: 'resign', commandId: 'empty-resign', gameId: joined.gameId, round: 1 });
   await alice.next((frame) => frame.type === 'command_result' && frame.commandId === 'empty-resign');
-  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 298);
-  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 298);
+  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 300);
+  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 300);
 
   alice.send({ type: 'rematch', commandId: 'rematch-a', gameId: joined.gameId, round: 1 });
   await alice.next((frame) => frame.type === 'command_result' && frame.commandId === 'rematch-a');
-  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 298);
+  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 300);
   bob.send({ type: 'rematch', commandId: 'rematch-b', gameId: joined.gameId, round: 1 });
   await bob.next((frame) => frame.type === 'command_result' && frame.commandId === 'rematch-b');
-  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 296);
-  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 296);
+  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 300);
+  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 300);
 
   alice.send({ type: 'move', commandId: 'credit-e4', gameId: joined.gameId, round: 2,
     ply: 0, move: { from: 'e2', to: 'e4' } });
@@ -1082,15 +1153,15 @@ test('credits charge only activated rounds, keep retries and resumes free, and r
   await bob.next((frame) => frame.type === 'command_result' && frame.commandId === 'credit-e5');
   alice.send({ type: 'resign', commandId: 'played-resign', gameId: joined.gameId, round: 2 });
   await alice.next((frame) => frame.type === 'command_result' && frame.commandId === 'played-resign');
-  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 297);
-  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 297);
+  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 301);
+  assert.equal(app.profiles.get('credit bobby').creditAccount.bonusBalance, 301);
 
   const botConnection = await client(url, alice.profile);
   botConnection.send({ type: 'start_computer_game', commandId: 'paid-bot',
     opponentId: computerOpponents[0].id });
   const bot = await botConnection.next((frame) => frame.type === 'computer_match_found');
-  assert.equal(bot.credits, 293);
-  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 293);
+  assert.equal(bot.credits, 301);
+  assert.equal(app.profiles.get('credit alice').creditAccount.bonusBalance, 301);
   app.profiles.get('credit alice').creditAccount.bonusBalance = 0;
   botConnection.send({ type: 'use_lifeline', commandId: 'unfunded-suggestion',
     gameId: bot.gameId, round: 1 });
@@ -1102,49 +1173,32 @@ test('credits charge only activated rounds, keep retries and resumes free, and r
   assert.equal(app.games.get(bot.gameId).lifelineRequests.w, 0);
 });
 
-test('insufficient credits cannot create or activate a room and never charge the funded player', async (t) => {
-  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60_000 });
+test('zero credits allow room creation, joins and quick matching', async (t) => {
+  const app = createMatchServer({port: 0, host: '127.0.0.1', tickMs: 60_000});
   t.after(() => app.close());
   await once(app.server, 'listening');
   const url = `ws://127.0.0.1:${app.server.address().port}`;
-  const host = await client(url, { name: 'Poor Host', avatarId: 'crown' });
-  const guest = await client(url, { name: 'Funded Guest', avatarId: 'knight' });
-  app.profiles.get('poor host').creditAccount.bonusBalance = 1;
-  host.send({ type: 'create_game', commandId: 'cannot-wait' });
-  const rejected = await host.next((frame) => frame.type === 'error' && frame.commandId === 'cannot-wait');
-  assert.equal(rejected.code, 'INSUFFICIENT_CREDITS');
-  assert.equal(rejected.credits, 1);
-  assert.equal(app.games.size, 0);
-
-  app.profiles.get('poor host').creditAccount.bonusBalance = 2;
-  host.send({ type: 'create_game', commandId: 'can-wait' });
-  const waiting = await host.next((frame) => frame.type === 'game_created');
-  assert.equal(app.profiles.get('poor host').creditAccount.bonusBalance, 2);
-  app.profiles.get('poor host').creditAccount.bonusBalance = 1;
-  guest.send({ type: 'join_game', commandId: 'cannot-activate', gameId: waiting.gameId });
-  const activation = await guest.next((frame) => frame.type === 'error' && frame.commandId === 'cannot-activate');
-  assert.equal(activation.code, 'INSUFFICIENT_CREDITS');
-  assert.equal(app.profiles.get('poor host').creditAccount.bonusBalance, 1);
+  const host = await client(url, {name: 'Poor Host', avatarId: 'crown'});
+  const guest = await client(url, {name: 'Funded Guest', avatarId: 'knight'});
+  app.profiles.get('poor host').creditAccount.bonusBalance = 0;
+  host.send({type: 'create_game', commandId: 'free-room'});
+  const room = await host.next(frame => frame.type === 'game_created');
+  guest.send({type: 'join_game', commandId: 'free-join', gameId: room.gameId});
+  await guest.next(frame => frame.type === 'seat_joined');
+  assert.equal(app.profiles.get('poor host').creditAccount.bonusBalance, 0);
   assert.equal(app.profiles.get('funded guest').creditAccount.bonusBalance, 300);
-  assert.equal(app.games.get(waiting.gameId).status, 'waiting');
-
-  const queueHost = await client(url, { name: 'Poor Queue', avatarId: 'mage' });
-  const queueGuest = await client(url, { name: 'Fresh Queue', avatarId: 'robot' });
-  app.profiles.get('poor queue').creditAccount.bonusBalance = 2;
-  queueHost.send({ type: 'quick_match', commandId: 'poor-queue-wait' });
-  const stale = await queueHost.next((frame) => frame.type === 'matchmaking_waiting');
-  app.profiles.get('poor queue').creditAccount.bonusBalance = 1;
-  queueGuest.send({ type: 'quick_match', commandId: 'fresh-queue-wait' });
-  const fresh = await queueGuest.next((frame) => frame.type === 'matchmaking_waiting');
-  assert.notEqual(fresh.gameId, stale.gameId);
-  assert.equal(app.games.has(stale.gameId), false);
-  assert.equal(app.profiles.get('fresh queue').creditAccount.bonusBalance, 300);
-  const cancelled = await queueHost.next((frame) =>
-    frame.type === 'matchmaking_cancelled' && frame.gameId === stale.gameId);
-  assert.equal(cancelled.reason, 'insufficient_credits');
+  const first = await client(url, {name: 'Poor Queue', avatarId: 'mage'});
+  const second = await client(url, {name: 'Fresh Queue', avatarId: 'robot'});
+  app.profiles.get('poor queue').creditAccount.bonusBalance = 0;
+  first.send({type: 'quick_match', commandId: 'free-queue'});
+  const waiting = await first.next(frame => frame.type === 'matchmaking_waiting');
+  second.send({type: 'quick_match', commandId: 'free-match'});
+  const matched = await second.next(frame => frame.type === 'match_found');
+  assert.equal(matched.gameId, waiting.gameId);
+  assert.equal(app.profiles.get('poor queue').creditAccount.bonusBalance, 0);
 });
 
-test('scheduled activation becomes credit_required and retries only after a balance-changing login grant', async (t) => {
+test('scheduled games activate without a credit balance requirement', async (t) => {
   let creditTime = Date.UTC(2026, 8, 26, 12);
   const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60_000,
     creditNow: () => creditTime });
@@ -1162,24 +1216,132 @@ test('scheduled activation becomes credit_required and retries only after a bala
   bob.send({ type: 'respond_invite', commandId: 'accept-credit-schedule',
     inviteId: pending.inviteId, accept: true });
   await bob.next((frame) => frame.type === 'invite_updated' && frame.invite.status === 'accepted');
+  // Existing invitations blocked by the previous credit policy also recover.
+  app.invites.get(pending.inviteId).status = 'credit_required';
   await new Promise((resolve) => setTimeout(resolve, 320));
   app.tick();
-  const required = await bob.next((frame) => frame.type === 'invite_updated' &&
-    frame.invite.status === 'credit_required');
-  assert.equal(required.invite.game, undefined);
-  assert.equal(app.invites.get(pending.inviteId).status, 'credit_required');
-  assert.equal(app.games.size, 0);
-  app.tick();
-  assert.equal(app.invites.get(pending.inviteId).status, 'credit_required');
-  assert.equal(app.games.size, 0);
-  assert.equal((await fetch(`http://127.0.0.1:${app.server.address().port}/health`)).status, 200);
-
-  creditTime += 24 * 60 * 60 * 1000;
-  const returning = await client(url, bob.profile);
-  assert.equal(returning.registered.credits, 4);
-  const activated = await alice.next((frame) => frame.type === 'invite_updated' && frame.invite.game);
+  const activated = await alice.next(frame => frame.type === 'invite_updated' && frame.invite.game);
   assert.equal(activated.invite.status, 'accepted');
   assert.equal(app.games.size, 1);
-  assert.equal(app.profiles.get('schedule alice').creditAccount.bonusBalance, 298);
-  assert.equal(app.profiles.get('schedule bobby').creditAccount.bonusBalance, 2);
+  assert.equal(app.profiles.get('schedule alice').creditAccount.bonusBalance, 300);
+  assert.equal(app.profiles.get('schedule bobby').creditAccount.bonusBalance, 1);
+});
+
+test('account activity reaches other-screen sessions without taking their seat or leaking to strangers', async (t) => {
+  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60000 });
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const alice = await client(url);
+  const bob = await client(url);
+  const watcher = await client(url, alice.profile);
+  const stranger = await client(url);
+  const strayFrames = [];
+  stranger.socket.on('message', raw => strayFrames.push(JSON.parse(raw)));
+  alice.send({ type: 'send_invite', commandId: 'activity-invite', opponentName: bob.profile.name, timed: false });
+  const pending = await bob.next(f => f.type === 'invite_updated');
+  bob.send({ type: 'respond_invite', commandId: 'activity-accept', inviteId: pending.invite.inviteId, accept: true });
+  const activity = await watcher.next(f => f.type === 'game_activity');
+  assert.equal(activity.kind, 'opponent_joined');
+  assert.equal(activity.game.seat, 'w');
+  assert.equal(activity.game.state.status, 'active');
+  alice.send({ type: 'resume_game', gameId: activity.game.gameId, seatToken: activity.game.seatToken });
+  await alice.next(f => f.type === 'seat_resumed');
+  alice.send({ type: 'move', commandId: 'activity-e4', gameId: activity.game.gameId, round: 1, ply: 0, move: { from: 'e2', to: 'e4' } });
+  const move = await watcher.next(f => f.type === 'game_activity' && f.game.state.san.length === 1);
+  assert.equal(move.kind, 'move');
+  assert.deepEqual(move.game.state.san, ['e4']);
+  assert.equal(strayFrames.some(f => f.type === 'game_activity'), false);
+});
+
+test('push targets inactive opted-in devices and opponent moves, with duplicate/foreground suppression', async (t) => {
+  const notifications = [];
+  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60000,
+    pushSender: { send: async message => notifications.push(message) } });
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const alice = await client(url);
+  const bob = await client(url);
+  const device = { type: 'set_push_device', deviceId: 'alice-phone', token: 'alice_push_token_1234567890', enabled: true, active: false };
+  alice.send(device);
+  await alice.next(f => f.type === 'push_device_saved');
+  alice.send({ type: 'send_invite', commandId: 'push-invite', opponentName: bob.profile.name, timed: false });
+  const pending = await bob.next(f => f.type === 'invite_updated');
+  bob.send({ type: 'respond_invite', commandId: 'push-accept', inviteId: pending.invite.inviteId, accept: true });
+  const activity = await alice.next(f => f.type === 'game_activity');
+  assert.equal(notifications.length, 1);
+  assert.ok(notifications[0].body.includes('joined'));
+  const gameId = activity.game.gameId;
+  alice.send({ type: 'resume_game', gameId, seatToken: activity.game.seatToken });
+  await alice.next(f => f.type === 'seat_resumed');
+  const bobGame = await bob.next(f => f.type === 'game_activity');
+  bob.send({ type: 'resume_game', gameId, seatToken: bobGame.game.seatToken });
+  await bob.next(f => f.type === 'seat_resumed');
+  alice.send({ type: 'move', commandId: 'push-e4', gameId, round: 1, ply: 0, move: { from: 'e2', to: 'e4' } });
+  await bob.next(f => f.type === 'game_state' && f.state.san.length === 1);
+  assert.equal(notifications.length, 1); // Never charge/notify the mover for their own move.
+  const reply = { type: 'move', commandId: 'push-e5', gameId, round: 1, ply: 1, move: { from: 'e7', to: 'e5' } };
+  bob.send(reply);
+  await alice.next(f => f.type === 'game_activity' && f.game.state.san.length === 2);
+  assert.equal(notifications.length, 2);
+  assert.ok(notifications[1].body.includes('played e5'));
+  bob.send(reply);
+  await bob.next(f => f.type === 'command_result' && f.commandId === 'push-e5');
+  assert.equal(notifications.length, 2);
+  alice.send({ ...device, active: true });
+  await alice.next(f => f.type === 'push_device_saved');
+  alice.send({ type: 'move', commandId: 'push-nf3', gameId, round: 1, ply: 2, move: { from: 'g1', to: 'f3' } });
+  await bob.next(f => f.type === 'game_state' && f.state.san.length === 3);
+  bob.send({ type: 'move', commandId: 'push-nc6', gameId, round: 1, ply: 3, move: { from: 'b8', to: 'c6' } });
+  await alice.next(f => f.type === 'game_activity' && f.game.state.san.length === 4);
+  assert.equal(notifications.length, 2);
+  alice.send({ ...device, enabled: false, active: false });
+  await alice.next(f => f.type === 'push_device_saved');
+  assert.equal(app.profiles.get(alice.profile.name.toLowerCase()).pushDevices['alice-phone'].enabled, false);
+});
+
+test('a game alert link resumes an owned active or completed seat through account authentication', async (t) => {
+  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60000 });
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const owner = await client(url);
+  const friend = await client(url);
+  owner.send({ type: 'create_game', commandId: 'alert-room', baseMs: 600000 });
+  const room = await owner.next(f => f.type === 'game_created');
+  friend.send({ type: 'join_game', gameId: room.gameId, commandId: 'alert-friend' });
+  await friend.next(f => f.type === 'seat_joined');
+  const returning = await client(url, owner.profile);
+  returning.send({ type: 'join_game', gameId: room.gameId, commandId: 'alert-open' });
+  const resumed = await returning.next(f => f.type === 'seat_resumed');
+  assert.equal(resumed.seat, 'w');
+  assert.equal(resumed.seatToken, room.seatToken);
+  assert.equal(resumed.state.status, 'active');
+  friend.send({ type: 'resign', gameId: room.gameId, round: 1, commandId: 'alert-end' });
+  await returning.next(f => f.type === 'game_state' && f.state.status === 'complete');
+  const afterClose = await client(url, owner.profile);
+  afterClose.send({ type: 'join_game', gameId: room.gameId, commandId: 'alert-open-complete' });
+  assert.equal((await afterClose.next(f => f.type === 'seat_resumed')).state.status, 'complete');
+});
+
+test('a synchronous push failure cannot stop game acceptance or legal moves', async (t) => {
+  const app = createMatchServer({ port: 0, host: '127.0.0.1', tickMs: 60000,
+    pushSender: { send() { throw new Error('Notification service unavailable'); } } });
+  t.after(() => app.close());
+  await once(app.server, 'listening');
+  const url = `ws://127.0.0.1:${app.server.address().port}`;
+  const alice = await client(url);
+  const bob = await client(url);
+  alice.send({ type: 'set_push_device', deviceId: 'failed-push-phone', token: 'failed_push_token_1234567890', enabled: true, active: false });
+  await alice.next(f => f.type === 'push_device_saved');
+  alice.send({ type: 'send_invite', commandId: 'failed-push-invite', opponentName: bob.profile.name, timed: false });
+  const invite = await bob.next(f => f.type === 'invite_updated');
+  bob.send({ type: 'respond_invite', commandId: 'failed-push-accept', inviteId: invite.invite.inviteId, accept: true });
+  const activity = await alice.next(f => f.type === 'game_activity');
+  assert.equal(activity.game.state.status, 'active');
+  alice.send({ type: 'join_game', gameId: activity.game.gameId, commandId: 'failed-push-open' });
+  await alice.next(f => f.type === 'seat_resumed');
+  alice.send({ type: 'move', gameId: activity.game.gameId, commandId: 'failed-push-move', round: 1, ply: 0, move: { from: 'e2', to: 'e4' } });
+  assert.deepEqual((await alice.next(f => f.type === 'game_state' && f.state.san.length === 1)).state.san, ['e4']);
 });

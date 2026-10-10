@@ -72,7 +72,8 @@ export class SharedInvites {
 
   public(invite) {
     return { inviteId: invite.id, avatarName: invite.owner.name,
-      status: this.status(invite), createdAt: invite.createdAt, expiresAt: invite.expiresAt };
+      status: this.status(invite), createdAt: invite.createdAt, expiresAt: invite.expiresAt,
+      ...(invite.match ? { gameId: invite.match.id } : {}) };
   }
 
   list(ownerId) {

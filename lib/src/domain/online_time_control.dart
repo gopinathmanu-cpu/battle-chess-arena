@@ -22,7 +22,7 @@ const dailyTimeControl = OnlineTimeControl(
 );
 const friendTimeControls = [dailyTimeControl, ...onlineTimeControls];
 const onlineTimeControls = <OnlineTimeControl>[
-  OnlineTimeControl('Rapid · 15 + 10 sec', 900000, incrementMs: 10000),
+  OnlineTimeControl('15 min · Rapid', 900000, incrementMs: 10000),
   OnlineTimeControl('30 min · Classical', 1800000),
   OnlineTimeControl('60 min · Classical', 3600000),
 ];

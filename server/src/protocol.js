@@ -13,6 +13,7 @@ const actions = [
 export const isAction = (type) => actions.includes(type);
 const fields = {
   ping: [],
+  set_push_device: ['deviceId', 'token', 'enabled', 'active'],
   register_player: ["commandId", "name", "avatarId", "level", "playerToken"],
   update_player: ["commandId", "name", "avatarId", "level"],
   leaderboard: [],
@@ -97,6 +98,11 @@ export function validateMessage(message) {
       typeof message.type === "string" &&
       Object.hasOwn(fields, message.type),
   );
+  if (message.type === 'set_push_device') {
+    require(identifier(message.deviceId) && typeof message.token === 'string' &&
+      /^[A-Za-z0-9_:\-]{20,4096}$/.test(message.token) &&
+      typeof message.enabled === 'boolean' && typeof message.active === 'boolean');
+  }
   const allowed = fields[message.type];
   const friendClock = ['send_invite', 'propose_invite_time', 'create_shared_invite'].includes(message.type);
   const clockFields = friendClock ? ['clockMode', 'incrementMs'] : [];
@@ -138,7 +144,7 @@ export function validateMessage(message) {
     require(
       typeof message.name === "string" &&
         message.name === message.name.trim() &&
-        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.name) &&
+        /^[\x20-\x7E]{3,20}(?![\s\S])/.test(message.name) &&
         avatarNameAllowed(message.name),
     );
     require(avatarId(message.avatarId));
@@ -159,7 +165,7 @@ export function validateMessage(message) {
         message.names.every(
           (name) =>
             typeof name === "string" &&
-            /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(name),
+            /^[\x20-\x7E]{3,20}(?![\s\S])/.test(name),
         ),
     );
   }
@@ -167,7 +173,7 @@ export function validateMessage(message) {
     require(
       typeof message.query === "string" &&
         message.query === message.query.trim() &&
-        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.query),
+        /^[\x20-\x7E]{3,20}(?![\s\S])/.test(message.query),
     );
   }
   if (message.type === 'list_available_players') {
@@ -177,7 +183,7 @@ export function validateMessage(message) {
   if (message.type === "send_invite") {
     require(
       typeof message.opponentName === "string" &&
-        /^[A-Za-z0-9][A-Za-z0-9 _-]{2,19}$/.test(message.opponentName),
+        /^[\x20-\x7E]{3,20}(?![\s\S])/.test(message.opponentName),
     );
     require(message.scheduledAt === undefined || integer(message.scheduledAt));
     require(message.timed === undefined || typeof message.timed === "boolean");

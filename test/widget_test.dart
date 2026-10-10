@@ -2,73 +2,190 @@ import 'package:battle_chess_arena/src/app.dart';
 import 'package:battle_chess_arena/src/domain/piece_pack.dart';
 import 'package:battle_chess_arena/src/features/play/animation_lab_screen.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
+import 'package:battle_chess_arena/src/features/play/neon_live_arena.dart';
 import 'package:battle_chess_arena/src/services/computer_player.dart';
 import 'package:flutter/material.dart';
+import 'package:dartchess/dartchess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme_music_test.dart' show FakeMusicOutput;
+import 'support/piece_choice.dart';
 
 void main() {
-  testWidgets('new computer game asks for difficulty before opening', (
+  testWidgets(
+    'Classic computer game asks difficulty and opens without a piece popup',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        BattleChessArenaApp(musicOutput: FakeMusicOutput()),
+      );
+      expect(
+        find.byKey(const ValueKey('home-difficulty-selector')),
+        findsNothing,
+      );
+      final playComputer = find.byKey(const ValueKey('play-computer-button'));
+      await tester.ensureVisible(playComputer);
+      await tester.pumpAndSettle();
+      await tester.tap(playComputer);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('computer-difficulty-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('Choose computer difficulty'), findsOneWidget);
+      expect(find.text('Unlimited (No timer limit)'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('computer-difficulty-hard')));
+      await tester.pump();
+      expect(find.byType(AnimationLabScreen), findsNothing);
+      expect(find.text('Choose computer difficulty'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+      await tester.pumpAndSettle();
+      await chooseGamePieces(tester, classic: true);
+      await tester.pumpAndSettle();
+      final match = tester.widget<AnimationLabScreen>(
+        find.byType(AnimationLabScreen),
+      );
+      expect(match.difficulty, ComputerDifficulty.hard);
+      expect(match.timeControl.timed, isFalse);
+      expect(match.initialClassicPieces, isTrue);
+      expect(match.initialAnimatedArena, isFalse);
+      expect(find.byType(NeonLiveArena), findsNothing);
+      expect(
+        tester
+            .widget<ChessBoard>(find.byType(ChessBoard))
+            .appearance!
+            .standardPieces,
+        isTrue,
+      );
+      expect(
+        find.text('Swipe left or right to change classic chess pieces'),
+        findsOneWidget,
+      );
+      final board = tester.getRect(find.byType(ChessBoard));
+      for (final key in ['use-computer-lifeline', 'analyse-threats']) {
+        final action = find.byKey(ValueKey(key));
+        expect(action.hitTestable(), findsOneWidget);
+        expect(tester.getRect(action).top, greaterThanOrEqualTo(board.bottom));
+      }
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('opponent-profile')),
+        150,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('portrait-match-scroll')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(find.text('Computer opponent'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Animated Home choice supports Rapid clock and Classic icon swipe',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        BattleChessArenaApp(musicOutput: FakeMusicOutput()),
+      );
+      await tester.pumpAndSettle();
+      final animated = find.byKey(const ValueKey('choose-themed'));
+      await tester.ensureVisible(animated);
+      await tester.pumpAndSettle();
+      await tester.tap(animated);
+      await tester.pumpAndSettle();
+      final play = find.byKey(const ValueKey('play-computer-button'));
+      await tester.ensureVisible(play);
+      await tester.pumpAndSettle();
+      await tester.tap(play);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Unlimited (No timer limit)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('15 min · Rapid').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('computer-difficulty-easy')));
+      await tester.tap(find.byKey(const ValueKey('start-computer-game')));
+      await chooseGamePieces(tester, classic: false);
+      final match = tester.widget<AnimationLabScreen>(
+        find.byType(AnimationLabScreen),
+      );
+      expect(match.initialAnimatedArena, isTrue);
+      expect(match.timeControl.timed, isTrue);
+      expect(find.byType(NeonLiveArena), findsOneWidget);
+      await tester.drag(find.byType(ChessBoard), const Offset(-100, 0));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ChessBoard>(find.byType(ChessBoard))
+            .appearance!
+            .standardPieces,
+        isTrue,
+      );
+      expect(find.byType(NeonLiveArena), findsOneWidget);
+      expect(find.byKey(const ValueKey('piece-type-choice')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'local match keeps quick actions below board and Player 2 details',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      SharedPreferences.setMockInitialValues({});
+      await tester.pumpWidget(
+        MaterialApp(home: AnimationLabScreen(pack: piecePacks.first)),
+      );
+      await tester.pumpAndSettle();
+
+      final board = tester.getRect(find.byType(ChessBoard));
+      final action = find.byKey(const ValueKey('analyse-threats'));
+      expect(action.hitTestable(), findsOneWidget);
+      expect(tester.getRect(action).top, greaterThanOrEqualTo(board.bottom));
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('opponent-profile')),
+        150,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('portrait-match-scroll')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(find.text('Player 2'), findsOneWidget);
+      expect(find.textContaining('Local player'), findsOneWidget);
+    },
+  );
+
+  testWidgets('board swipe hint disappears after a valid first selection', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(400, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(
-      BattleChessArenaApp(musicOutput: FakeMusicOutput()),
-    );
-    expect(
-      find.byKey(const ValueKey('home-difficulty-selector')),
-      findsNothing,
-    );
-    final playComputer = find.byKey(const ValueKey('play-computer-button'));
-    await tester.ensureVisible(playComputer);
-    await tester.pumpAndSettle();
-    await tester.tap(playComputer);
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('computer-difficulty-dialog')),
-      findsOneWidget,
-    );
-    expect(find.text('Choose computer difficulty'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('computer-difficulty-hard')));
-    await tester.pump();
-    expect(find.byType(AnimationLabScreen), findsNothing);
-    expect(find.text('Choose computer difficulty'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('start-computer-game')));
-    await tester.pumpAndSettle();
-    final match = tester.widget<AnimationLabScreen>(
-      find.byType(AnimationLabScreen),
-    );
-    expect(match.difficulty, ComputerDifficulty.hard);
-    expect(find.byKey(const ValueKey('opponent-profile')), findsOneWidget);
-    expect(find.text('Computer opponent'), findsOneWidget);
-    expect(
-      tester.getBottomLeft(find.byKey(const ValueKey('opponent-profile'))).dy,
-      lessThan(tester.getTopLeft(find.byType(ChessBoard)).dy),
-    );
-  });
-
-  testWidgets('local match shows Player 2 details above the board', (
-    tester,
-  ) async {
-    await tester.binding.setSurfaceSize(const Size(400, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       MaterialApp(home: AnimationLabScreen(pack: piecePacks.first)),
     );
     await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('opponent-profile')), findsOneWidget);
-    expect(find.text('Player 2'), findsOneWidget);
-    expect(find.textContaining('Local player'), findsOneWidget);
-    expect(
-      tester.getBottomLeft(find.byKey(const ValueKey('opponent-profile'))).dy,
-      lessThan(tester.getTopLeft(find.byType(ChessBoard)).dy),
-    );
+    expect(find.byKey(const ValueKey('board-swipe-hint')), findsOneWidget);
+    tester
+        .widget<ChessBoard>(find.byType(ChessBoard))
+        .onSquareTap(chess.Square.e4);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('board-swipe-hint')), findsOneWidget);
+    tester
+        .widget<ChessBoard>(find.byType(ChessBoard))
+        .onSquareTap(chess.Square.e2);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('board-swipe-hint')), findsNothing);
+    tester
+        .widget<ChessBoard>(find.byType(ChessBoard))
+        .onSquareTap(chess.Square.a3);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('board-swipe-hint')), findsNothing);
   });
 
   testWidgets('compact home keeps primary actions visible without scrolling', (

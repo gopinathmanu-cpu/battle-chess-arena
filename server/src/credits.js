@@ -12,9 +12,9 @@ export const creditPolicy = Object.freeze({
   lowBalanceRecoveryTarget: 5,
   lowBalanceRecoveryCooldownHours: 24,
   costs: Object.freeze({
-    liveHumanRound: 2,
-    dailyHumanRound: 3,
-    computerRound: 4,
+    liveHumanRound: 0,
+    dailyHumanRound: 0,
+    computerRound: 0,
     onlineMoveSuggestion: 1,
   }),
 });
@@ -242,26 +242,13 @@ export function humanPlayers(players) {
     .map((player) => [player.id, player])).values()];
 }
 
+// Games are free, including for accounts with no suggestion credits.
 export function requireRoundCredits(players, cost, now = Date.now()) {
-  const humans = humanPlayers(players);
-  const insufficient = humans.filter((player) => {
-    const { account } = ensureCreditAccount(player, now);
-    return totalCredits(account) < cost;
-  });
-  if (insufficient.length) {
-    throw new MatchError(
-      'INSUFFICIENT_CREDITS',
-      insufficient.length === 1
-        ? `${insufficient[0].name} needs ${cost} credits to start this round.`
-        : `Every player needs ${cost} credits to start this round.`,
-    );
-  }
-  return humans;
+  return humanPlayers(players);
 }
 
 export function canAffordRound(profile, cost, now = Date.now()) {
-  const { account } = ensureCreditAccount(profile, now);
-  return totalCredits(account) >= cost;
+  return true;
 }
 
 export function requireOnlineMoveSuggestionCredit(profile, now = Date.now()) {
@@ -274,53 +261,10 @@ export function requireOnlineMoveSuggestionCredit(profile, now = Date.now()) {
   }
 }
 
-export function chargeRound(players, { gameId, round, cost, reason, now = Date.now() }) {
-  const humans = humanPlayers(players);
-  const previous = humans.map((profile) => {
-    const { account } = ensureCreditAccount(profile, now);
-    return {
-      profile,
-      transaction: existingTransaction(account, `round:${gameId}:${round}:${profile.id}`),
-    };
-  });
-  if (previous.some((item) => item.transaction)) {
-    if (!previous.every((item) => item.transaction))
-      throw new Error('Partial durable round charge');
-    for (const { transaction } of previous) {
-      if (
-        transaction.delta !== -cost ||
-        transaction.type !== 'round_fee' ||
-        transaction.reason !== reason ||
-        transaction.gameId !== gameId ||
-        transaction.round !== round
-      ) throw new Error('Credit transaction ID was reused');
-    }
-    return previous.map((item) => ({ ...item, duplicate: true }));
-  }
-  requireRoundCredits(humans, cost, now);
-  const changes = [];
-  for (const profile of humans) {
-    const { account } = ensureCreditAccount(profile, now);
-    const transactionId = `round:${gameId}:${round}:${profile.id}`;
-    const bonusSpent = Math.min(account.bonusBalance, cost);
-    const purchasedSpent = cost - bonusSpent;
-    account.bonusBalance -= bonusSpent;
-    account.purchasedBalance -= purchasedSpent;
-    account.lifetimeSpent += cost;
-    const result = appendTransaction(account, {
-      transactionId,
-      delta: -cost,
-      bonusDelta: -bonusSpent,
-      purchasedDelta: -purchasedSpent,
-      type: 'round_fee',
-      reason,
-      createdAt: now,
-      gameId,
-      round,
-    });
-    changes.push({ profile, transaction: result.transaction, duplicate: false });
-  }
-  return changes;
+// Kept as a compatibility hook for existing match-creation call sites.
+// Never append a round fee, including when replaying an older command.
+export function chargeRound(players, options) {
+  return [];
 }
 
 export function chargeOnlineMoveSuggestion(

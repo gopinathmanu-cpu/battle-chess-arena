@@ -43,6 +43,26 @@ class FakeMusicOutput implements MusicOutput {
   }
 }
 
+class _LeaseMusicOutput extends FakeMusicOutput {
+  int playCalls = 0;
+  int disposeCalls = 0;
+
+  @override
+  Future<void> play(
+    PiecePackId theme, {
+    BackgroundMusic selection = BackgroundMusic.theme,
+  }) async {
+    playCalls++;
+    await super.play(theme, selection: selection);
+  }
+
+  @override
+  Future<void> dispose() async {
+    disposeCalls++;
+    await super.dispose();
+  }
+}
+
 void main() {
   testWidgets(
     'music selection persists across app restart and reset keeps unrelated data',
@@ -229,5 +249,187 @@ void main() {
     expect(output.playing, isTrue);
     expect(output.current, PiecePackId.greek);
     music.dispose();
+  });
+
+  group('temporary cinematic audio ownership', () {
+    test(
+      'two leases restore only after the last release and keep settings',
+      () async {
+        final output = _LeaseMusicOutput();
+        final savedMute = <bool>[];
+        final savedSelection = <BackgroundMusic>[];
+        final music = ThemeMusic(
+          output: output,
+          saveMuted: (value) async => savedMute.add(value),
+          saveSelection: (value) async => savedSelection.add(value),
+        );
+        music.select(PiecePackId.anime);
+        await music.settled;
+        final firstRelease = music.suspendBackground();
+        final secondRelease = music.suspendBackground();
+        await music.settled;
+        expect(output.playing, isFalse);
+
+        music.select(PiecePackId.futuristic);
+        music.setSelection(BackgroundMusic.epic);
+        firstRelease();
+        await music.settled;
+        expect(output.playing, isFalse);
+        expect(output.playCalls, 1);
+        expect(music.muted, isFalse);
+        expect(savedMute, isEmpty);
+        expect(savedSelection, [BackgroundMusic.epic]);
+
+        secondRelease();
+        await music.settled;
+        expect(output.playing, isTrue);
+        expect(output.current, PiecePackId.futuristic);
+        expect(output.selection, BackgroundMusic.epic);
+        expect(output.playCalls, 2);
+        music.dispose();
+      },
+    );
+
+    test(
+      'lifecycle and focus resumes stay silent while a lease is held',
+      () async {
+        final output = _LeaseMusicOutput();
+        final music = ThemeMusic(output: output, saveMuted: (_) async {});
+        music.select(PiecePackId.futuristic);
+        await music.settled;
+        final release = music.suspendBackground();
+        await music.settled;
+        music.setActive(false);
+        music.setActive(true);
+        music.resumeBackground();
+        await music.settled;
+        expect(output.playing, isFalse);
+        expect(output.playCalls, 1);
+
+        music.setActive(false);
+        release();
+        await music.settled;
+        expect(output.playing, isFalse);
+        expect(output.playCalls, 1);
+        music.setActive(true);
+        await music.settled;
+        expect(output.playing, isTrue);
+        expect(output.playCalls, 2);
+        music.dispose();
+      },
+    );
+
+    test(
+      'release is idempotent and cannot clear another route lease',
+      () async {
+        final output = _LeaseMusicOutput();
+        final music = ThemeMusic(output: output, saveMuted: (_) async {});
+        music.select(PiecePackId.greek);
+        await music.settled;
+        final firstRelease = music.suspendBackground();
+        await music.settled;
+        firstRelease();
+        await music.settled;
+        final secondRelease = music.suspendBackground();
+        await music.settled;
+        final callsBeforeDuplicate = output.playCalls;
+        firstRelease();
+        music.resumeBackground();
+        await music.settled;
+        expect(output.playing, isFalse);
+        expect(output.playCalls, callsBeforeDuplicate);
+        secondRelease();
+        secondRelease();
+        await music.settled;
+        expect(output.playing, isTrue);
+        expect(output.playCalls, callsBeforeDuplicate + 1);
+        music.dispose();
+      },
+    );
+
+    test('release respects the user mute preference', () async {
+      final output = _LeaseMusicOutput();
+      final saved = <bool>[];
+      final music = ThemeMusic(
+        output: output,
+        saveMuted: (value) async => saved.add(value),
+      );
+      music.select(PiecePackId.futuristic);
+      await music.settled;
+      final release = music.suspendBackground();
+      music.setMuted(true);
+      await music.settled;
+      release();
+      await music.settled;
+      expect(output.playing, isFalse);
+      expect(saved, [true]);
+      music.setMuted(false);
+      await music.settled;
+      expect(output.playing, isTrue);
+      expect(saved, [true, false]);
+      music.dispose();
+    });
+
+    test(
+      'leased routes suppress underlying effects until every release',
+      () async {
+        final output = _LeaseMusicOutput();
+        final music = ThemeMusic(output: output, saveMuted: (_) async {});
+        final firstRelease = music.suspendBackground();
+        final secondRelease = music.suspendBackground();
+        await music.settled;
+        await music.playEffect(CinematicSound.attack);
+        await music.announceCheck(voice: AvatarVoice.female);
+        firstRelease();
+        await music.playEffect(CinematicSound.finalStrike);
+        expect(output.effects, isEmpty);
+        secondRelease();
+        await music.settled;
+        await music.playEffect(CinematicSound.lightImpact);
+        expect(output.effects, [CinematicSound.lightImpact]);
+        music.dispose();
+      },
+    );
+
+    test(
+      'disposal while leased cannot revive playback on late release',
+      () async {
+        final output = _LeaseMusicOutput();
+        final music = ThemeMusic(output: output, saveMuted: (_) async {});
+        music.select(PiecePackId.futuristic);
+        await music.settled;
+        final release = music.suspendBackground();
+        await music.settled;
+        music.dispose();
+        release();
+        release();
+        await music.settled;
+        await music.playEffect(CinematicSound.attack);
+        expect(output.disposed, isTrue);
+        expect(output.playing, isFalse);
+        expect(output.playCalls, 1);
+        expect(output.disposeCalls, 1);
+        expect(output.effects, isEmpty);
+      },
+    );
+
+    testWidgets('taking film ownership cancels an older victory sequence', (
+      tester,
+    ) async {
+      final output = _LeaseMusicOutput();
+      final music = ThemeMusic(output: output, saveMuted: (_) async {});
+      final victory = music.announceVictory(checkmate: true);
+      await tester.pump();
+      expect(output.effects, [CinematicSound.checkMale]);
+      final release = music.suspendBackground();
+      await tester.pump();
+      release();
+      await tester.pump(const Duration(milliseconds: 721));
+      await tester.pump(const Duration(milliseconds: 1051));
+      await victory;
+      expect(output.effects, [CinematicSound.checkMale]);
+      music.dispose();
+      await tester.pump();
+    });
   });
 }

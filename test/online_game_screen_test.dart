@@ -7,7 +7,10 @@ import 'package:battle_chess_arena/src/features/online/online_game_screen.dart';
 import 'package:battle_chess_arena/src/features/online/online_avatar_image.dart';
 import 'package:battle_chess_arena/src/features/online/online_lobby_screen.dart';
 import 'package:battle_chess_arena/src/features/play/capture_battle_overlay.dart';
+import 'package:battle_chess_arena/src/features/play/checkmate_animation.dart';
 import 'package:battle_chess_arena/src/features/play/chess_widgets.dart';
+import 'package:battle_chess_arena/src/features/play/neon_live_arena.dart';
+import 'package:battle_chess_arena/src/features/play/match_opponent_panel.dart';
 import 'package:battle_chess_arena/src/services/online_match_client.dart';
 import 'package:battle_chess_arena/src/services/online_game_history.dart';
 import 'package:battle_chess_arena/src/services/arena_credit_controller.dart';
@@ -463,13 +466,16 @@ void main() {
     expect(find.byKey(const ValueKey('online-credits-card')), findsOneWidget);
     expect(find.byKey(const ValueKey('credit-balance-chip')), findsNothing);
     expect(find.text('300 Credits'), findsOneWidget);
-    expect(find.textContaining('Live match 2'), findsOneWidget);
+    expect(
+      find.textContaining('Only Suggest Move uses credits.'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const ValueKey('online-credits-balance')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('WHAT USES CREDITS'), findsOneWidget);
-    expect(find.text('Live game with a real player'), findsOneWidget);
+    expect(find.text('Live game with a real player'), findsNothing);
     expect(find.text('Online move suggestion'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('The rest of the game stays free'),
@@ -721,6 +727,8 @@ void main() {
       final channel = FakeChannel();
       final client = OnlineMatchClient(channelFactory: (_) => channel);
       await client.connect(Uri.parse('ws://localhost:8080'));
+      channel.receive({'type': 'connected', 'protocolVersion': 4});
+      await tester.pump();
       client.setProfile(
         const OnlinePlayerProfile(name: 'Avatar Tester', avatarId: 'avatar-01'),
       );
@@ -758,6 +766,29 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(channel.sent.last['type'], 'update_player');
       expect(channel.sent.last['avatarId'], 'avatar-02');
+      expect(find.text('Edit online profile'), findsOneWidget);
+      channel.receive({
+        'type': 'error',
+        'commandId': channel.sent.last['commandId'],
+        'code': 'AVATAR_NAME_TAKEN',
+        'message': 'That Avatar ID is already in use',
+      });
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('That Avatar ID is already in use'), findsWidgets);
+      expect(client.profile?.avatarId, 'avatar-01');
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      channel.receive({
+        'type': 'player_updated',
+        'commandId': channel.sent.last['commandId'],
+        'name': 'Avatar Tester',
+        'avatarId': 'avatar-02',
+        'playerToken': 'owned-token',
+      });
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Edit online profile'), findsNothing);
+      expect(client.profile?.avatarId, 'avatar-02');
       await tester.pumpWidget(const SizedBox());
       client.dispose();
     },
@@ -771,7 +802,9 @@ void main() {
     Size size = const Size(400, 900),
     ComputerPlayer? computerPlayer,
     bool blackComputer = false,
+    PiecePack? pack,
   }) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.binding.setSurfaceSize(size);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final client = OnlineMatchClient(channelFactory: (_) => channel);
@@ -785,7 +818,7 @@ void main() {
       MaterialApp(
         home: OnlineGameScreen(
           client: client,
-          pack: piecePacks.first,
+          pack: pack ?? piecePacks.first,
           computerPlayer: computerPlayer,
         ),
       ),
@@ -797,10 +830,15 @@ void main() {
     tester,
   ) async {
     final channel = FakeChannel();
-    final client = await showGame(tester, channel, size: const Size(650, 360));
+    final client = await showGame(
+      tester,
+      channel,
+      size: const Size(650, 360),
+      pack: piecePacks.singleWhere((pack) => pack.id == PiecePackId.japanese),
+    );
     await tester.pump();
     expect(
-      find.byKey(const ValueKey('landscape-online-layout')),
+      find.byKey(const ValueKey('neon-live-landscape-action-board-row')),
       findsOneWidget,
     );
     final board = tester.getRect(find.byType(ChessBoard));
@@ -814,12 +852,20 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Black Hero'), findsOneWidget);
+    expect(find.byType(NeonLiveArena), findsNothing);
+    expect(
+      tester.getRect(find.byType(MatchOpponentPanel)).right,
+      lessThan(board.left),
+    );
     await tester.tap(find.byTooltip('Hide top bar'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('Show top bar'), findsOneWidget);
     final expandedBoard = tester.getRect(find.byType(ChessBoard));
     expect(expandedBoard.height, greaterThan(board.height));
     expect(expandedBoard.bottom, lessThanOrEqualTo(360));
+    await tester.ensureVisible(find.byTooltip('Game settings'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Game settings').hitTestable(), findsOneWidget);
     await openGameSettings(tester, target: find.text('Capture battles'));
     expect(find.text('Capture battles'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -993,6 +1039,17 @@ void main() {
     (tester) async {
       final channel = FakeChannel();
       final client = await showGame(tester, channel);
+      var initialBoard = tester.widget<ChessBoard>(find.byType(ChessBoard));
+      expect(initialBoard.appearance?.standardPieces, isTrue);
+      expect(initialBoard.appearance?.animatedArena, isFalse);
+      final initialStyle = initialBoard.appearance!.classicStyle;
+      initialBoard.onSetSwipe!(1);
+      await tester.pump();
+      await tester.pump();
+      initialBoard = tester.widget<ChessBoard>(find.byType(ChessBoard));
+      expect(initialBoard.appearance?.standardPieces, isTrue);
+      expect(initialBoard.appearance?.animatedArena, isFalse);
+      expect(initialBoard.appearance?.classicStyle, isNot(initialStyle));
       final game = GameSession()..playUci('e2e4');
 
       channel.receive({
@@ -1000,7 +1057,7 @@ void main() {
         'state': stateJson(game: game, sequence: 2),
       });
       await tester.pump();
-      expect(find.text('OPPONENT’S TURN · PLEASE WAIT'), findsOneWidget);
+      expect(client.state?.turn, 'b');
       game.playUci('e7e5');
       channel.receive({
         'type': 'game_state',
@@ -1011,7 +1068,7 @@ void main() {
       var board = tester.widget<ChessBoard>(find.byType(ChessBoard));
       expect(board.lastMoveFrom, Square.e7);
       expect(board.lastMoveTo, Square.e5);
-      expect(find.text('YOUR TURN · PLAY NOW'), findsOneWidget);
+      expect(client.state?.turn, 'w');
 
       final toggle = find.byKey(
         const ValueKey('online-quick-piece-style-toggle'),
@@ -1022,8 +1079,8 @@ void main() {
       board = tester.widget<ChessBoard>(find.byType(ChessBoard));
       expect(board.appearance?.white.id, PiecePackId.anime);
       expect(board.appearance?.black.id, PiecePackId.anime);
-      expect(board.appearance?.standardPieces, isTrue);
-      expect(find.byTooltip('Use themed character pieces'), findsOneWidget);
+      expect(board.appearance?.standardPieces, isFalse);
+      expect(find.byTooltip('Use classic chess pieces'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(
@@ -1106,13 +1163,17 @@ void main() {
   });
 
   testWidgets(
-    'committed pawn capture renders character art, skip and duplicate safety',
+    'accepted pawn capture preserves opponent details and board visuals with compact skip and duplicate safety',
     (tester) async {
       final channel = FakeChannel();
       final game = GameSession()
         ..playUci('e2e4')
         ..playUci('d7d5');
       final client = await showGame(tester, channel, game: game);
+      await tester.tap(
+        find.byKey(const ValueKey('online-quick-piece-style-toggle')),
+      );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('square-e4')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('square-d5')));
@@ -1129,7 +1190,7 @@ void main() {
       expect(
         tester
             .widget<CaptureBattleOverlay>(find.byType(CaptureBattleOverlay))
-            .useCharacterAsset,
+            .liveArena,
         isTrue,
       );
       expect(
@@ -1137,8 +1198,21 @@ void main() {
           of: find.byType(CaptureBattleOverlay),
           matching: find.byType(CharacterPiece),
         ),
-        findsNWidgets(2),
+        findsNothing,
       );
+      expect(
+        find.byKey(const ValueKey('live-capture-skip')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('board-moving-e4-d5')), findsOneWidget);
+      expect(find.byKey(const ValueKey('board-captured-d5')), findsOneWidget);
+      expect(
+        tester.widget<ChessBoard>(find.byType(ChessBoard)).hiddenPieceSquare,
+        isNull,
+      );
+      expect(find.byType(NeonLiveArena), findsNothing);
+      expect(find.byType(MatchOpponentPanel), findsOneWidget);
+      expect(find.text('Black Hero'), findsOneWidget);
       final sequence = client.state!.sequence;
       await tester.tap(find.text('Skip'));
       await tester.pump();
@@ -1286,7 +1360,9 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('quick-match-button')));
     await tester.pump();
+    expect(find.byKey(const ValueKey('piece-type-choice')), findsNothing);
     final quick = channel.sent.single;
+    expect(quick['type'], 'quick_match');
     channel.receive({
       'type': 'matchmaking_waiting',
       'commandId': quick['commandId'],
@@ -1604,6 +1680,12 @@ void main() {
       ),
     });
     await tester.pump(const Duration(milliseconds: 1000));
+    expect(find.byType(CheckmateAnimation), findsOneWidget);
+    expect(find.byKey(const ValueKey('result-atmosphere')), findsNothing);
+    await tester.pump(
+      checkmateAnimationDuration + const Duration(milliseconds: 1),
+    );
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.byKey(const ValueKey('result-atmosphere')), findsOneWidget);
     expect(find.text('CHECKMATE'), findsOneWidget);

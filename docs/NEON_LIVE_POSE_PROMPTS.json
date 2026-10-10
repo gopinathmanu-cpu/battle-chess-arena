@@ -1,0 +1,31 @@
+{
+  "generationDate": "2026-10-03",
+  "mode": "built-in image_gen tool",
+  "references": [
+    "assets/cinematics/neon/white-cast.png",
+    "assets/cinematics/neon/black-cast.png"
+  ],
+  "transparency": "Original generated RGBA alpha preserved; no raster editing.",
+  "assets": [
+    {
+      "pose": "ready",
+      "path": "assets/cinematics/neon/ready-cast.png",
+      "dimensions": [
+        1774,
+        887
+      ],
+      "sha256": "181adee5c26b3afd4cf1fe07d80929846b02b93a2488a81529dfae8c74ba2ef5",
+      "prompt": "Use case: identity-preserve.\nAsset type: production transparent character pose atlas for the Neon Dominion animated chess game.\nInput images: Image 1 reference original White faction cast; Image 2 reference original Black faction cast. Preserve the exact six unit identities, armor shapes, colors, crowns, mounts, weapons and painted fantasy science-fiction style. Create a NEW companion pose atlas, do not replace these originals.\nComposition: a wide 2:1 transparent sprite sheet, exactly TWO rows and SIX evenly spaced isolated full-body cells in each row. White/cyan-and-ivory characters in top row. Black/magenta-and-dark-metal characters in bottom row. Columns in EACH row: king (crowned armored spear-and-shield monarch), queen (crowned sword warrior with flowing white hair), bishop (sage riding armored elephant), knight (sword rider on armored horse), rook (armored energy-cannon chariot), pawn (spear-and-shield foot soldier).\nALL twelve characters and mounts face RIGHT; black will be mirrored in the renderer. Same camera angle, clean readable silhouettes, full figures with all heads, feet, hooves, wheels and weapons inside their individual cell. Ground contact baseline identical across cells and both pose sheets. Leave generous transparent gutters so each cell crops without neighboring fragments. Keep scale and proportions consistent across these two animation atlases. Genuine transparent alpha background: no scenery, ground, panel, labels, grid lines, text, watermark or pedestal. This is usable game artwork, not a mockup.\nPose: READY / ANTICIPATION. Each unit is planted on the ground with a controlled slight crouch or braced stance, weapon drawn back preparing to act toward RIGHT. Elephant and horse grounded with rider anticipating a strike. Chariot wheels grounded, cannon aimed to the right. Calm restrained cyan/magenta weapon glow. Visible distinction from the original pose while keeping exactly the same character identities. This is the ready keyframe before the attack keyframe."
+    },
+    {
+      "pose": "attack",
+      "path": "assets/cinematics/neon/attack-cast.png",
+      "dimensions": [
+        1774,
+        887
+      ],
+      "sha256": "80fd9ceca765f5924ae6ec65feff2b49a8dd8d2e5c704b90365901b3ccd703f3",
+      "prompt": "Use case: identity-preserve.\nAsset type: production transparent character pose atlas for the Neon Dominion animated chess game.\nInput images: Image 1 reference original White faction cast; Image 2 reference original Black faction cast. Preserve the exact six unit identities, armor shapes, colors, crowns, mounts, weapons and painted fantasy science-fiction style. Create a NEW companion pose atlas, do not replace these originals.\nComposition: a wide 2:1 transparent sprite sheet, exactly TWO rows and SIX evenly spaced isolated full-body cells in each row. White/cyan-and-ivory characters in top row. Black/magenta-and-dark-metal characters in bottom row. Columns in EACH row: king (crowned armored spear-and-shield monarch), queen (crowned sword warrior with flowing white hair), bishop (sage riding armored elephant), knight (sword rider on armored horse), rook (armored energy-cannon chariot), pawn (spear-and-shield foot soldier).\nALL twelve characters and mounts face RIGHT; black will be mirrored in the renderer. Same camera angle, clean readable silhouettes, full figures with all heads, feet, hooves, wheels and weapons inside their individual cell. Ground contact baseline identical across cells and both pose sheets. Leave generous transparent gutters so each cell crops without neighboring fragments. Keep scale and proportions consistent across these two animation atlases. Genuine transparent alpha background: no scenery, ground, panel, labels, grid lines, text, watermark or pedestal. This is usable game artwork, not a mockup.\nPose: ATTACK / EXTENSION. Each unit delivers a clear readable strike toward RIGHT, while preserving the same full-body camera angle, identity, scale and grounded baseline as READY. King/pawn extend spear and brace shield; queen lunges and extends sword; bishop rider extends magical staff and casting arm while elephant remains planted; knight rider extends sword forward while horse braces; rook cannon fires toward right with compact muzzle glow contained INSIDE its cell. Attacks are grounded and controlled, no flying units, no giant trails extending into other cells. The arms and weapons have changed pose meaningfully from READY. Painted energy glow restrained so silhouettes remain sharp."
+    }
+  ]
+}

@@ -16,6 +16,7 @@ import 'services/game_invite_links.dart';
 import 'services/custom_chess_sets.dart';
 import 'services/theme_music.dart';
 import 'services/app_diagnostics.dart';
+import 'services/online_activity_controller.dart';
 import 'theme/app_theme.dart';
 
 class BattleChessArenaApp extends StatefulWidget {
@@ -34,6 +35,8 @@ class _BattleChessArenaAppState extends State<BattleChessArenaApp>
   final _progress = PlayerProgressController();
   final _identity = PlayerIdentityController();
   final _appColors = AppColorSchemeController();
+  final _activity = OnlineActivityController();
+  late final _activityNavigation = OnlineActivityNavigation(_activity);
   final _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<Uri>? _linkSubscription;
   String? _pendingInviteGameId;
@@ -54,6 +57,18 @@ class _BattleChessArenaAppState extends State<BattleChessArenaApp>
     unawaited(_identity.restore());
     unawaited(_appColors.restore());
     _initializeMusic();
+    unawaited(_activity.start());
+    unawaited(
+      _activity.initializePush(
+        (gameId) => _handleInviteLink(
+          Uri(
+            scheme: 'battlechessarena',
+            host: 'join',
+            queryParameters: {'game': gameId},
+          ),
+        ),
+      ),
+    );
   }
 
   void _handleInviteLink(Uri uri) {
@@ -134,6 +149,7 @@ class _BattleChessArenaAppState extends State<BattleChessArenaApp>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _music?.setActive(state == AppLifecycleState.resumed);
+    _activity.active = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.paused) AppDiagnostics.instance.flush();
   }
 
@@ -142,12 +158,81 @@ class _BattleChessArenaAppState extends State<BattleChessArenaApp>
     WidgetsBinding.instance.removeObserver(this);
     _linkSubscription?.cancel();
     _music?.dispose();
+    _activity.dispose();
     _customSets.dispose();
     _credits.dispose();
     _progress.dispose();
     _identity.dispose();
     _appColors.dispose();
     super.dispose();
+  }
+
+  Widget _activityFrame(Widget child) => ListenableBuilder(
+    listenable: _activity,
+    builder: (context, _) => Stack(
+      children: [
+        child,
+        if (_activity.alerts.isNotEmpty)
+          Positioned(
+            right: 16,
+            bottom: MediaQuery.paddingOf(context).bottom + 16,
+            child: FloatingActionButton.small(
+              heroTag: 'online-activity',
+              key: const ValueKey('online-activity-alerts'),
+              tooltip: 'Other games: ${_activity.alerts.length} updates',
+              backgroundColor: const Color(0xFF286D83),
+              onPressed: _showGameAlerts,
+              child: Badge(
+                label: Text('${_activity.alerts.length}'),
+                child: const Icon(
+                  Icons.notifications_active,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  void _showGameAlerts() {
+    final context = _navigatorKey.currentContext;
+    if (context == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListenableBuilder(
+          listenable: _activity,
+          builder: (context, _) => ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(title: Text('Online game updates')),
+              for (final alert in _activity.alerts)
+                ListTile(
+                  leading: const Icon(Icons.sports_esports),
+                  title: Text(
+                    alert.game.state.opponentFor(alert.game.seat).name,
+                  ),
+                  subtitle: Text(alert.message),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _activity.viewGame(alert.game.gameId);
+                    _navigatorKey.currentState?.push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => OnlineLobbyScreen(
+                          pack: piecePacks.first,
+                          initialGameId: alert.game.gameId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -158,7 +243,11 @@ class _BattleChessArenaAppState extends State<BattleChessArenaApp>
       title: 'Battle Chess Arena',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(_appColors.preset),
-      navigatorObservers: [musicRoutes, _diagnosticNavigation],
+      navigatorObservers: [
+        musicRoutes,
+        _diagnosticNavigation,
+        _activityNavigation,
+      ],
       builder: (context, child) => AppColorSchemeScope(
         controller: _appColors,
         child: PlayerIdentityScope(
@@ -170,10 +259,12 @@ class _BattleChessArenaAppState extends State<BattleChessArenaApp>
               child: CustomChessSetScope(
                 controller: _customSets,
                 child: _music == null
-                    ? ArenaCreditAppFrame(child: child!)
+                    ? ArenaCreditAppFrame(child: _activityFrame(child!))
                     : MusicScope(
                         controller: _music!,
-                        child: ArenaCreditAppFrame(child: child!),
+                        child: ArenaCreditAppFrame(
+                          child: _activityFrame(child!),
+                        ),
                       ),
               ),
             ),

@@ -45,7 +45,7 @@ class NotificationReceiver : BroadcastReceiver() {
             )
         }
 
-        fun show(context: Context, id: String, title: String, body: String) {
+        fun ensureChannel(context: Context) {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 manager.createNotificationChannel(
@@ -54,16 +54,27 @@ class NotificationReceiver : BroadcastReceiver() {
                         "Online games",
                         NotificationManager.IMPORTANCE_HIGH,
                     ).apply {
-                        description = "Invitations and scheduled Battle Chess Arena games"
+                        description = "Invitations, opponents joining, and online moves"
                     },
                 )
             }
+        }
+
+        fun show(context: Context, id: String, title: String, body: String) {
+            ensureChannel(context)
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
             val contentIntent = launch?.let {
                 PendingIntent.getActivity(
                     context,
-                    0,
-                    it,
+                    id.hashCode(),
+                    it.apply {
+                        if (id.startsWith("game:")) {
+                            action = Intent.ACTION_VIEW
+                            data = android.net.Uri.Builder().scheme("battlechessarena").authority("join")
+                                .appendQueryParameter("game", id.removePrefix("game:")).build()
+                        }
+                    },
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
                 )
             }

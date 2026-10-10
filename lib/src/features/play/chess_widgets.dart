@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import 'dart:math' as math;
+
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'animated_move_timing.dart';
 import 'chess_set_swipe.dart';
 
 import '../../domain/piece_pack.dart';
@@ -29,29 +33,67 @@ class MatchHeader extends StatelessWidget {
       : '${value.inMinutes.toString().padLeft(2, '0')}:${(value.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      _Clock(
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final whiteClock = _Clock(
         label: 'WHITE',
         time: timed ? _format(whiteTime) : '--:--',
         active: turn == Side.white,
-      ),
-      Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            status,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: accent, fontWeight: FontWeight.w800),
-          ),
-        ),
-      ),
-      _Clock(
+      );
+      final blackClock = _Clock(
         label: 'BLACK',
         time: timed ? _format(blackTime) : '--:--',
         active: turn == Side.black,
-      ),
-    ],
+      );
+      final statusText = Text(
+        status,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+      );
+      if (MediaQuery.textScalerOf(context).scale(14) > 21 ||
+          constraints.maxWidth < 280) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: whiteClock,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: blackClock,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            statusText,
+          ],
+        );
+      }
+      return Row(
+        children: [
+          whiteClock,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: statusText,
+            ),
+          ),
+          blackClock,
+        ],
+      );
+    },
   );
 }
 
@@ -90,7 +132,7 @@ class _Clock extends StatelessWidget {
   );
 }
 
-class ChessBoard extends StatelessWidget {
+class ChessBoard extends StatefulWidget {
   const ChessBoard({
     required this.position,
     required this.selected,
@@ -102,6 +144,10 @@ class ChessBoard extends StatelessWidget {
     this.hiddenPieceSquare,
     this.suggestedFrom,
     this.suggestedTo,
+    this.previewFrom,
+    this.previewTo,
+    this.blinkingSquare,
+    this.previewLit = true,
     this.lastMoveFrom,
     this.lastMoveTo,
     this.threatFrom,
@@ -109,7 +155,13 @@ class ChessBoard extends StatelessWidget {
     this.threatLanding,
     this.threatLit = true,
     this.showPieceRoles = true,
+    this.showCoordinates = false,
     this.onSetSwipe,
+    this.swipeHint,
+    this.animateMoves = false,
+    this.animatedMove,
+    this.moveAnimationDuration = animatedMoveDuration,
+    this.reducedMotion = false,
     super.key,
   });
   final Position position;
@@ -122,6 +174,10 @@ class ChessBoard extends StatelessWidget {
   final Square? hiddenPieceSquare;
   final Square? suggestedFrom;
   final Square? suggestedTo;
+  final Square? previewFrom;
+  final Square? previewTo;
+  final Square? blinkingSquare;
+  final bool previewLit;
   final Square? lastMoveFrom;
   final Square? lastMoveTo;
   final Square? threatFrom;
@@ -129,217 +185,709 @@ class ChessBoard extends StatelessWidget {
   final Square? threatLanding;
   final bool threatLit;
   final bool showPieceRoles;
+  final bool showCoordinates;
   final ValueChanged<int>? onSetSwipe;
+  final String? swipeHint;
+
+  /// Moves the rendered piece without delaying the authoritative [position].
+  /// Callers enable this only for a board paired with the Animated arena.
+  final bool animateMoves;
+
+  /// The accepted move that produced [position]. Requests, reconnect snapshots
+  /// and undo/reset operations leave this null; they never invent movement.
+  final NormalMove? animatedMove;
+  final Duration moveAnimationDuration;
+  final bool reducedMotion;
+
+  /// The reserved margin outside the playable grid when coordinates are shown.
+  /// Overlays can use the same inset to keep their square positions aligned.
+  static double coordinateInset(double boardExtent) => boardExtent <= 0
+      ? 0
+      : math.min(boardExtent * .14, (boardExtent * .055).clamp(10.0, 22.0));
+
+  @override
+  State<ChessBoard> createState() => _ChessBoardState();
+}
+
+class _ChessBoardState extends State<ChessBoard>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late final AnimationController _motion;
+  final _pieceScaleKeys = <Square, GlobalKey>{};
+  _BoardMovePresentation? _movement;
+  bool _reduced = false;
+  bool _background = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _motion = AnimationController(
+      vsync: this,
+      duration: widget.moveAnimationDuration,
+      value: 1,
+    )..addStatusListener(_motionStatus);
+  }
+
+  void _motionStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed && _movement != null && mounted) {
+      setState(() => _movement = null);
+    }
+  }
+
+  void _snapMovement() {
+    _movement = null;
+    _motion
+      ..stop()
+      ..value = 1;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduced =
+        widget.reducedMotion ||
+        (MediaQuery.maybeOf(context)?.disableAnimations ?? false);
+    if (_reduced) _snapMovement();
+  }
+
+  @override
+  void didUpdateWidget(ChessBoard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _reduced =
+        widget.reducedMotion ||
+        (MediaQuery.maybeOf(context)?.disableAnimations ?? false);
+    _motion.duration = widget.moveAnimationDuration;
+    if (_reduced || !widget.animateMoves) {
+      _snapMovement();
+      return;
+    }
+    if (oldWidget.position.fen == widget.position.fen) return;
+    _snapMovement();
+    final move = widget.animatedMove;
+    if (move == null || widget.moveAnimationDuration <= Duration.zero) return;
+    final movement = _BoardMovePresentation.accepted(
+      before: oldWidget.position,
+      after: widget.position,
+      move: move,
+      startScale: _renderedPieceScale(move.from),
+    );
+    if (movement == null ||
+        movement.flights.every(
+          (flight) => flight.target == widget.hiddenPieceSquare,
+        )) {
+      return;
+    }
+    _movement = movement;
+    _motion.value = 0;
+    if (!_background) _motion.forward();
+  }
+
+  double _renderedPieceScale(Square source) {
+    final rendered = _pieceScaleKeys[source]?.currentContext
+        ?.findRenderObject();
+    return rendered is RenderTransform && rendered.child != null
+        ? rendered.child!.getTransformTo(rendered).getMaxScaleOnAxis()
+        : 1;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _background = state != AppLifecycleState.resumed;
+    if (_background) {
+      _motion.stop();
+    } else if (_movement != null && !_reduced) {
+      _motion.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _motion.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => ChessSetSwipe(
-    onChange: onSetSwipe,
-    child: GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 8,
-      ),
-      itemCount: 64,
-      itemBuilder: (context, index) {
-        final look = appearance ?? BoardAppearance.forPack(piecePacks.first);
-        final row = index ~/ 8;
-        final col = index % 8;
-        final square = orientation == Side.white
-            ? Square(col + (7 - row) * 8)
-            : Square(7 - col + row * 8);
-        final piece = position.board.pieceAt(square);
-        final isSelected = selected == square;
-        final isTarget = legalTargets.contains(square);
-        final isSuggestedFrom = suggestedFrom == square;
-        final isSuggestedTo = suggestedTo == square;
-        final isLastMoveFrom = lastMoveFrom == square;
-        final isLastMoveTo = lastMoveTo == square;
-        final isThreatFrom = threatFrom == square;
-        final isThreatTarget = threatTarget == square;
-        final isThreatLanding = threatLanding == square;
-        final isCheckedKing =
-            position.isCheck && position.board.kingOf(position.turn) == square;
-        final light = (row + col).isEven;
-        return Semantics(
-          label:
-              '${square.name} ${piece == null ? 'empty' : '${piece.color.name} ${piece.role.name}'}${isThreatFrom
-                  ? ', opponent attacker'
-                  : isThreatTarget
-                  ? ', threatened piece'
-                  : isThreatLanding
-                  ? ', en passant landing square'
-                  : ''}',
-          selected: isSelected,
-          button: true,
-          child: GestureDetector(
-            key: ValueKey('square-${square.name}'),
-            onTap: () => onSquareTap(square),
-            child: ColoredBox(
-              color: isCheckedKing
-                  ? const Color(0xFFB71C1C).withValues(alpha: .72)
-                  : isSelected
-                  ? accent.withValues(alpha: .74)
-                  : isSuggestedFrom
-                  ? const Color(0xFFFFC107).withValues(alpha: .62)
-                  : isLastMoveFrom || isLastMoveTo
-                  ? const Color(0xFF29B6F6).withValues(alpha: .34)
-                  : light
-                  ? look.lightSquare
-                  : look.darkSquare,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (look.customSet != null)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: CustomPaint(
-                          painter: CustomBoardSurfacePainter(
-                            look.customSet!.surface,
+    onChange: widget.onSetSwipe,
+    child: widget.showCoordinates
+        ? LayoutBuilder(
+            builder: (context, box) {
+              final extent = math.min(box.maxWidth, box.maxHeight);
+              final inset = ChessBoard.coordinateInset(extent);
+              final files = widget.orientation == Side.white
+                  ? 'ABCDEFGH'
+                  : 'HGFEDCBA';
+              final ranks = widget.orientation == Side.white
+                  ? '87654321'
+                  : '12345678';
+
+              Widget label(String reference, String side) => _BoardReference(
+                reference: reference,
+                side: side,
+                fontSize: (inset * .68).clamp(7.0, 13.0),
+              );
+
+              return Center(
+                child: SizedBox.square(
+                  key: const ValueKey('board-coordinate-frame'),
+                  dimension: extent,
+                  child: ColoredBox(
+                    color: const Color(0xFF101C29),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Padding(
+                            padding: EdgeInsets.all(inset),
+                            child: _buildGrid(context),
                           ),
                         ),
-                      ),
-                    ),
-                  if (piece != null && square != hiddenPieceSquare)
-                    AnimatedScale(
-                      duration: const Duration(milliseconds: 140),
-                      scale: isSelected && look.customSet == null ? 1.12 : 1,
-                      child: CharacterPiece(
-                        piece: piece,
-                        pack: look.army(piece.color),
-                        standard: look.standardPieces,
-                        classicStyle: look.classicStyle,
-                        customSet: look.customSet,
-                        showRole: showPieceRoles,
-                      ),
-                    ),
-                  if (isTarget)
-                    Container(
-                      width: piece == null ? 15 : 42,
-                      height: piece == null ? 15 : 42,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: piece == null
-                            ? accent.withValues(alpha: .72)
-                            : Colors.transparent,
-                        border: piece == null
-                            ? null
-                            : Border.all(color: accent, width: 4),
-                      ),
-                    ),
-                  if (isSuggestedTo)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFFFFC107,
-                            ).withValues(alpha: .27),
-                            border: Border.all(
-                              color: const Color(0xFFFFD740),
-                              width: 4,
-                            ),
-                          ),
-                          child: const Align(
-                            alignment: Alignment.topRight,
-                            child: Padding(
-                              padding: EdgeInsets.all(2),
-                              child: Icon(
-                                Icons.flag_rounded,
-                                key: ValueKey('best-move-target-icon'),
-                                size: 16,
-                                color: Color(0xFF4A3200),
+                        for (final side in ['top', 'bottom'])
+                          Positioned(
+                            left: inset,
+                            right: inset,
+                            top: side == 'top' ? 0 : null,
+                            bottom: side == 'bottom' ? 0 : null,
+                            height: inset,
+                            child: IgnorePointer(
+                              child: Row(
+                                children: [
+                                  for (final file in files.split(''))
+                                    Expanded(child: label(file, side)),
+                                ],
                               ),
                             ),
                           ),
+                        for (final side in ['left', 'right'])
+                          Positioned(
+                            top: inset,
+                            bottom: inset,
+                            left: side == 'left' ? 0 : null,
+                            right: side == 'right' ? 0 : null,
+                            width: inset,
+                            child: IgnorePointer(
+                              child: Column(
+                                children: [
+                                  for (final rank in ranks.split(''))
+                                    Expanded(child: label(rank, side)),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          )
+        : _buildGrid(context),
+  );
+
+  Widget _buildGrid(BuildContext context) => Stack(
+    children: [
+      _buildSquares(context),
+      if (_movement != null)
+        Positioned.fill(
+          child: IgnorePointer(
+            child: ExcludeSemantics(
+              child: Padding(
+                padding: widget.showCoordinates
+                    ? EdgeInsets.zero
+                    : EdgeInsets.only(
+                        top: MediaQuery.paddingOf(context).top,
+                        bottom: MediaQuery.paddingOf(context).bottom,
+                      ),
+                child: AnimatedBuilder(
+                  animation: _motion,
+                  builder: (context, _) => _buildMovement(context),
+                ),
+              ),
+            ),
+          ),
+        ),
+      if (widget.swipeHint != null && widget.onSetSwipe != null)
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  key: const ValueKey('board-swipe-hint'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xEE243C50),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF9BCBDD)),
+                  ),
+                  child: Text(
+                    widget.swipeHint!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  );
+
+  Widget _buildMovement(BuildContext context) {
+    final movement = _movement;
+    if (movement == null) return const SizedBox.shrink();
+    final look = widget.appearance ?? BoardAppearance.forPack(piecePacks.first);
+    final progress = _motion.value;
+    final travel = Curves.easeInOutCubic.transform(
+      ((progress - .08) / (animatedMoveImpactFraction - .08)).clamp(0.0, 1.0),
+    );
+    final loss = Curves.easeOutCubic.transform(
+      ((progress - animatedMoveImpactFraction) /
+              (.80 - animatedMoveImpactFraction))
+          .clamp(0.0, 1.0),
+    );
+
+    Widget piece(Piece value) => CharacterPiece(
+      piece: value,
+      pack: look.army(value.color),
+      standard: look.standardPieces,
+      classicStyle: look.classicStyle,
+      customSet: look.customSet,
+      showRole: widget.showPieceRoles,
+    );
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        final cell = box.maxWidth / 8;
+        Offset offset(Square square) => widget.orientation == Side.white
+            ? Offset(square.file.value * cell, (7 - square.rank.value) * cell)
+            : Offset((7 - square.file.value) * cell, square.rank.value * cell);
+        final captured = movement.captured;
+        final captureSquare = movement.captureSquare;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            if (captured != null && captureSquare != null && loss < 1)
+              Positioned(
+                left: offset(captureSquare).dx,
+                top: offset(captureSquare).dy,
+                width: cell,
+                height: cell,
+                child: Opacity(
+                  key: ValueKey('board-captured-${captureSquare.name}'),
+                  opacity: 1 - loss,
+                  child: Transform.rotate(
+                    angle: (captured.color == Side.white ? -.12 : .12) * loss,
+                    child: piece(captured),
+                  ),
+                ),
+              ),
+            for (final flight in movement.flights)
+              if (flight.target != widget.hiddenPieceSquare)
+                Builder(
+                  builder: (context) {
+                    final point = Offset.lerp(
+                      offset(flight.source),
+                      offset(flight.target),
+                      travel,
+                    )!;
+                    final hop = flight.original.role == Role.knight
+                        ? -math.sin(travel * math.pi) * cell * .24
+                        : 0.0;
+                    return Positioned(
+                      left: point.dx,
+                      top: point.dy,
+                      width: cell,
+                      height: cell,
+                      child: SizedBox.square(
+                        key: ValueKey(
+                          'board-moving-${flight.source.name}-${flight.target.name}',
+                        ),
+                        dimension: cell,
+                        child: Transform.translate(
+                          offset: Offset(0, hop),
+                          child: Transform.scale(
+                            key: ValueKey(
+                              'board-flight-scale-${flight.source.name}',
+                            ),
+                            scale: 1 + (flight.startScale - 1) * (1 - travel),
+                            child: piece(
+                              progress < animatedMoveImpactFraction
+                                  ? flight.original
+                                  : flight.arrived,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSquares(BuildContext context) => GridView.builder(
+    key: const ValueKey('board-playable-squares'),
+    padding: widget.showCoordinates ? EdgeInsets.zero : null,
+    physics: const NeverScrollableScrollPhysics(),
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 8,
+    ),
+    itemCount: 64,
+    itemBuilder: (context, index) {
+      final look =
+          widget.appearance ?? BoardAppearance.forPack(piecePacks.first);
+      final row = index ~/ 8;
+      final col = index % 8;
+      final square = widget.orientation == Side.white
+          ? Square(col + (7 - row) * 8)
+          : Square(7 - col + row * 8);
+      final piece = widget.position.board.pieceAt(square);
+      final isSelected = widget.selected == square;
+      final isTarget = widget.legalTargets.contains(square);
+      final isSuggestedFrom = widget.suggestedFrom == square;
+      final isSuggestedTo = widget.suggestedTo == square;
+      final isLastMoveFrom = widget.lastMoveFrom == square;
+      final isLastMoveTo = widget.lastMoveTo == square;
+      final isThreatFrom = widget.threatFrom == square;
+      final isThreatTarget = widget.threatTarget == square;
+      final isThreatLanding = widget.threatLanding == square;
+      final isCheckedKing =
+          widget.position.isCheck &&
+          widget.position.board.kingOf(widget.position.turn) == square;
+      final light = (row + col).isEven;
+      return Semantics(
+        label:
+            '${square.name} ${piece == null ? 'empty' : '${piece.color.name} ${piece.role.name}'}${isThreatFrom
+                ? ', opponent attacker'
+                : isThreatTarget
+                ? ', threatened piece'
+                : isThreatLanding
+                ? ', en passant landing square'
+                : ''}',
+        selected: isSelected,
+        button: true,
+        child: GestureDetector(
+          key: ValueKey('square-${square.name}'),
+          onTap: () => widget.onSquareTap(square),
+          child: ColoredBox(
+            color: isCheckedKing
+                ? const Color(0xFFB71C1C).withValues(alpha: .72)
+                : isSelected
+                ? widget.accent.withValues(alpha: .74)
+                : isSuggestedFrom
+                ? const Color(0xFFFFC107).withValues(alpha: .62)
+                : (isLastMoveFrom || isLastMoveTo) &&
+                      !(square == widget.blinkingSquare && !widget.previewLit)
+                ? const Color(0xFF29B6F6).withValues(alpha: .34)
+                : light
+                ? look.lightSquare
+                : look.darkSquare,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (look.customSet != null)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: CustomBoardSurfacePainter(
+                          look.customSet!.surface,
                         ),
                       ),
                     ),
-                  if (isSuggestedFrom)
-                    const Positioned(
-                      left: 2,
-                      top: 2,
-                      child: IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Color(0xFFFFD740),
-                            shape: BoxShape.circle,
+                  ),
+                if ((square == widget.previewFrom ||
+                        square == widget.previewTo) &&
+                    (square != widget.blinkingSquare || widget.previewLit))
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFC107).withValues(alpha: .38),
+                          border: Border.all(
+                            color: const Color(0xFFFFC107),
+                            width: 3,
                           ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (piece != null &&
+                    square != widget.hiddenPieceSquare &&
+                    !(_movement?.flights.any(
+                          (flight) => flight.target == square,
+                        ) ??
+                        false))
+                  AnimatedScale(
+                    key: _pieceScaleKeys.putIfAbsent(square, GlobalKey.new),
+                    duration: _reduced
+                        ? Duration.zero
+                        : widget.animateMoves
+                        ? animatedSelectionDuration
+                        : const Duration(milliseconds: 140),
+                    scale: isSelected && look.customSet == null ? 1.12 : 1,
+                    child: CharacterPiece(
+                      piece: piece,
+                      pack: look.army(piece.color),
+                      standard: look.standardPieces,
+                      classicStyle: look.classicStyle,
+                      customSet: look.customSet,
+                      showRole: widget.showPieceRoles,
+                    ),
+                  ),
+                if (isTarget)
+                  Container(
+                    width: piece == null ? 15 : 42,
+                    height: piece == null ? 15 : 42,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: piece == null
+                          ? widget.accent.withValues(alpha: .72)
+                          : Colors.transparent,
+                      border: piece == null
+                          ? null
+                          : Border.all(color: widget.accent, width: 4),
+                    ),
+                  ),
+                if (isSuggestedTo)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFC107).withValues(alpha: .27),
+                          border: Border.all(
+                            color: const Color(0xFFFFD740),
+                            width: 4,
+                          ),
+                        ),
+                        child: const Align(
+                          alignment: Alignment.topRight,
                           child: Padding(
                             padding: EdgeInsets.all(2),
                             child: Icon(
-                              Icons.lightbulb_rounded,
-                              key: ValueKey('best-move-origin-icon'),
-                              size: 14,
+                              Icons.flag_rounded,
+                              key: ValueKey('best-move-target-icon'),
+                              size: 16,
                               color: Color(0xFF4A3200),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  if ((isLastMoveFrom || isLastMoveTo) && !isSuggestedTo)
-                    Positioned.fill(
-                      child: IgnorePointer(
+                  ),
+                if (isSuggestedFrom)
+                  const Positioned(
+                    left: 2,
+                    top: 2,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Color(0xFFFFD740),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(2),
+                          child: Icon(
+                            Icons.lightbulb_rounded,
+                            key: ValueKey('best-move-origin-icon'),
+                            size: 14,
+                            color: Color(0xFF4A3200),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if ((isLastMoveFrom || isLastMoveTo) && !isSuggestedTo)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        key: ValueKey('last-move-${square.name}'),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.lightBlueAccent.withValues(alpha: .9),
+                            width: isLastMoveTo ? 4 : 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (isThreatFrom || isThreatTarget || isThreatLanding)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        duration: _reduced
+                            ? Duration.zero
+                            : const Duration(milliseconds: 160),
+                        opacity: widget.threatLit ? 1 : .22,
                         child: DecoratedBox(
-                          key: ValueKey('last-move-${square.name}'),
+                          key: ValueKey('threat-${square.name}'),
                           decoration: BoxDecoration(
+                            color: Colors.redAccent.withValues(
+                              alpha: isThreatLanding ? .10 : .30,
+                            ),
                             border: Border.all(
-                              color: Colors.lightBlueAccent.withValues(
-                                alpha: .9,
-                              ),
-                              width: isLastMoveTo ? 4 : 2,
+                              color: Colors.redAccent,
+                              width: isThreatTarget ? 4 : 3,
+                            ),
+                          ),
+                          child: Align(
+                            alignment: Alignment.topRight,
+                            child: Icon(
+                              isThreatFrom
+                                  ? Icons.gps_fixed
+                                  : isThreatTarget
+                                  ? Icons.warning_amber_rounded
+                                  : Icons.subdirectory_arrow_right,
+                              size: 15,
+                              color: Colors.white,
                             ),
                           ),
                         ),
                       ),
                     ),
-                  if (isThreatFrom || isThreatTarget || isThreatLanding)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: AnimatedOpacity(
-                          duration: MediaQuery.disableAnimationsOf(context)
-                              ? Duration.zero
-                              : const Duration(milliseconds: 160),
-                          opacity: threatLit ? 1 : .22,
-                          child: DecoratedBox(
-                            key: ValueKey('threat-${square.name}'),
-                            decoration: BoxDecoration(
-                              color: Colors.redAccent.withValues(
-                                alpha: isThreatLanding ? .10 : .30,
-                              ),
-                              border: Border.all(
-                                color: Colors.redAccent,
-                                width: isThreatTarget ? 4 : 3,
-                              ),
-                            ),
-                            child: Align(
-                              alignment: Alignment.topRight,
-                              child: Icon(
-                                isThreatFrom
-                                    ? Icons.gps_fixed
-                                    : isThreatTarget
-                                    ? Icons.warning_amber_rounded
-                                    : Icons.subdirectory_arrow_right,
-                                size: 15,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                  ),
+                if (isCheckedKing)
+                  Positioned.fill(
+                    child: _CheckedKingAlert(
+                      reducedMotion: _reduced,
+                      square: square,
                     ),
-                  if (isCheckedKing)
-                    Positioned.fill(
-                      child: _CheckedKingAlert(
-                        reducedMotion: MediaQuery.disableAnimationsOf(context),
-                        square: square,
-                      ),
-                    ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
-        );
-      },
+        ),
+      );
+    },
+  );
+}
+
+class _BoardPieceFlight {
+  const _BoardPieceFlight({
+    required this.source,
+    required this.target,
+    required this.original,
+    required this.arrived,
+    this.startScale = 1,
+  });
+
+  final Square source, target;
+  final Piece original, arrived;
+  final double startScale;
+}
+
+/// A verified single ply, used only to paint pieces over the current grid.
+class _BoardMovePresentation {
+  const _BoardMovePresentation({
+    required this.flights,
+    this.captured,
+    this.captureSquare,
+  });
+
+  final List<_BoardPieceFlight> flights;
+  final Piece? captured;
+  final Square? captureSquare;
+
+  static _BoardMovePresentation? accepted({
+    required Position before,
+    required Position after,
+    required NormalMove move,
+    required double startScale,
+  }) {
+    if (!before.isLegal(move) || before.play(move).fen != after.fen) {
+      return null;
+    }
+    final original = before.board.pieceAt(move.from);
+    if (original == null) return null;
+    final castle =
+        original.role == Role.king &&
+        before.board.pieceAt(move.to)?.color == original.color;
+    final target = castle ? after.board.kingOf(original.color) : move.to;
+    if (target == null) return null;
+    final arrived = after.board.pieceAt(target);
+    if (arrived == null) return null;
+    final flights = <_BoardPieceFlight>[
+      _BoardPieceFlight(
+        source: move.from,
+        target: target,
+        original: original,
+        arrived: arrived,
+        startScale: startScale,
+      ),
+    ];
+    if (castle) {
+      final rookTarget = Square.fromCoords(
+        move.to.file > move.from.file ? File.f : File.d,
+        move.from.rank,
+      );
+      final rook = before.board.pieceAt(move.to);
+      final arrivedRook = after.board.pieceAt(rookTarget);
+      if (rook == null || arrivedRook == null) return null;
+      flights.add(
+        _BoardPieceFlight(
+          source: move.to,
+          target: rookTarget,
+          original: rook,
+          arrived: arrivedRook,
+        ),
+      );
+      return _BoardMovePresentation(flights: flights);
+    }
+    var captureSquare = target;
+    var captured = before.board.pieceAt(target);
+    if (captured == null &&
+        original.role == Role.pawn &&
+        before.epSquare == target) {
+      captureSquare = Square.fromCoords(target.file, move.from.rank);
+      captured = before.board.pieceAt(captureSquare);
+    }
+    return _BoardMovePresentation(
+      flights: flights,
+      captured: captured,
+      captureSquare: captured == null ? null : captureSquare,
+    );
+  }
+}
+
+class _BoardReference extends StatelessWidget {
+  const _BoardReference({
+    required this.reference,
+    required this.side,
+    required this.fontSize,
+  });
+
+  final String reference, side;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(
+        reference,
+        key: ValueKey(
+          'board-${side == 'top' || side == 'bottom' ? 'file' : 'rank'}-$side-$reference',
+        ),
+        maxLines: 1,
+        textScaler: MediaQuery.textScalerOf(
+          context,
+        ).clamp(minScaleFactor: .9, maxScaleFactor: 1.3),
+        style: TextStyle(
+          color: const Color(0xFFF1FCFF),
+          fontSize: fontSize,
+          height: 1,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     ),
   );
 }

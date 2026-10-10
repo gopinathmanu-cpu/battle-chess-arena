@@ -1,18 +1,132 @@
-# Battle Chess Arena · 0.9.0 Beta 14
+# Battle Chess Arena · 0.9.0 Beta 50
 
 An Android/iOS Flutter chess game with optional, short, skippable capture battles.
 Original project code and visual assets are **GPL-3.0-or-later**; dependencies
 retain their upstream licences. See [licensing](THIRD_PARTY_NOTICES.md).
 
-The Beta 14 testing handoff targets ARM64 Android phones. Automated
-client/server tests, signature checks, and static 16 KB alignment checks are
-recorded with the handoff.
+The Beta 50 testing handoff targets ARM64 Android phones. Flutter analysis is
+clean and all 1,116 automated tests pass (14 optional visual tests skipped in
+the full run and rendered separately). APK signature, beta package identity,
+static 16 KB alignment and the matching source handoff are verified.
 **Native two-device and install-over-old acceptance remain pending**; full Xcode
-and CocoaPods are unavailable. See [current beta validation](docs/BETA_14_VALIDATION.md).
+and CocoaPods are unavailable. See [current beta validation](docs/BETA_50_VALIDATION.md).
 The new online invite links, expiry, and colour toss require a separate server
 deployment; building an APK does not deploy the server.
 
 ## Included
+
+The character chess sets are now called **Animated**. New selections offer the
+four Fantasy sets: **Manga Vanguard**, **Epic Guardians**, **Olympian Legion** and
+**Neon Dominion**, alongside the four Classic sets. Existing recordings and
+saved/custom sets retain their original artwork and metadata.
+Home's Animated family icon is larger while its label and card layout stay intact.
+
+Choose both armies from the same **Animated** set to play on its illustrated
+battlefield in ordinary practice and Conquests. Manga Vanguard brings sword arcs
+and comet bursts; Epic Guardians brings radiant magic, chakras and lotus impacts;
+Olympian Legion brings lightning, shield waves and laurels. Neon Dominion retains
+its city and laser strikes. Each world has twelve original full-body characters. Your selected piece
+appears on the left facing right; legal capture victims appear in round bubbles
+on the right. An accepted opponent move appears on the right facing left, with
+its threatened pieces on the left. This follows your seat even when you play
+Black. King bubbles distinguish **POSSIBLE CHECK**, actual **CHECK**, and **CHECKMATED**, with
+extra emphasis; kings are never shown as capture victims. Idle scenes contain
+no default character figures. Actual captured figures recoil and fade into a
+**DEFEATED** pose beside the capture winner. Threats stack vertically in groups
+of three. Orientation-aware **A–H** and **1–8** references border the live board.
+Online games and regular Tournaments show a prominent opponent portrait and
+details above the portrait board. In landscape the profile occupies the former
+animation panel beside the board, with a swap control. Both Classic and Animated
+choices keep this opponent panel; Animated world boards, backgrounds and cinematic
+summaries remain available. Conquests use their separate Home entry and retain
+the illustrated character arena. Accepted captures retain their attack and impact
+sounds behind the opponent panel, including mute and background-pause behaviour.
+Choose one of four **Classic** sets or four **Animated** armies on Home or in
+Settings. In practice and Conquests, Classic sets open the original game page;
+Animated sets show character avatars and battles. There is no extra piece-type
+popup. During a game, Settings
+switches the page and artwork while preserving the position and clocks. Within
+an Animated page, swiping the board toggles its piece artwork while keeping the
+illustrated world. Classic games swipe through the four Classic styles in either
+direction. The chosen page is retained for resumed games and rooms.
+
+Animated board pieces use the same cast artwork as their animation avatars.
+Each role keeps its native proportions and fits nearly 98% of the available
+square content along one axis, including its weapons and mounts. Black characters
+have brighter exposed faces and hands and clearer contrasting accessories across
+all four worlds, including Neon's resting, ready and attack poses. All eight
+Queens retain long flowing hair; the two Olympian Queens receive clearer hair.
+Both Neon Rooks are tall, upright heroic chariot commanders with recognizable
+energy cannons in their resting, ready and attack artwork.
+In ordinary practice and Conquests, selecting a piece shows a stationary avatar
+with a short role- or board-aware reply. A legal accepted move starts the movement
+animation and settles without retreating after landing. Captured victims keep their defeated reaction;
+castling shows the King and Rook working together. Music and spoken commentary
+remember their last on/off settings across games, films and app restarts. Replay controls also toggle
+Classic/Animated pieces on both board views without restarting the story.
+Animated boards match their worlds: Neon cyan/violet, Manga blue/rose,
+Epic ivory/forest and Olympian marble/bronze, including Classic board icons.
+
+Computer matches include header **Auto-play** and **Move commentary** buttons.
+Auto-play is free, including at zero credits. Its confirmation explains automatic
+play; the credit counter changes only for successful **Suggest Move** actions,
+which cost **1 credit**. All games, moves, rematches and immediate Tournament or
+Conquest retries are free.
+Automatic player moves and move suggestions use the strongest assistance profile
+(Stockfish skill 20, depth 18, no Elo cap); ordinary opponents retain their chosen
+difficulty or tournament persona. Engine fallback uses its strongest local search.
+At normal speed, both automated sides wait two seconds, blink the source square
+three times with a steady destination highlight, move, then blink the destination
+three times. A 0.5×–3× speed slider appears below the board during auto-play.
+Commentary adds a move caption and Android speech using the installed English
+voice; turn it off with the header voice icon. Backgrounding pauses the previews.
+Manual computer replies wait two seconds after the current move animation ends,
+including fast or skipped capture battles. A **CHECKMATE** animation completes
+before the result window appears. Result windows retain the active Animated world,
+including each army background when the board uses Classic pieces.
+
+After a game with both armies using the same **Animated** set, choose
+**Watch cinematic summary** from the result or completed match. The illustrated
+film retells every move through that army’s world, battle poses, camera cuts and
+distinct role actions, with its own opening, ending and original soundtrack. Simple **White** and **Black** commentary describes each move,
+legal threats against either army, new forks and material changes without
+claiming an engine-rated brilliant or forced winning move. Captions follow
+the actual moves and ending. An original instrumental score
+plays softly beneath the storyteller, with separate header toggles for voice and
+music. Android speech uses the installed English voice; captions remain available
+when speech is unavailable.
+
+Playback controls fade after four seconds; tap the film to show them again.
+Pause, jump between scenes, seek on the timeline, or use 1×/2×/4× playback.
+The top half shows the illustrated action; the lower half keeps the chessboard
+visible with source/destination highlights, a camera following the moving piece,
+and a full-board overview during zoom. After landing, threatened opponent pieces
+appear as large round portraits on the opponent’s side and on the board.
+Threats stack vertically in groups of three with page controls. White figures stay
+on the left facing right; Black artwork is mirrored on the right to face left,
+including captures, castling and
+promotions. Captures retain the full victim in its faction’s lane with **WINNER**
+and **DEFEATED** encounter stamps, with theme-specific strike effects at impact.
+Checks receive a clear warning; verified wins receive a victory celebration.
+Draws and unfinished games stay neutral. Computer and online losses end with
+encouragement to learn from the game and fight another day, including history
+replays. Reduced motion keeps the emphasis static.
+**Enlarge recorded board** opens the current recorded position for inspection.
+Chapters wait for narration to finish, and pause, board viewing, backgrounding
+and covered routes suspend playback and audio. Returning from the film preserves
+the result and game history.
+
+Open **Game history** on Home to browse completed and unfinished recordings,
+inspect their boards and move lists, and choose **Watch cinematic summary**.
+Filter the list with **Show All**, **Completed** or **Unfinished**.
+Local, computer, tournament and received online rounds are saved on this device.
+Leaving or replacing an unfinished game retains its played moves. Recordings
+keep the actual result, player names and set metadata; browsing awards no new
+rewards. Valid retained resume/tournament saves migrate into history. Older games
+whose moves were already discarded cannot be recovered. All verified recordings
+use their recorded Animated army world, even with Classic board pieces. Legacy,
+mixed and custom sets remain clearly labeled Neon interpretations. History persists through app restarts and beta
+upgrades; clearing app data or uninstalling removes device-local recordings.
 
 - **Custom multiplayer avatars** combine hairstyles/colours, skin tones, face
   shapes, facial hair, glasses/shades, outfits and backgrounds, with child,
@@ -20,21 +134,18 @@ deployment; building an APK does not deploy the server.
   in profile setup or editing. See [the avatar guide](docs/CUSTOM_AVATARS.md).
   This next-build feature needs an updated app and online service for opponents
   to see custom portraits; the packaged Beta 14 APK predates it.
-- **Chess Set Studio** lets you select complete fitted role formations from the
-  themed worlds, colour the board, choose a background and save named sets locally.
-  Mounted and chariot pieces keep their rider, orientation and proportions intact.
-  Open it from Home or Game settings. See [the studio guide](docs/CUSTOM_CHESS_SETS.md).
-  This is a next-build feature in the source; the packaged Beta 14 APK predates it.
+- Existing **My Themes** remain usable and editable. New custom-theme creation
+  is removed from Home and Settings. See [saved custom sets](docs/CUSTOM_CHESS_SETS.md).
 - **About** provides the app version and licence/source information, without
   player-facing diagnostics. Send testing notes directly to your release contact.
   Beta upgrades preserve earlier saves. See the [Android beta guide](docs/ANDROID_BETA_RELEASE.md)
   and [device checklist](docs/DEVICE_VALIDATION_CHECKLIST.md).
-- Thirty-one character armies with 372 role/side portraits, themed boards and scenery,
-  local rules and Stockfish play. Select a world at home, or use **Game settings →
-  Armies & board** to change White army, Black army, and Board world independently.
-  Themed bishops ride elephants and themed rooks ride matching chariots.
-  Home filters Fantasy, Historical and Legendary sets; all four Classic options
-  remain available. Small Home previews show artwork without covering it with
+- Four Fantasy character armies are available for new selections, alongside
+  four Classic choices and local rules/Stockfish play. Select a world at Home,
+  or use **Game settings → Armies & board** to change White army, Black army,
+  and Board world independently. Animated bishops ride elephants and animated
+  rooks ride matching chariots. The full 31-army artwork catalog remains bundled
+  for existing games, recordings and custom designs. Small Home previews show artwork without covering it with
   role-letter badges. See [kingdom sets](docs/KINGDOM_CHESS_SETS.md) and
   [artwork provenance](docs/ARTWORK_PROVENANCE.md). This expansion is a next-build
   feature; the packaged Beta 14 APK predates it.
@@ -80,15 +191,12 @@ deployment; building an APK does not deploy the server.
 - Online play uses the authoritative server deployed to Cloud Run in the
   Firebase project, with automatic reconnect and scale-to-zero configuration
   for cost-conscious testing.
-- **Arena Credits** start at 300 and apply only when a server-hosted round
-  actually starts: 2 per live human round, 3 per Daily human round, or 4 per
-  server-computer round. Meaningful completions and a capped daily Top-up keep
-  casual play sustainable; all offline play, discovery, invitations,
-  reconnects, Conquests, tournaments, customization and on-device assists
-  remain free. A single gold-coin balance stays in the global header and each
-  charged action shows the same coin with its exact cost. Confirmed balance
-  changes animate and play a short mute-aware coin chime. A server-authorized
-  online Move suggestion costs 1 credit.
+- **Arena Credits** start at 300 and are used only for a successful **Suggest
+  Move**, which costs 1 credit. All games, rematches, auto-play and immediate
+  Tournament/Conquest retries are free, including at zero credits. Meaningful
+  online completions and daily Top-ups still earn credits. The global header
+  shows the balance, and Suggest Move displays its exact price. Failed, stale or
+  duplicate requests are not charged.
   Checkout is deliberately disabled until verified store billing and stronger
   account storage are in place. See the [credit economy](docs/ARENA_CREDITS.md).
 - Unique, editable Avatar IDs with 50 diverse human face portraits, multiple open opponents, a
@@ -115,17 +223,17 @@ deployment; building an APK does not deploy the server.
 - Unlimited move suggestions, with quick Suggest/Threat icons beside game
   settings. Online suggestions still require your turn and the updated server;
   highlights last ten seconds or until the board is tapped.
-- Swipe left/right on the game board to browse the selected Classic/Themed
-  family without moving a piece. Saved local/tournament games keep their set;
+- Swipe left/right on a built-in board to toggle Classic/Animated pieces while
+  retaining its army and position. Saved games keep their set;
   online rooms remember it separately per seat on this device.
-- Home settings provide music, display preferences, Classic/Themed selections
+- Home settings provide music, display preferences, Classic/Animated selections
   and reset. Computer-game headers reserve their space for quick actions;
   New game and Hide top bar are available in settings.
 - Capture cinematics are sequenced with at least two seconds of clear board time
   between consecutive battles.
 - Result presentation for local and online games, with full-screen ambient victory
   graphics and a short original applause effect that follows the mute setting.
-- A lightning-split Classic-versus-Black-Themed knight launcher icon,
+- A lightning-split Classic-versus-Black-Animated knight launcher icon,
   over a faint golden standard chess set and board. The large, shining knight
   remains the focus. Native Android/iOS sizes share one master asset.
 
@@ -236,7 +344,7 @@ future work in the [product blueprint](docs/PRODUCT_BLUEPRINT.md).
 
 ## Theme atmosphere
 
-Home, online lobby, and game pages show the selected world backdrop. In a match, **Armies & board → Board world** controls the scenery and soundtrack independently of either army. All 31 themed sets have distinct compact, project-original synthesized loops bundled for offline playback. The speaker button mutes/unmutes music across screens; the preference survives app restarts. Music pauses when the app is inactive and resumes only if unmuted. These are sample-free synthesized ambient cues, not recorded or copied performances.
+Home, online lobby, and game pages show the selected world backdrop. In a match, **Armies & board → Board world** controls the scenery and soundtrack independently of either army. All 31 archived character sets have distinct compact, project-original synthesized loops bundled for offline playback. The speaker button mutes/unmutes music across screens; the preference survives app restarts. Music pauses when the app is inactive and resumes only if unmuted. These are sample-free synthesized ambient cues, not recorded or copied performances.
 
 Music source and regeneration notes: [assets/audio/README.md](assets/audio/README.md). Playback uses [audioplayers](https://pub.dev/packages/audioplayers); upstream notices are retained in `docs/licenses/`.
 

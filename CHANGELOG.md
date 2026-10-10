@@ -1,5 +1,254 @@
 # Changelog
 
+## Unreleased
+
+- Align gameplay header icons in equal touch targets with consistent spacing, including the credit counter, across Local, Computer, Online, Tournament and Conquest screens.
+
+- Let inviters wait at the board, announce opponent arrival with sound, and show app-wide alerts for other online games. Add optional Firebase push delivery and notification links for background/closed apps.
+
+- Rename the Rapid option to “15 min · Rapid” to match the Classical labels.
+
+- Make every game, rematch, auto-play move and Tournament/Conquest retry free. Only successful Suggest Move actions consume credits.
+
+- Start Online and Tournament matches with Classic pieces and Classic-only swipes; enable Animated sets through the explicit toggle or Settings.
+
+- Use the standard character artwork throughout Neon live and cinematic move completion, removing extra ready/attack image swaps.
+
+- Add twelve editable portrait-inspired Avatar Studio looks and richer face lighting and expressive eyes.
+
+- Confirm public avatar names with the server before saving in Home/Settings, and keep online editing open when a duplicate name is rejected.
+
+- Allow all printable standard keyboard characters in Avatar IDs, including @ and #, across registration, editing, player search and invitations.
+
+- Show centered board swipe instructions for each live game mode until the first piece selection or move.
+
+- Default new computer games to Unlimited (No timer limit), including the
+  in-game New Game option. Keep Rapid available and retain saved-game clocks.
+
+## 0.9.0-beta.50+65 — Android testing build
+
+- Remove the actor's post-landing retreat from live Animated moves while retaining
+  accepted movement, attacks, defeated reactions, castling and cinematic motion.
+- Fit each Animated board role to nearly 98% of its available square content
+  along one axis, keeping native proportions and complete weapons and mounts.
+  Preserve the shared figure scale in live scenes and films.
+- Brighten Black characters' exposed faces and hands and contrast their army
+  accessories across all four worlds, including all three Neon pose sheets.
+- Give both Olympian Queens clear long flowing hair; retain the existing flowing
+  hair of the other six Queens without changing their character identities.
+- Enlarge Home's Animated family icon from 52 to 64 pixels while keeping its
+  labels, 84-pixel card and Classic icon unchanged.
+- Make both Neon Rooks tall upright heroic chariot commanders across resting,
+  ready and attack artwork, preserving their recognizable energy cannons.
+- Replace the top animation in Online games and regular Tournaments with a
+  prominent opponent portrait/details panel above the portrait board, or beside
+  it with the existing swap control in landscape. Keep world boards/backgrounds,
+  captures and cinematic summaries; practice and Conquests retain their arenas.
+- Retain accepted-capture attack/impact audio behind the opponent panel, with
+  paused background timing, muted/reduced-motion behaviour and no duplicate cues.
+
+## 0.9.0-beta.49+64 — Android testing build
+
+- Show a stationary character avatar on piece selection, with varied short
+  replies informed by the piece role, legal threats, check and promotion.
+  Start movement and attacks only after a legal destination is accepted.
+- Start Classic sets on the original game page, without a piece-type popup.
+  Keep Classic board swipes inside an Animated game on its illustrated page.
+- Offer four Classic and four Animated sets in Settings; switch the active page
+  and artwork during a game while preserving moves, turns and clocks.
+  Retain the page choice when resuming offline games or online rooms.
+- Add a coordinated King-and-Rook castling presentation for each Animated army.
+- Toggle recorded board and zoom pieces between Classic and Animated during
+  cinematic replays without restarting the story or narration.
+- Use each Animated army's actual animation cast for its board pieces, with
+  mirrored Black figures, complete silhouettes and consistent fitted scale.
+- Add Show All, Completed and Unfinished filters to Game History while keeping
+  recorded games and their replay/cinematic access intact.
+- Keep Classic-page swipes inside the four Classic styles in either direction,
+  with a matching next-set shortcut; Animated-page swipes still toggle icons.
+- Compact the fixed credit counter and shorten Home Experience to Exp when
+  the full label does not fit.
+- Match Animated board palettes to each world: Neon cyan/violet, Manga blue/rose,
+  Epic ivory/forest and Olympian marble/bronze. Replay zoom views use the same
+  palette, including Classic board icons; original Classic-page colours remain.
+- Remember commentary and music switches across games, replays and app restarts.
+  Restore muted preferences before starting replay speech or its soundtrack.
+
+## 0.9.0-beta.48+63 — Android testing build
+
+- Smooth selection into accepted movement across all four Animated armies, with
+  a short entrance, continuous motion and consistent viewer-relative facing.
+- Synchronize board travel and capture reactions with the illustrated strike.
+  Keep the board visible instead of replaying a second full-screen fight.
+- Add matching ready and attack poses for all twelve Neon characters, blended
+  into recovery with anchored feet and the existing reduced-motion fallback.
+- Give Suggest move and Threat scan cool blue surfaces, readable prices and
+  loading states, plus slate captured-piece tiles for White/Black visibility.
+- Time Animated capture sounds with the visible strike, pause them with the
+  stage in the background, and keep restored or previously shown captures silent.
+- Keep victors and defeated figures at matching body scale in live encounters
+  and films, using fading and outcome stamps to distinguish them.
+- Place the Suggest move credit cost with its label, preserving icon alignment.
+- Remove new custom-theme creation entries from Home and Settings; retain
+  existing saved themes and their game/history compatibility.
+
+## 0.9.0-beta.47+62 — Android testing build
+
+- Extend the illustrated live game and cinematic replay to all four Animated
+  armies, including Manga Vanguard, Epic Guardians and Olympian Legion.
+- Add original full-body casts and battlefield artwork for the three new worlds,
+  with sword/comet, radiant chakra/lotus and lightning/shield/laurel effects.
+- Match checkmate, victory, defeat, threats and result backgrounds to the selected
+  army, including Classic board icons and accepted online moves.
+- Give each world its own concise story introduction/ending and original score.
+- Replay past Animated games in their recorded army world without changing saves.
+  Retain explicit Neon interpretation for legacy, mixed and custom recordings.
+- Restore saved live actions after display scopes initialize, keeping resumed
+  games safe with the full app's custom-set settings.
+
+## 0.9.0-beta.46+61 — Android testing build
+
+- Continue selected Neon figures from their current pose into a distinct accepted
+  move animation, including direction, stride, lift and follow-through.
+- Keep Suggest move and Threat scan visible below the portrait board; in Neon
+  landscape place them under the animation and add a central panel-swap icon.
+- Ask Classic pieces or Animated pieces before new games and retries, preserving
+  saved-game appearance on resume. Either board swipe toggles piece type.
+- Remove Board/Match controls shortcuts and keep secondary details scrollable.
+- Keep credit-counter bounds fixed through deductions, digit and connection changes.
+- Confirm the one-credit-per-player-move fee every time auto-play is enabled.
+- Show CHECKMATE, the winning White/Black side and CHECKMATED king emphasis in
+  the live arena instead of showing only check.
+
+## 0.9.0-beta.45+60 — Android testing build
+
+- Give every manual user move a two-second pause after its animation before the
+  computer replies, including quiet moves and fast or skipped Neon captures.
+- Finish a dedicated checkmate animation before opening the result or tournament
+  celebration. Keep the active Animated background when using Classic board pieces.
+- Charge one credit for each successful automatic player move. Stop auto-play
+  on insufficient funds; failed, cancelled or stale requests incur no fee.
+- Use the strongest available assistance configuration for automatic player moves
+  and suggestions, with maximum Stockfish skill/depth and no Elo limiter.
+- Give server computer replies a two-second default gap and invalidate pending
+  replies when a round or position changes.
+
+## 0.9.0-beta.44+59 — Android testing build
+
+- Rename the character-set choice Animated and limit new selections to the four
+  Fantasy armies. Retain existing saved, custom and historical artwork data.
+- Remove default king figures from live Neon scenes; render only relevant
+  selected/moved figures and actual capture victims, with a DEFEATED animation.
+- Add orientation-aware A–H and 1–8 labels outside the board squares, keeping
+  capture flight aligned with the grid.
+- Keep the Neon screen and current action when switching the board to Classic;
+  either swipe direction toggles board style without changing armies or moves.
+- Place landscape animation on the left and board on the right, with clocks and
+  other match controls below on one scrollable page.
+
+## 0.9.0-beta.43+58 — Android testing build
+
+- Add an illustrated live battlefield for Themed matches with both armies using
+  Neon Dominion, including offline and accepted online moves.
+- Show the player's selected figure on the left and its legal capture victims
+  on the right; show the opponent's moved figure on the right and its attack
+  targets on the left. Follow the player's seat when playing Black.
+- Emphasize king bubbles and distinguish possible checks from actual checks.
+  Keep threats in vertical groups of three and preserve capture animations.
+- Keep the arena and compact clocks visible above the interactive board, with
+  portrait shortcuts to scroll between the board and existing match controls.
+  Preserve the existing play screen for Classic, other, mixed and custom sets.
+- Fit role badges within small squares so they leave the themed artwork visible
+  in compact layouts and at larger text sizes.
+
+## 0.9.0-beta.42+57 — Android testing build
+
+- Mirror Black cinematic artwork to face left in all poses and portraits while
+  retaining White on the left facing right and Black on the right facing left.
+- Stack larger threatened-piece portraits vertically, three per page, on the
+  opponent's side with their actual role and square.
+- Replace repeated scenery narration with concise White/Black move commentary,
+  legal threats against both armies, new forks and verified material changes.
+- Add capture magic/laser strikes, clear check emphasis and a victory finale
+  for the recorded winning side. Keep reduced-motion emphasis static and avoid
+  victory effects for draws, cancelled or unfinished recordings.
+- Carry the player's side into live and historical cinematic replays so losses
+  end with encouragement to return and fight another day.
+
+## 0.9.0-beta.41+56 — Android testing build
+
+- Keep White illustrated figures on the left facing right and Black figures on
+  the right facing left throughout Neon Dominion movies, including approaches,
+  captures, castling, promotions, opening and finale.
+- Enlarge threatened-piece portraits and page them in groups of three on the
+  opponent’s side. Preserve legal-threat ordering and board highlights.
+- Add device-local Game history on Home for completed and unfinished local,
+  computer, tournament and received online rounds. Keep immutable moves, results,
+  players, date and set metadata; retain games when leaving or starting another.
+- Add read-only board and move-by-move replay plus a cinematic summary for every
+  verified recording. Other set recordings clearly use a Neon Dominion film
+  interpretation. Replays do not change results, engine state or rewards.
+- Recover retained legacy resume/tournament games and pending completed sources.
+  Preserve unreadable records and failed-write sources without inventing old
+  games. Separate post-completion Undo continuations from immutable endings and
+  protect a new game’s resume data from delayed archive cleanup.
+
+## 0.9.0-beta.40+55 — Android testing build
+
+- Keep Neon Dominion cinematic action in the upper half and the recorded
+  battlefield in the lower half. Zoom along the actual source-to-destination
+  movement while retaining a full-board overview and coordinates.
+- Synchronize the board and film for captures, castling, en passant and promotion.
+  Highlight threatened opponent pieces after landing and show their portraits
+  in right-side bubbles, including discovered attacks and check.
+- Retain the full captured figure on the right and stamp the encounter's moving
+  piece WINNER and its actual victim DEFEATED. Preserve check as a threat to the
+  king, without depicting the king as captured.
+- Preserve storytelling, independent voice/music controls, playback navigation,
+  speed, pause and reduced motion. Keep battlefield context visible when controls
+  fade; recorded-board inspection remains available.
+
+## 0.9.0-beta.39+54 — Android testing build
+
+- Rebuild Neon Dominion summaries as illustrated films with layered city
+  scenery, new battle poses without chess bases, camera cuts, parallax and
+  distinct role actions. Preserve every recorded move and the actual result.
+- Add an Aurora-versus-Void story with captions and Android English narration.
+  Hold chapters until speech finishes; support captures, castling, en passant,
+  promotion, checks, checkmate and the supplied ending reason.
+- Add an original 40-second instrumental film score that lowers its volume
+  beneath narration, plus quieter capture/checkmate effects. Provide independent
+  voice and soundtrack toggles.
+- Fill the screen with the film; fade controls after four seconds and restore
+  them on tap. Keep pause, scene navigation, seeking, speed and replay, and open
+  the recorded board in a separate sheet when requested.
+- Suspend narration and music for pause, board viewing, backgrounding and
+  covered routes. Protect newer narration from older route cleanup and keep
+  ordinary game music/effects silent while a film owns audio.
+
+## 0.9.0-beta.38+53 — Android testing build
+
+- Reduce auto-play to a two-second gap on each turn. Blink the source three
+  times while the target stays highlighted, play the move, then blink the
+  target three times. Keep both squares highlighted until the next move.
+- Add a 0.5×–3× auto-play speed slider below the board. Speed changes immediately
+  adjust the remaining gap and blink time for both sides.
+- Add optional Android spoken move commentary and a matching caption, with an
+  auto-mode header toggle. Describe routes, captures, castling, promotions,
+  checks, and checkmate using the installed English speech voice.
+- Pause move previews in the background, show post-capture blinks after the
+  cinematic, and finish the final move's blinks before showing its result.
+
+## 0.9.0-beta.37+52 — Android testing build
+
+- Add a Neon Dominion cinematic summary to completed games: a neon city title
+  sequence, animated encounters for every recorded move, capture effects,
+  move-specific captions, a board view, and an outcome finale. Includes pause,
+  scene navigation, timeline seeking, speed selection, and replay. Supports
+  local, computer, tournament and validated online game histories.
+- Add header auto-play for computer matches with a five-second player-turn gap
+  and three-second source and destination previews for automatic moves.
+
 ## 0.9.0-beta.36+51 — First Google Play release
 
 Released to Google Play; source checked in on 2026-10-03.

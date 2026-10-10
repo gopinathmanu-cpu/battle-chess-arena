@@ -9,6 +9,9 @@ import '../../domain/online_player_profile.dart';
 import '../../services/theme_music.dart';
 import '../../services/player_identity_controller.dart';
 import '../progression/progress_widgets.dart';
+import '../play/checkmate_dialog.dart';
+import '../play/checkmate_animation.dart';
+import '../play/board_appearance.dart';
 import 'tournament_journey.dart';
 
 /// Presentation only: replaying this ceremony never mutates saved rewards.
@@ -19,6 +22,8 @@ Future<bool> showChampionshipCelebration({
   AvatarVoice voice = AvatarVoice.male,
   bool checkmate = false,
   ProgressAward? progressAward,
+  BoardAppearance? appearance,
+  Future<void> Function()? onWatchCinematic,
 }) async {
   if (replay) {
     MusicScope.of(context)?.playEffect(CinematicSound.victoryApplause);
@@ -37,6 +42,8 @@ Future<bool> showChampionshipCelebration({
           cup: cup,
           replay: replay,
           progressAward: progressAward,
+          appearance: appearance,
+          onWatchCinematic: onWatchCinematic,
         ),
         transitionBuilder: (_, animation, __, child) =>
             FadeTransition(opacity: animation, child: child),
@@ -49,11 +56,15 @@ class ChampionshipCelebration extends StatefulWidget {
     required this.cup,
     this.replay = false,
     this.progressAward,
+    this.appearance,
+    this.onWatchCinematic,
     super.key,
   });
   final BotTournament cup;
   final bool replay;
   final ProgressAward? progressAward;
+  final BoardAppearance? appearance;
+  final Future<void> Function()? onWatchCinematic;
 
   @override
   State<ChampionshipCelebration> createState() =>
@@ -97,6 +108,14 @@ class _ChampionshipCelebrationState extends State<ChampionshipCelebration>
       child: SafeArea(
         child: Stack(
           children: [
+            if (widget.appearance case final appearance?)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ExcludeSemantics(
+                    child: MatchResultBackdrop(appearance: appearance),
+                  ),
+                ),
+              ),
             Positioned.fill(
               child: IgnorePointer(
                 child: ExcludeSemantics(
@@ -255,6 +274,10 @@ class _ChampionshipCelebrationState extends State<ChampionshipCelebration>
                             ),
                           ),
                           const SizedBox(height: 22),
+                          if (widget.onWatchCinematic case final watch?) ...[
+                            CinematicSummaryButton(onPressed: watch),
+                            const SizedBox(height: 12),
+                          ],
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton.icon(

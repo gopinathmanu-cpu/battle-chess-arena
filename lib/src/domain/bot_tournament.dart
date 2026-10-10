@@ -19,9 +19,8 @@ extension ConquestSizeDetails on ConquestSize {
 
 enum TournamentRoundResult { win, loss, draw }
 
-/// Tournament rematches are free after a short rest, or can be started
-/// immediately for a small credit contribution. Conquests are always free.
-const tournamentImmediateRetryCost = 5;
+/// Legacy timing retained for saved-game compatibility. Immediate Tournament
+/// and Conquest retries are free and no longer use this cooldown.
 const tournamentRetryCooldown = Duration(minutes: 15);
 
 /// Approximate smallest-to-largest order of peak forces that each historical

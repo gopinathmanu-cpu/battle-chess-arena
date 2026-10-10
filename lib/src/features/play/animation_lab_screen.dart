@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'game_header_ribbon.dart';
+import 'dart:math' as math;
 import '../../domain/game_time_control.dart';
 
 import 'package:dartchess/dartchess.dart';
@@ -9,6 +11,7 @@ import '../../services/custom_chess_sets.dart';
 import '../../services/custom_set_actions.dart';
 import '../../domain/bot_tournament.dart';
 import '../../domain/capture_threat.dart';
+import '../../domain/neon_live_action.dart';
 import '../online/online_avatar_image.dart';
 import '../tournaments/tournament_match_config.dart';
 import '../tournaments/championship_celebration.dart';
@@ -22,21 +25,31 @@ import '../../domain/online_player_profile.dart';
 import '../../services/arena_credit_controller.dart';
 import '../../services/theme_music.dart';
 import '../../services/computer_player.dart';
+import '../../services/move_commentary.dart';
+import '../../services/audio_preference_storage.dart';
 import '../../services/last_game_storage.dart';
+import '../../services/game_history_storage.dart';
+import '../../services/player_identity_controller.dart';
 import '../../services/app_diagnostics.dart';
 import '../../services/game_display_settings.dart';
 import '../../services/player_progress_controller.dart';
 import '../settings/game_settings_sheet.dart';
 import '../settings/board_color_settings.dart';
-import '../credits/arena_credit_header.dart';
 import '../credits/credit_balance_chip.dart';
 import 'captured_pieces_panel.dart';
 import 'chess_widgets.dart';
 import 'capture_battle_overlay.dart';
 import 'checkmate_dialog.dart';
+import 'neon_cinematic_screen.dart';
+import 'neon_live_arena.dart';
+import 'neon_live_game_layout.dart';
+import 'match_opponent_panel.dart';
+import 'animated_accepted_capture_cues.dart';
 import 'threat_scan.dart';
 import 'play_assist_style.dart';
+import 'move_suggestion_button_content.dart';
 import 'player_side_selector.dart';
+import 'piece_type_choice.dart';
 
 class AnimationLabScreen extends StatefulWidget {
   /// Test-only virtual time. Release builds always use a monotonic stopwatch.
@@ -51,8 +64,10 @@ class AnimationLabScreen extends StatefulWidget {
     this.difficulty = ComputerDifficulty.medium,
     this.savedGame,
     this.computerPlayer,
+    this.moveCommentary,
     this.tournamentMatch,
     this.initialClassicPieces = false,
+    this.initialAnimatedArena,
     this.initialClassicStyle = ClassicPieceStyle.magneticTeaching,
     super.key,
   });
@@ -63,8 +78,10 @@ class AnimationLabScreen extends StatefulWidget {
   final ComputerDifficulty difficulty;
   final SavedGame? savedGame;
   final ComputerPlayer? computerPlayer;
+  final MoveCommentary? moveCommentary;
   final TournamentMatchConfig? tournamentMatch;
   final bool initialClassicPieces;
+  final bool? initialAnimatedArena;
   final ClassicPieceStyle initialClassicStyle;
 
   @override
@@ -72,7 +89,7 @@ class AnimationLabScreen extends StatefulWidget {
 }
 
 class _AnimationLabScreenState extends State<AnimationLabScreen>
-    with WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final GameSession _game;
   late GameTimeControl _timeControl;
   ComputerPlayer? _computer;
@@ -81,13 +98,277 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   int _lastClockElapsedMs = 0;
   Timer? _battleTimer;
   Timer? _computerReplyTimer;
+  Timer? _turnAnimationTimer;
+  bool _turnAnimationDelay = false;
+  bool _liveMoveAnimationPending = false;
+  bool _autoPlay = false;
+  bool _autoConfirmationOpen = false;
+  double _autoSpeed = 1;
+  bool _commentaryEnabled = true;
+  bool _commentaryPreferenceLoaded = false;
+  int _commentaryPreferenceRevision = 0;
+  String? _commentaryText;
+  late final MoveCommentary _moveCommentary;
+  bool _autoWaiting = false;
+  int _autoRequest = 0;
+  NormalMove? _previewMove;
+  NormalMove? _highlightMove;
+  Square? _blinkingSquare;
+  bool _previewLit = true;
+  late final AnimationController _movePacer;
+  Duration _pendingDelay = Duration.zero;
+  bool _blinkingDelay = false;
+  bool _pacingPaused = false;
+  Completer<void>? _moveDelay;
+  Completer<void>? _previewBattle;
+  bool _previewCommitted = false;
+
+  String get _autoSpeedLabel => _autoSpeed == _autoSpeed.roundToDouble()
+      ? _autoSpeed.toInt().toString()
+      : _autoSpeed.toStringAsFixed(1);
+
+  Duration _pacedDuration(Duration duration) => Duration(
+    microseconds: (duration.inMicroseconds / (_autoPlay ? _autoSpeed : 1))
+        .round(),
+  );
+
+  void _updatePacing() {
+    if (_movePacer.isAnimating) {
+      _movePacer.duration = _pacedDuration(_pendingDelay);
+      _movePacer.forward();
+    }
+  }
+
+  Future<void> _waitMoveDelay(Duration duration, {bool blink = false}) {
+    final completion = Completer<void>();
+    _moveDelay = completion;
+    _pendingDelay = duration;
+    _blinkingDelay = blink;
+    _movePacer.duration = _pacedDuration(duration);
+    _movePacer.value = 0;
+    if (!_pacingPaused) _movePacer.forward();
+    return completion.future;
+  }
+
+  void _cancelMoveDelay() {
+    _movePacer.stop();
+    final completion = _moveDelay;
+    if (completion != null && !completion.isCompleted) completion.complete();
+  }
+
+  void _cancelPreviewBattle() {
+    final completion = _previewBattle;
+    _previewBattle = null;
+    if (completion != null && !completion.isCompleted) completion.complete();
+  }
+
+  Widget _autoPlayButton() => IconButton(
+    key: const ValueKey('auto-play-toggle'),
+    tooltip: _autoPlay ? 'Stop auto-play' : 'Enable auto-play (2 second gap)',
+    color: _autoPlay ? Colors.greenAccent : null,
+    icon: Icon(
+      _autoPlay ? Icons.pause_circle_outline : Icons.play_circle_outline,
+    ),
+    onPressed: _hintThinking || _autoConfirmationOpen || _matchFinished
+        ? null
+        : _toggleAutoPlay,
+  );
+
+  Future<void> _toggleAutoPlay() async {
+    if (_autoConfirmationOpen || _matchFinished || _savingForReset) return;
+    if (!_autoPlay) {
+      final epoch = _gameEpoch;
+      setState(() => _autoConfirmationOpen = true);
+      final accepted = await confirmAutoPlay(context);
+      if (!mounted) return;
+      setState(() => _autoConfirmationOpen = false);
+      if (!accepted ||
+          epoch != _gameEpoch ||
+          _matchFinished ||
+          _savingForReset) {
+        return;
+      }
+    }
+    setState(() {
+      _autoPlay = !_autoPlay;
+      _autoRequest++;
+      _commentaryText = null;
+    });
+    if (!_autoPlay) unawaited(_moveCommentary.stop());
+    if (!_autoPlay && _game.isHumanTurn && !_previewCommitted) {
+      _cancelMoveDelay();
+    } else {
+      _updatePacing();
+    }
+    if (_autoPlay) unawaited(_maybePlayComputer());
+  }
+
+  Widget _autoSpeedControl(Color accent) => Card(
+    key: const ValueKey('auto-play-speed-control'),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.speed, color: accent, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('Auto-play speed')),
+              Text(
+                '$_autoSpeedLabel×',
+                style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text('Free auto-play · strongest assistance'),
+          ),
+          Slider(
+            key: const ValueKey('auto-play-speed'),
+            value: _autoSpeed,
+            min: .5,
+            max: 3,
+            divisions: 5,
+            label: '$_autoSpeedLabel×',
+            semanticFormatterCallback: (value) =>
+                '${value.toStringAsFixed(1)} times speed',
+            onChanged: (value) {
+              setState(() => _autoSpeed = value);
+              _updatePacing();
+            },
+          ),
+          if (_commentaryEnabled && _commentaryText != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+              child: Text(
+                _commentaryText!,
+                key: const ValueKey('auto-play-commentary-caption'),
+                style: const TextStyle(fontSize: 13, height: 1.4),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+
+  Future<void> _loadCommentaryPreference() async {
+    final revision = ++_commentaryPreferenceRevision;
+    final enabled = await AudioPreferenceStorage.loadCommentaryEnabled();
+    if (!mounted || revision != _commentaryPreferenceRevision) return;
+    setState(() {
+      _commentaryEnabled = enabled;
+      _commentaryPreferenceLoaded = true;
+    });
+    if (!enabled) unawaited(_moveCommentary.stop());
+  }
+
+  Future<void> _saveCommentaryPreference(bool enabled) async {
+    try {
+      await AudioPreferenceStorage.saveCommentaryEnabled(enabled);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not save the commentary preference. Please try again.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _commentaryButton() => IconButton(
+    key: const ValueKey('auto-play-commentary-toggle'),
+    tooltip: _commentaryEnabled
+        ? 'Disable move commentary'
+        : 'Enable move commentary',
+    color: _commentaryEnabled ? Colors.greenAccent : null,
+    icon: Icon(
+      _commentaryEnabled ? Icons.record_voice_over : Icons.voice_over_off,
+    ),
+    onPressed: () {
+      _commentaryPreferenceRevision++;
+      setState(() {
+        _commentaryEnabled = !_commentaryEnabled;
+        _commentaryPreferenceLoaded = true;
+      });
+      unawaited(_saveCommentaryPreference(_commentaryEnabled));
+      if (!_commentaryEnabled) unawaited(_moveCommentary.stop());
+    },
+  );
+
+  bool _moveRequestValid(int epoch, String fen) =>
+      mounted &&
+      !_pacingPaused &&
+      epoch == _gameEpoch &&
+      _game.position.fen == fen &&
+      _flagged == null &&
+      !_resigned &&
+      !_leavingTournament &&
+      _tournamentResult == null &&
+      !_game.isRuleDraw;
+
+  Future<bool> _previewAutomaticMove(
+    String uci,
+    int epoch,
+    String fen, {
+    int? autoRequest,
+  }) async {
+    final move = Move.parse(uci);
+    if (move is! NormalMove) return false;
+    bool valid() =>
+        _moveRequestValid(epoch, fen) &&
+        (autoRequest == null || (_autoPlay && autoRequest == _autoRequest));
+    if (!valid()) return false;
+    setState(() {
+      final piece = _game.pieceAt(move.from);
+      final castle =
+          piece?.role == Role.king &&
+          _game.pieceAt(move.to)?.color == piece?.color &&
+          move.from != move.to;
+      _previewMove = castle
+          ? NormalMove(
+              from: move.from,
+              to: Square.fromCoords(
+                move.to.file > move.from.file ? File.g : File.c,
+                move.from.rank,
+              ),
+            )
+          : move;
+      _selected = null;
+      _legalTargets = const {};
+      _blinkingSquare = move.from;
+      _previewLit = true;
+    });
+    return _blinkMoveSquare(valid);
+  }
+
+  Future<bool> _blinkMoveSquare(bool Function() valid) async {
+    await _waitMoveDelay(const Duration(milliseconds: 1200), blink: true);
+    return valid();
+  }
+
+  void _clearMovePreview() {
+    _previewMove = null;
+    _blinkingSquare = null;
+    _previewLit = true;
+    _previewCommitted = false;
+  }
+
   late BoardAppearance _appearance;
   bool _classicPieces = false;
+  bool _animatedArena = true;
   late ClassicPieceStyle _classicStyle;
   final _threats = ThreatScanController();
   final _threatBoardKey = GlobalKey();
   final _boardScroll = ScrollController();
   final _displaySettings = GameDisplaySettings();
+  bool get _isClassicDefaultTournament =>
+      widget.tournamentMatch != null && !_isConquest;
+
   bool get _isConquest => widget.tournamentMatch?.cup.isConquest == true;
   PiecePack get _conquestOpponent => widget.pack;
 
@@ -101,7 +382,17 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Restored move facts are ready in initState, but presentation depends on
+    // the inherited custom-set scope, which is safe to read only now.
+    final restoredMove = _pendingRestoredLiveMove;
+    _pendingRestoredLiveMove = null;
+    if (restoredMove != null) _rememberLiveMove(restoredMove);
     _threats.setReducedMotion(MediaQuery.disableAnimationsOf(context));
+    _historyPlayerName =
+        PlayerIdentityScope.maybeOf(context)?.nickname ?? 'You';
+    final custom = CustomChessSetScope.maybeOf(context)?.active;
+    _historyCustomSetId = custom?.id;
+    _historyCustomSetName = custom?.name;
   }
 
   void _analyseThreats() {
@@ -122,9 +413,10 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   BoardAppearance get _displayAppearance {
     final base = BoardAppearance(
       white: _appearance.white,
-      black: _isConquest ? _conquestOpponent : _appearance.black,
+      black: _appearance.black,
       board: _appearance.board,
       standardPieces: _classicPieces,
+      animatedArena: _animatedArena,
       classicStyle: _classicStyle,
     );
     // Conquests begin with their army artwork, never a global custom-set override.
@@ -140,12 +432,76 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     return result;
   }
 
+  bool get _canWatchCinematic => usesAnimatedLiveArena(_displayAppearance);
+
+  bool get _matchFinished =>
+      _resigned ||
+      _flagged != null ||
+      _game.position.isGameOver ||
+      _game.isRuleDraw;
+
+  String get _cinematicResultTitle {
+    if (_resigned) {
+      return '${widget.tournamentMatch!.opponent.name} wins · Resignation';
+    }
+    if (_flagged == null && !_game.position.isCheckmate) return 'Game Drawn';
+    final winner = _flagged?.opposite ?? _game.position.turn.opposite;
+    final title = widget.mode == PlayerMode.computer
+        ? winner == _game.humanSide
+              ? 'You Win!'
+              : widget.tournamentMatch?.opponent.name != null
+              ? '${widget.tournamentMatch!.opponent.name} wins'
+              : 'Computer Wins'
+        : '${winner == Side.white ? 'White' : 'Black'} Wins!';
+    return '$title · ${_flagged != null ? 'Timeout' : 'Checkmate'}';
+  }
+
+  Future<void> _watchCinematic() async {
+    if (!_matchFinished || !_canWatchCinematic) return;
+    final moves = List<String>.unmodifiable(_game.uciMoves);
+    final resultTitle = _cinematicResultTitle;
+    final theme = animatedArmyThemeForAppearance(_displayAppearance)!;
+    final winner = _resigned
+        ? _game.humanSide.opposite
+        : _flagged?.opposite ??
+              (_game.position.isCheckmate
+                  ? _game.position.turn.opposite
+                  : null);
+    final playerSide = widget.mode == PlayerMode.computer
+        ? _game.humanSide
+        : null;
+    await Navigator.of(context, rootNavigator: true).push<void>(
+      MaterialPageRoute(
+        builder: (_) => NeonCinematicScreen(
+          moves: moves,
+          classicStyle: _classicStyle,
+          theme: theme,
+          resultTitle: resultTitle,
+          playerSide: playerSide,
+          winnerSide: winner,
+        ),
+        fullscreenDialog: true,
+      ),
+    );
+    if (mounted) await _loadCommentaryPreference();
+  }
+
   void _toggleBoardColors() => unawaited(_displaySettings.toggleBoardColors());
 
   Future<void> _togglePieceStyle() async {
+    if (!_animatedArena && !_isClassicDefaultTournament) {
+      return _swipeChessSet(1);
+    }
     if (!await restoreBuiltInChessSet(context) || !mounted) return;
     _threats.stop();
-    setState(() => _classicPieces = !_classicPieces);
+    setState(() {
+      if (_isClassicDefaultTournament) {
+        _animatedArena = !_animatedArena;
+        _classicPieces = !_animatedArena;
+      } else {
+        _classicPieces = !_classicPieces;
+      }
+    });
     unawaited(_saveOpenGame());
   }
 
@@ -154,22 +510,13 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     if (!await restoreBuiltInChessSet(context) || !mounted) return;
     _threats.stop();
     setState(() {
-      if (_classicPieces) {
-        const styles = ClassicPieceStyle.values;
-        _classicStyle =
-            styles[(styles.indexOf(_classicStyle) + direction) % styles.length];
+      if (_animatedArena) {
+        _classicPieces = !_classicPieces;
       } else {
-        final index = piecePacks.indexWhere(
-          (p) => p.id == _appearance.white.id,
-        );
-        final next = piecePacks[(index + direction) % piecePacks.length];
-        _appearance = _isConquest
-            ? BoardAppearance(
-                white: next,
-                black: _conquestOpponent,
-                board: _appearance.board,
-              )
-            : BoardAppearance.forPack(next);
+        _classicPieces = true;
+        _classicStyle =
+            ClassicPieceStyle.values[(_classicStyle.index + direction) %
+                ClassicPieceStyle.values.length];
       }
     });
     await _saveOpenGame();
@@ -182,12 +529,17 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       _displayAppearance,
       lockedBlack: _isConquest ? _conquestOpponent : null,
       lockedBlackReason: _isConquest
-          ? '${_conquestOpponent.name} is fixed for this conquest round. Change only your White themed army, or use Classic pieces.'
+          ? '${_conquestOpponent.name} is fixed for this conquest round. Change only your White animated army, or use Classic pieces.'
           : null,
     );
     if (mounted && next != null) {
       if (!await restoreBuiltInChessSet(context) || !mounted) return;
+      final previousTheme = animatedArmyThemeForAppearance(_displayAppearance);
+      final keepLiveAction =
+          previousTheme != null &&
+          previousTheme == animatedArmyThemeForAppearance(next);
       setState(() {
+        if (!keepLiveAction) _clearLiveAction();
         _appearance = _isConquest
             ? BoardAppearance(
                 white: next.white,
@@ -202,6 +554,19 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     }
   }
 
+  Future<void> _applyChessSet(ChessSetSelection selection) async {
+    if (!await restoreBuiltInChessSet(context) || !mounted) return;
+    _threats.stop();
+    setState(() {
+      _clearLiveAction();
+      _appearance = BoardAppearance.forPack(selection.pack);
+      _classicPieces = !selection.animatedArena;
+      _animatedArena = selection.animatedArena;
+      _classicStyle = selection.classicStyle;
+    });
+    await _saveOpenGame();
+  }
+
   void _openSettings() {
     _threats.stop();
     unawaited(
@@ -209,9 +574,19 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
         context: context,
         display: _displaySettings,
         onCustomize: _customize,
+        chessSetSelector: (refresh) => SettingsChessSetPicker(
+          animatedArena: _animatedArena,
+          pack: _appearance.white,
+          classicStyle: _classicStyle,
+          onSelected: (selection) async {
+            await _applyChessSet(selection);
+            refresh();
+          },
+        ),
         onReset: () async {
           if (!mounted) return;
           setState(() {
+            _clearLiveAction();
             _appearance = _isConquest
                 ? BoardAppearance(
                     white: piecePacks.first,
@@ -219,7 +594,8 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
                     board: _conquestOpponent,
                   )
                 : BoardAppearance.forPack(piecePacks.first);
-            _classicPieces = false;
+            _classicPieces = _isClassicDefaultTournament;
+            _animatedArena = !_isClassicDefaultTournament;
             _classicStyle = ClassicPieceStyle.magneticTeaching;
             _fastBattles = false;
             _showTopBar = true;
@@ -287,43 +663,66 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
               'Shortens capture cinematics; clocks keep running',
             ),
           ),
-          SwitchListTile(
-            key: const ValueKey('classic-pieces-toggle'),
-            value: _classicPieces,
-            onChanged: (value) async {
-              if (!await restoreBuiltInChessSet(context) || !mounted) return;
-              setState(() => _classicPieces = value);
-              refresh();
-              unawaited(_saveOpenGame());
-            },
-            secondary: const Icon(Icons.castle_outlined),
-            title: const Text('Classic chess pieces'),
-            subtitle: Text(_classicStyle.label),
-          ),
-          if (_classicPieces)
-            SettingsChoiceTile<ClassicPieceStyle>(
-              key: const ValueKey('classic-piece-style-selector'),
-              title: 'Classic set',
-              icon: Icons.castle_outlined,
-              value: _classicStyle,
-              values: ClassicPieceStyle.values,
-              optionLabel: (style) => style.label,
-              optionDescription: (style) => style.subtitle,
-              onSelected: (style) async {
-                if (!await restoreBuiltInChessSet(context) || !mounted) {
-                  return;
-                }
-                setState(() => _classicStyle = style);
-                refresh();
-                unawaited(_saveOpenGame());
-              },
-            ),
         ],
       ),
     );
   }
 
   Square? _selected;
+  bool _swipeHintDismissed = false;
+  NeonLiveAction? _liveMoveAction, _liveSelectionAction;
+  NormalMove? _animatedBoardMove;
+  MoveResolution? _pendingRestoredLiveMove;
+  String? _liveMoveFen, _liveSelectionKey;
+
+  Side get _liveViewerSide =>
+      widget.mode == PlayerMode.computer ? _game.humanSide : Side.white;
+
+  NeonLiveAction? get _liveAction {
+    if (!usesAnimatedLiveArena(_displayAppearance)) return null;
+    if (_selected != null) {
+      final key = '${_game.position.fen}|${_selected!.name}';
+      if (_liveSelectionKey != key) {
+        _liveSelectionKey = key;
+        _liveSelectionAction = NeonLiveAction.selection(
+          position: _game.position,
+          source: _selected!,
+          viewerSide: _liveViewerSide,
+        );
+      }
+      return _liveSelectionAction;
+    }
+    return _liveMoveFen == _game.position.fen ? _liveMoveAction : null;
+  }
+
+  void _rememberLiveMove(MoveResolution resolution) {
+    if (!usesAnimatedLiveArena(_displayAppearance)) {
+      _clearLiveAction();
+      return;
+    }
+    final before = _game.positionBeforeLastMove;
+    _animatedBoardMove = resolution.move;
+    _liveSelectionAction = null;
+    _liveSelectionKey = null;
+    _liveMoveFen = _game.position.fen;
+    _liveMoveAction = before == null
+        ? null
+        : NeonLiveAction.move(
+            before: before,
+            after: _game.position,
+            resolution: resolution,
+            viewerSide: _liveViewerSide,
+          );
+  }
+
+  void _clearLiveAction() {
+    _animatedBoardMove = null;
+    _liveMoveAction = null;
+    _liveSelectionAction = null;
+    _liveMoveFen = null;
+    _liveSelectionKey = null;
+  }
+
   Set<Square> _legalTargets = const {};
   Square? _hintFrom;
   Square? _hintTo;
@@ -349,6 +748,12 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   bool _canLeaveTournament = false;
   String? _tournamentSaveError;
   late String _progressGameId;
+  final _gameHistory = GameHistoryStorage();
+  String _historyPlayerName = 'You';
+  String? _historySaveError;
+  String? _historyCustomSetId, _historyCustomSetName;
+  late String _historyGameId;
+  bool _savingForReset = false;
 
   TournamentRoundResult? get _tournamentResult {
     if (widget.tournamentMatch == null) return null;
@@ -373,6 +778,26 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   @override
   void initState() {
     super.initState();
+    _moveCommentary = widget.moveCommentary ?? NativeMoveCommentary();
+    unawaited(_loadCommentaryPreference());
+    _movePacer =
+        AnimationController(
+            vsync: this,
+            animationBehavior: AnimationBehavior.preserve,
+          )
+          ..addListener(() {
+            if (!_blinkingDelay || _blinkingSquare == null || !mounted) return;
+            final lit = (_movePacer.value * 6 + .000001).floor().isEven;
+            if (_previewLit != lit) setState(() => _previewLit = lit);
+          })
+          ..addStatusListener((status) {
+            final completion = _moveDelay;
+            if (status == AnimationStatus.completed &&
+                completion != null &&
+                !completion.isCompleted) {
+              completion.complete();
+            }
+          });
     var clock = Stopwatch();
     assert(() {
       clock = AnimationLabScreen.debugClockFactory?.call() ?? clock;
@@ -385,8 +810,20 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     final saved = widget.savedGame;
     _progressGameId =
         saved?.progressGameId ??
-        'offline-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(this)}';
-    _classicPieces = saved?.classicPieces ?? widget.initialClassicPieces;
+        (saved == null
+            ? 'offline-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(this)}'
+            : GameHistoryRecord.idForSavedGame(saved));
+    _historyGameId = saved == null
+        ? _progressGameId
+        : GameHistoryRecord.idForSavedGame(saved);
+    _classicPieces =
+        saved?.classicPieces ??
+        ((_isClassicDefaultTournament && widget.initialAnimatedArena == null) ||
+            widget.initialClassicPieces);
+    _animatedArena = saved != null
+        ? saved.animatedArena ?? true
+        : widget.initialAnimatedArena ??
+              (!_isClassicDefaultTournament && !widget.initialClassicPieces);
     _classicStyle = saved?.classicStyle ?? widget.initialClassicStyle;
     _game = saved == null
         ? GameSession(mode: widget.mode, humanSide: widget.humanSide)
@@ -405,9 +842,15 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
               : BoardAppearance.forPack(widget.pack))
         : BoardAppearance(
             white: _pack(saved.whitePack),
-            black: _isConquest ? _conquestOpponent : _pack(saved.blackPack),
+            black: _pack(saved.blackPack),
             board: _pack(saved.boardPack),
           );
+    if (_game.positionBeforeLastMove case final before?) {
+      final resolution = GameSession(
+        position: before,
+      ).playUci(_game.uciMoves.last);
+      _pendingRestoredLiveMove = resolution;
+    }
     _difficulty = widget.tournamentMatch == null
         ? saved?.difficulty ?? widget.difficulty
         : tournamentDifficulty(widget.tournamentMatch!.opponent.level);
@@ -423,19 +866,53 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     final initialMs = _timeControl.baseMs;
     _whiteTime = Duration(milliseconds: saved?.whiteMilliseconds ?? initialMs);
     _blackTime = Duration(milliseconds: saved?.blackMilliseconds ?? initialMs);
+    final pendingResult = saved?.historyResultTitle?.toLowerCase();
+    if (pendingResult != null) {
+      _resigned = pendingResult.contains('resign');
+      if (pendingResult.contains('timeout')) {
+        _flagged = _whiteTime <= Duration.zero ? Side.white : Side.black;
+      }
+    }
     if (widget.mode == PlayerMode.computer) {
       _computer = widget.computerPlayer ?? ReliableComputerPlayer();
     }
     _clockElapsed.start();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-    if (widget.mode == PlayerMode.computer) {
+    if (widget.tournamentMatch != null && pendingResult != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _showTournamentResult(),
+      );
+    } else if (widget.mode == PlayerMode.computer) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybePlayComputer());
     }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) _threats.stop();
+    if (state != AppLifecycleState.resumed) {
+      _threats.stop();
+      _pacingPaused = true;
+      _movePacer.stop();
+      _computerReplyTimer?.cancel();
+      _turnAnimationTimer?.cancel();
+      unawaited(_moveCommentary.stop());
+    } else if (_pacingPaused) {
+      _pacingPaused = false;
+      if (_turnAnimationDelay) {
+        _waitForLiveMoveAnimation();
+      } else if (_computerReplyDelay) {
+        _scheduleComputerReply();
+      } else if (_moveDelay != null && !_moveDelay!.isCompleted) {
+        _movePacer.duration = _pacedDuration(_pendingDelay);
+        _movePacer.forward();
+      } else {
+        unawaited(_maybePlayComputer());
+      }
+      if (_liveMoveAnimationPending &&
+          !(_turnAnimationTimer?.isActive ?? false)) {
+        _startLiveMoveAnimation();
+      }
+    }
     if (widget.tournamentMatch != null) {
       _tick();
       _tournamentPaused = state != AppLifecycleState.resumed;
@@ -443,7 +920,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      unawaited(_saveOpenGame());
+      unawaited(_saveOpenGame(archiveUnfinished: true));
     }
   }
 
@@ -455,25 +932,36 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     _boardScroll.dispose();
     _displaySettings.removeListener(_refreshThreats);
     _displaySettings.dispose();
-    unawaited(_saveOpenGame());
+    unawaited(_saveOpenGame(archiveUnfinished: true));
     _clockTimer?.cancel();
     _clockElapsed.stop();
     _battleTimer?.cancel();
     _computerReplyTimer?.cancel();
+    _turnAnimationTimer?.cancel();
+    _cancelPreviewBattle();
+    _cancelMoveDelay();
+    _movePacer.dispose();
+    unawaited(_moveCommentary.dispose());
     _computer?.dispose();
     super.dispose();
   }
 
   bool get _inputLocked =>
+      _autoPlay ||
+      _autoWaiting ||
+      _previewMove != null ||
       _battle != null ||
+      _turnAnimationDelay ||
       _computerReplyDelay ||
       _computerThinking ||
       _hintThinking ||
       _leavingTournament ||
+      _savingForReset ||
       _resigned ||
       _tournamentResult != null ||
       _flagged != null ||
       _game.position.isGameOver ||
+      _game.isRuleDraw ||
       !_game.isHumanTurn;
 
   void _tick() {
@@ -484,9 +972,11 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
         !_timeControl.timed ||
         _flagged != null ||
         _game.position.isGameOver ||
+        _game.isRuleDraw ||
         _resigned ||
         _tournamentResult != null ||
         _tournamentPaused ||
+        _savingForReset ||
         _leavingTournament) {
       return;
     }
@@ -507,12 +997,21 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     });
     _ticksSinceSave++;
     if (_flagged != null) {
+      setState(() {
+        _gameEpoch++;
+        _autoPlay = false;
+        _autoRequest++;
+        _autoWaiting = false;
+        _computerThinking = false;
+        _clearMovePreview();
+      });
+      _cancelMoveDelay();
+      _cancelPreviewBattle();
+      unawaited(_moveCommentary.stop());
       _threats.stop();
       if (widget.tournamentMatch != null) {
-        _gameEpoch++;
         unawaited(_showTournamentResult());
       } else {
-        unawaited(LastGameStorage.clear());
         unawaited(_showTimeoutResult());
       }
     } else if (_ticksSinceSave >= 5) {
@@ -521,36 +1020,197 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     }
   }
 
-  Future<void> _saveOpenGame() async {
-    if (widget.tournamentMatch == null &&
-        (_game.uciMoves.isEmpty ||
-            _flagged != null ||
-            _game.position.isGameOver)) {
-      return LastGameStorage.clear();
+  SavedGame _savedSnapshot() => SavedGame(
+    mode: widget.mode,
+    humanSide: _game.humanSide,
+    homePack: widget.pack.id,
+    difficulty: _difficulty,
+    moves: List<String>.unmodifiable(_game.uciMoves),
+    whiteMilliseconds: _whiteTime.inMilliseconds,
+    blackMilliseconds: _blackTime.inMilliseconds,
+    fastBattles: _fastBattles,
+    whitePack: _appearance.white.id,
+    blackPack: _appearance.black.id,
+    boardPack: _appearance.board.id,
+    updatedAtEpochMs: DateTime.now().millisecondsSinceEpoch,
+    lifelinesRemaining: _lifelinesRemaining,
+    classicPieces: _classicPieces,
+    animatedArena: _animatedArena,
+    classicStyle: _classicStyle,
+    timeControl: _timeControl,
+    progressGameId: _progressGameId,
+    historyGameId: _historyGameId,
+    historyResultTitle: _matchFinished ? _historyResultTitle : null,
+  );
+
+  String get _historyResultTitle {
+    if (!_matchFinished) return 'Game unfinished';
+    final winner = _resigned
+        ? _game.humanSide.opposite
+        : _flagged?.opposite ??
+              (_game.position.isCheckmate
+                  ? _game.position.turn.opposite
+                  : null);
+    if (winner == null) {
+      if (_game.position.isStalemate) return 'Draw by stalemate';
+      if (_game.position.isInsufficientMaterial) {
+        return 'Draw by insufficient material';
+      }
+      return 'Game drawn';
     }
-    final saved = SavedGame(
-      mode: widget.mode,
-      humanSide: _game.humanSide,
-      homePack: widget.pack.id,
-      difficulty: _difficulty,
-      moves: _game.uciMoves,
-      whiteMilliseconds: _whiteTime.inMilliseconds,
-      blackMilliseconds: _blackTime.inMilliseconds,
-      fastBattles: _fastBattles,
-      whitePack: _appearance.white.id,
-      blackPack: (_isConquest ? _conquestOpponent : _appearance.black).id,
-      boardPack: _appearance.board.id,
-      updatedAtEpochMs: DateTime.now().millisecondsSinceEpoch,
-      lifelinesRemaining: _lifelinesRemaining,
-      classicPieces: _classicPieces,
-      classicStyle: _classicStyle,
-      timeControl: _timeControl,
-      progressGameId: _progressGameId,
-    );
+    final reason = _resigned
+        ? 'resignation'
+        : _flagged != null
+        ? 'timeout'
+        : 'checkmate';
+    return '${winner == Side.white ? 'White' : 'Black'} wins by $reason';
+  }
+
+  Future<bool> _archiveSnapshot(
+    SavedGame saved, {
+    required bool completed,
+    required String resultTitle,
+  }) async {
+    if (saved.moves.isEmpty && !completed) return true;
     final tournament = widget.tournamentMatch;
-    if (tournament == null) return LastGameStorage.save(saved);
+    final computerName = tournament?.opponent.name ?? 'Computer';
+    final versusComputer = widget.mode == PlayerMode.computer;
+    final record = GameHistoryRecord.fromSavedGame(
+      saved,
+      mode: tournament != null
+          ? GameHistoryMode.tournament
+          : versusComputer
+          ? GameHistoryMode.computer
+          : GameHistoryMode.local,
+      status: completed
+          ? GameHistoryStatus.completed
+          : GameHistoryStatus.unfinished,
+      resultTitle: resultTitle,
+      whiteName: versusComputer
+          ? (saved.humanSide == Side.white ? _historyPlayerName : computerName)
+          : 'White player',
+      blackName: versusComputer
+          ? (saved.humanSide == Side.black ? _historyPlayerName : computerName)
+          : 'Black player',
+      tournamentTitle: tournament?.title,
+      whiteCustomSetId: saved.classicPieces || _isConquest
+          ? null
+          : _historyCustomSetId,
+      blackCustomSetId: saved.classicPieces || _isConquest
+          ? null
+          : _historyCustomSetId,
+      whiteCustomName: saved.classicPieces || _isConquest
+          ? null
+          : _historyCustomSetName,
+      blackCustomName: saved.classicPieces || _isConquest
+          ? null
+          : _historyCustomSetName,
+    );
+    return _persistHistoryRecord(record);
+  }
+
+  Future<bool> _persistHistoryRecord(GameHistoryRecord record) async {
     try {
-      await tournament.save(saved, _tournamentResult);
+      await _gameHistory.save(record);
+      _historySaveError = null;
+      return true;
+    } catch (error, stack) {
+      AppDiagnostics.instance.record(
+        DiagnosticSource.asynchronous,
+        error,
+        stack,
+      );
+      if (mounted && _historySaveError == null) {
+        _historySaveError = 'Could not save this game to history.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_historySaveError!),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => unawaited(_persistHistoryRecord(record)),
+            ),
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<bool> _saveOpenGame({bool archiveUnfinished = false}) async {
+    // Capture every fact before storage yields: reset, Undo, the next move or
+    // leaving this route must not change the meaning of a queued recording.
+    final saved = _savedSnapshot();
+    final completed = _matchFinished;
+    final resultTitle = _historyResultTitle;
+    final tournament = widget.tournamentMatch;
+    final tournamentResult = _tournamentResult;
+    if (tournament != null) {
+      // Preserve the full terminal source until the archive succeeds; finishing
+      // a tournament round normally drops its resumable move list.
+      final persistence = _saveTournamentSnapshot(
+        saved,
+        completed ? null : tournamentResult,
+      );
+      final archived = completed || archiveUnfinished
+          ? await _archiveSnapshot(
+              saved,
+              completed: completed,
+              resultTitle: resultTitle,
+            )
+          : true;
+      await persistence;
+      if (completed && archived) {
+        await _saveTournamentSnapshot(saved, tournamentResult);
+      }
+      return archived;
+    }
+    if (completed) {
+      // A failed archive keeps a recoverable terminal source. The ticket is
+      // reserved immediately and only clears this source, never a newer game.
+      final source = LastGameStorage.saveHistorySource(saved).then<int?>(
+        (ticket) => ticket,
+        onError: (Object error, StackTrace stack) {
+          AppDiagnostics.instance.record(
+            DiagnosticSource.asynchronous,
+            error,
+            stack,
+          );
+          return null;
+        },
+      );
+      final archived = await _archiveSnapshot(
+        saved,
+        completed: true,
+        resultTitle: resultTitle,
+      );
+      final ticket = await source;
+      if (archived && ticket != null) {
+        await LastGameStorage.clear(expectedRevision: ticket);
+      }
+      return archived;
+    }
+    // Reserve the resume write now, before an archive can delay it behind a
+    // new screen's writes. LastGameStorage also guards delayed clear calls.
+    final persistence = saved.moves.isEmpty
+        ? LastGameStorage.clear()
+        : LastGameStorage.save(saved);
+    final archived = archiveUnfinished
+        ? await _archiveSnapshot(
+            saved,
+            completed: false,
+            resultTitle: resultTitle,
+          )
+        : true;
+    await persistence;
+    return archived;
+  }
+
+  Future<void> _saveTournamentSnapshot(
+    SavedGame saved,
+    TournamentRoundResult? result,
+  ) async {
+    try {
+      await widget.tournamentMatch!.save(saved, result);
       if (mounted && _tournamentSaveError != null) {
         setState(() => _tournamentSaveError = null);
       }
@@ -573,9 +1233,12 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     _threats.stop();
     if (_leavingTournament) return;
     setState(() => _leavingTournament = true);
-    await _saveOpenGame();
+    _cancelMoveDelay();
+    _cancelPreviewBattle();
+    unawaited(_moveCommentary.stop());
+    final archived = await _saveOpenGame(archiveUnfinished: true);
     if (!mounted) return;
-    if (_tournamentSaveError != null) {
+    if (_tournamentSaveError != null || !archived) {
       setState(() => _leavingTournament = false);
       return;
     }
@@ -611,6 +1274,13 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     setState(() {
       _resigned = true;
       _gameEpoch++;
+      _cancelMoveDelay();
+      _cancelPreviewBattle();
+      unawaited(_moveCommentary.stop());
+      _clearMovePreview();
+      _autoPlay = false;
+      _autoWaiting = false;
+      _computerThinking = false;
     });
     await _showTournamentResult();
   }
@@ -620,10 +1290,11 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     if (!mounted || _resultShown || _leavingTournament || result == null) {
       return;
     }
+    final resultEpoch = _gameEpoch;
     _resultShown = true;
     await _saveOpenGame();
-    if (!mounted) return;
-    if (_tournamentSaveError != null) {
+    if (!mounted || resultEpoch != _gameEpoch) return;
+    if (_tournamentSaveError != null || _historySaveError != null) {
       _resultShown = false;
       return;
     }
@@ -631,14 +1302,24 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     final draw = result == TournamentRoundResult.draw;
     final match = widget.tournamentMatch!;
     final progressAward = await _recordProgress(won: won);
-    if (!mounted) return;
+    if (!mounted || resultEpoch != _gameEpoch) return;
+    if (_game.position.isCheckmate) {
+      await showCheckmateAnimation(
+        context: context,
+        winner: _game.position.turn.opposite,
+        appearance: _displayAppearance,
+      );
+      if (!mounted || resultEpoch != _gameEpoch) return;
+    }
     if (won && match.isFinal) {
       final returnToCup = await showChampionshipCelebration(
         context: context,
         cup: match.cup,
+        appearance: _displayAppearance,
         voice: _opponentVoice,
         checkmate: _game.position.isCheckmate,
         progressAward: progressAward,
+        onWatchCinematic: _canWatchCinematic ? _watchCinematic : null,
       );
       if (mounted && returnToCup) await _leaveTournament();
       return;
@@ -657,6 +1338,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     }
     final returnToCup = await showGameResultDialog(
       context: context,
+      appearance: _displayAppearance,
       outcome: won
           ? GameResultOutcome.victory
           : draw
@@ -684,6 +1366,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       ),
       primaryLabel: match.cup.isConquest ? 'Conquest' : 'Tournament',
       progressAward: progressAward,
+      onWatchCinematic: _canWatchCinematic ? _watchCinematic : null,
     );
     if (mounted && returnToCup) await _leaveTournament();
   }
@@ -703,6 +1386,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
         (piece != null && piece.color == _game.position.turn)) {
       setState(() {
         _selected = piece?.color == _game.position.turn ? square : null;
+        if (_selected != null) _swipeHintDismissed = true;
         _legalTargets = _selected == null
             ? const {}
             : _game.legalDestinations(_selected!);
@@ -770,6 +1454,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   );
 
   void _commitMove(MoveResolution? resolution) {
+    if (resolution != null) _swipeHintDismissed = true;
     if (resolution == null) return;
     if (_timeControl.timed) {
       final increment = Duration(milliseconds: _timeControl.incrementMs);
@@ -781,14 +1466,28 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     }
     _threats.stop();
     setState(() {
+      _rememberLiveMove(resolution);
+      _highlightMove = resolution.san.startsWith('O-O')
+          ? NormalMove(
+              from: resolution.move.from,
+              to: Square.fromCoords(
+                resolution.san.startsWith('O-O-O') ? File.c : File.g,
+                resolution.move.from.rank,
+              ),
+            )
+          : resolution.move;
       _selected = null;
       _legalTargets = const {};
       _hintMessage = null;
       _hintFrom = null;
       _hintTo = null;
-      if (resolution.isCapture) _battle = resolution;
+      if (resolution.isCapture) {
+        _battle = resolution;
+        if (_previewMove != null) _previewBattle = Completer<void>();
+      }
     });
     unawaited(_saveOpenGame());
+    if (usesAnimatedLiveArena(_displayAppearance)) _startLiveMoveAnimation();
     if (resolution.isCapture) {
       _battleTimer?.cancel();
       final reduced = MediaQuery.disableAnimationsOf(context);
@@ -797,6 +1496,10 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
             Duration(milliseconds: reduced ? 25 : 100),
         _finishBattle,
       );
+    } else if (_previewMove == null &&
+        usesAnimatedLiveArena(_displayAppearance) &&
+        (widget.mode == PlayerMode.computer || _game.position.isCheckmate)) {
+      _waitForLiveMoveAnimation();
     } else {
       _finishTurn();
     }
@@ -807,23 +1510,72 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     _battleTimer?.cancel();
     setState(() => _battle = null);
     MusicScope.of(context)?.resumeBackground();
-    if (widget.mode == PlayerMode.computer &&
-        _game.position.turn == _game.humanSide.opposite &&
-        _tournamentResult == null &&
-        !_game.position.isGameOver) {
-      _computerReplyTimer?.cancel();
-      setState(() => _computerReplyDelay = true);
-      _computerReplyTimer = Timer(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        setState(() => _computerReplyDelay = false);
-        _finishTurn();
-      });
+    if (_previewBattle != null) {
+      _cancelPreviewBattle();
       return;
     }
-    _finishTurn();
+    if (_liveMoveAnimationPending) {
+      _waitForLiveMoveAnimation();
+    } else {
+      _finishTurn();
+    }
+  }
+
+  void _waitForLiveMoveAnimation() {
+    setState(() => _turnAnimationDelay = true);
+    if (!(_turnAnimationTimer?.isActive ?? false)) _startLiveMoveAnimation();
+  }
+
+  void _startLiveMoveAnimation() {
+    _turnAnimationTimer?.cancel();
+    _liveMoveAnimationPending = true;
+    if (_pacingPaused) return;
+    final epoch = _gameEpoch;
+    final fen = _game.position.fen;
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    _turnAnimationTimer = Timer(
+      reduced ? Duration.zero : neonLiveMoveAnimationDuration,
+      () {
+        if (!mounted || epoch != _gameEpoch || _game.position.fen != fen) {
+          return;
+        }
+        final finishTurn = _turnAnimationDelay;
+        setState(() {
+          _liveMoveAnimationPending = false;
+          _turnAnimationDelay = false;
+        });
+        if (finishTurn) _finishTurn();
+      },
+    );
+  }
+
+  void _scheduleComputerReply() {
+    _computerReplyTimer?.cancel();
+    setState(() => _computerReplyDelay = true);
+    if (_pacingPaused) return;
+    final epoch = _gameEpoch;
+    final fen = _game.position.fen;
+    _computerReplyTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted || epoch != _gameEpoch || _game.position.fen != fen) return;
+      setState(() => _computerReplyDelay = false);
+      unawaited(_maybePlayComputer());
+    });
   }
 
   void _finishTurn() {
+    if (_previewMove != null ||
+        _turnAnimationDelay ||
+        _computerReplyDelay ||
+        _computerThinking ||
+        _autoWaiting ||
+        _savingForReset) {
+      return;
+    }
+    if (_liveMoveAnimationPending &&
+        (widget.mode == PlayerMode.computer || _game.position.isCheckmate)) {
+      _waitForLiveMoveAnimation();
+      return;
+    }
     if (_tournamentResult != null) {
       unawaited(_showTournamentResult());
       return;
@@ -836,19 +1588,27 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       if (_game.position.isCheck) {
         unawaited(MusicScope.of(context)?.announceCheck(voice: _opponentVoice));
       }
-      _maybePlayComputer();
+      if (widget.mode == PlayerMode.computer &&
+          !_game.isHumanTurn &&
+          !_autoPlay) {
+        _scheduleComputerReply();
+      } else {
+        unawaited(_maybePlayComputer());
+      }
     }
   }
 
   Future<void> _showDrawResult() async {
     if (!mounted || _resultShown) return;
+    final resultEpoch = _gameEpoch;
     _resultShown = true;
-    await LastGameStorage.clear();
-    if (!mounted) return;
+    await _saveOpenGame();
+    if (!mounted || resultEpoch != _gameEpoch) return;
     final progressAward = await _recordProgress(won: false);
     if (!mounted) return;
     final startNew = await showGameResultDialog(
       context: context,
+      appearance: _displayAppearance,
       outcome: GameResultOutcome.draw,
       heading: 'DRAW',
       title: 'Game Drawn',
@@ -858,15 +1618,17 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
             'Both sides held their ground. Review the final position and prepare for the next battle.',
       ),
       progressAward: progressAward,
+      onWatchCinematic: _canWatchCinematic ? _watchCinematic : null,
     );
     if (mounted && startNew) await _reset();
   }
 
   Future<void> _showCheckmateResult() async {
     if (!mounted || _resultShown || !_game.position.isCheckmate) return;
+    final resultEpoch = _gameEpoch;
     _resultShown = true;
-    await LastGameStorage.clear();
-    if (!mounted) return;
+    await _saveOpenGame();
+    if (!mounted || resultEpoch != _gameEpoch) return;
     final winner = _game.position.turn.opposite;
     final versusComputer = widget.mode == PlayerMode.computer;
     final userWon = !versusComputer || winner == _game.humanSide;
@@ -886,15 +1648,23 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       userWon: userWon,
     );
     final progressAward = await _recordProgress(won: userWon);
-    if (!mounted) return;
+    if (!mounted || resultEpoch != _gameEpoch) return;
+    await showCheckmateAnimation(
+      context: context,
+      winner: winner,
+      appearance: _displayAppearance,
+    );
+    if (!mounted || resultEpoch != _gameEpoch) return;
     final startNew = await showCheckmateDialog(
       context: context,
+      appearance: _displayAppearance,
       userWon: userWon,
       title: versusComputer
           ? (userWon ? 'You Win!' : 'Computer Wins')
           : '${winner == Side.white ? 'White' : 'Black'} Wins!',
       message: message,
       progressAward: progressAward,
+      onWatchCinematic: _canWatchCinematic ? _watchCinematic : null,
     );
     if (mounted && startNew) await _reset();
   }
@@ -902,9 +1672,10 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   Future<void> _showTimeoutResult() async {
     final flagged = _flagged;
     if (!mounted || _resultShown || flagged == null) return;
+    final resultEpoch = _gameEpoch;
     _resultShown = true;
-    await LastGameStorage.clear();
-    if (!mounted) return;
+    await _saveOpenGame();
+    if (!mounted || resultEpoch != _gameEpoch) return;
     final winner = flagged.opposite;
     final versusComputer = widget.mode == PlayerMode.computer;
     final userWon = !versusComputer || winner == _game.humanSide;
@@ -928,6 +1699,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     if (!mounted) return;
     final startNew = await showGameResultDialog(
       context: context,
+      appearance: _displayAppearance,
       outcome: userWon ? GameResultOutcome.victory : GameResultOutcome.defeat,
       heading: 'WINNER BY TIMEOUT',
       title: versusComputer
@@ -935,6 +1707,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
           : '${winner == Side.white ? 'White' : 'Black'} Wins!',
       message: message,
       progressAward: progressAward,
+      onWatchCinematic: _canWatchCinematic ? _watchCinematic : null,
     );
     if (mounted && startNew) await _reset();
   }
@@ -942,49 +1715,122 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   Future<void> _maybePlayComputer() async {
     if (!mounted ||
         _computer == null ||
-        _game.position.turn != _game.humanSide.opposite ||
-        _game.position.isGameOver ||
-        _flagged != null ||
-        _resigned ||
+        _pacingPaused ||
+        _savingForReset ||
+        (_game.isHumanTurn && !_autoPlay) ||
+        _matchFinished ||
         _leavingTournament ||
         _tournamentResult != null ||
-        _computerThinking) {
+        _computerThinking ||
+        _autoWaiting ||
+        _battle != null ||
+        _turnAnimationDelay ||
+        _computerReplyDelay ||
+        _hintThinking) {
       return;
     }
+    final automaticHuman = _game.isHumanTurn;
+    final autoRequest = _autoRequest;
+    final requestEpoch = _gameEpoch;
+    final requestFen = _game.position.fen;
+    var committed = false;
+    bool beforeValid() =>
+        _moveRequestValid(requestEpoch, requestFen) &&
+        (!automaticHuman || (_autoPlay && autoRequest == _autoRequest));
     setState(() {
       _computerThinking = true;
       _computerError = null;
     });
-    final requestEpoch = _gameEpoch;
     try {
-      final move = await _computer!.bestMove(
-        _game.position.fen,
-        difficulty: _difficulty,
-        botLevel: widget.tournamentMatch?.opponent.botLevel,
-      );
-      if (!mounted ||
-          requestEpoch != _gameEpoch ||
-          _flagged != null ||
-          _leavingTournament) {
+      if (_autoPlay) {
+        setState(() => _autoWaiting = true);
+        await _waitMoveDelay(const Duration(seconds: 2));
+        if (!beforeValid()) return;
+        setState(() => _autoWaiting = false);
+      }
+      if (!beforeValid()) return;
+      final move = automaticHuman
+          ? await _computer!.bestAssistanceMove(requestFen)
+          : await _computer!.bestMove(
+              requestFen,
+              difficulty: _difficulty,
+              botLevel: widget.tournamentMatch?.opponent.botLevel,
+            );
+      if (!beforeValid()) return;
+      if (move == null) {
+        setState(
+          () => _computerError = 'Computer engine did not return a move',
+        );
         return;
       }
-      setState(() {
-        _computerThinking = false;
-        _computerError = move == null
-            ? 'Computer engine did not return a move'
-            : null;
-      });
-      if (move != null) {
-        _tick();
-        if (_flagged != null) return;
-        _commitMove(_game.playUci(move));
+      if (!await _previewAutomaticMove(
+        move,
+        requestEpoch,
+        requestFen,
+        autoRequest: automaticHuman ? autoRequest : null,
+      )) {
+        return;
       }
-    } catch (_) {
-      if (!mounted || requestEpoch != _gameEpoch) return;
+      if (!beforeValid()) return;
+      _tick();
+      if (_flagged != null) return;
+      final resolution = _game.playUci(move);
+      if (resolution == null) {
+        setState(
+          () => _computerError = 'Computer engine returned an invalid move',
+        );
+        return;
+      }
+      committed = true;
+      _previewCommitted = true;
+      final afterFen = _game.position.fen;
+      bool afterValid() =>
+          mounted &&
+          requestEpoch == _gameEpoch &&
+          _game.position.fen == afterFen &&
+          _flagged == null &&
+          !_resigned &&
+          !_leavingTournament;
+      _commitMove(resolution);
+      if (_autoPlay && _commentaryEnabled && _commentaryPreferenceLoaded) {
+        final text = moveCommentaryText(resolution);
+        setState(() => _commentaryText = text);
+        unawaited(_moveCommentary.speak(text));
+      }
       setState(() {
-        _computerThinking = false;
-        _computerError = 'Computer engine unavailable on this device';
+        _blinkingSquare = null;
+        _previewLit = true;
       });
+      final battle = _previewBattle;
+      if (battle != null) await battle.future;
+      if (!afterValid()) return;
+      setState(() {
+        _blinkingSquare = _previewMove!.to;
+        _previewLit = true;
+      });
+      await _blinkMoveSquare(afterValid);
+    } catch (_) {
+      if (mounted && requestEpoch == _gameEpoch) {
+        setState(
+          () => _computerError = 'Computer engine unavailable on this device',
+        );
+      }
+    } finally {
+      if (mounted && requestEpoch == _gameEpoch) {
+        setState(() {
+          _computerThinking = false;
+          _autoWaiting = false;
+          _clearMovePreview();
+        });
+        if (committed && _battle == null) {
+          _finishTurn();
+        } else if (!committed &&
+            _autoPlay &&
+            autoRequest != _autoRequest &&
+            _computerError == null) {
+          unawaited(_maybePlayComputer());
+        }
+      }
     }
   }
 
@@ -1005,10 +1851,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       _hintTo = null;
     });
     try {
-      final suggestion = await _computer!.bestMove(
-        fen,
-        difficulty: suggestionDifficulty,
-      );
+      final suggestion = await _computer!.bestAssistanceMove(fen);
       if (!mounted || requestEpoch != _gameEpoch || _game.position.fen != fen) {
         return;
       }
@@ -1056,9 +1899,12 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       defaultOnlineCreditPolicy.onlineMoveSuggestionCost;
 
   Future<void> _reset() async {
+    if (_savingForReset) return;
     _threats.stop();
     var humanSide = _game.humanSide;
-    var nextTimeControl = GameTimeControl.rapid;
+    var nextTimeControl = widget.mode == PlayerMode.computer
+        ? GameTimeControl.practice
+        : GameTimeControl.rapid;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1069,7 +1915,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'The current position and its saved progress will be permanently deleted.',
+                'Start a fresh game. The moves you have already played stay in Game history.',
               ),
               if (widget.mode == PlayerMode.computer) ...[
                 const SizedBox(height: 16),
@@ -1083,12 +1929,12 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
                   decoration: const InputDecoration(labelText: 'Game clock'),
                   items: const [
                     DropdownMenuItem(
-                      value: GameTimeControl.rapid,
-                      child: Text('Rapid · 15 + 10 sec'),
+                      value: GameTimeControl.practice,
+                      child: Text('Unlimited (No timer limit)'),
                     ),
                     DropdownMenuItem(
-                      value: GameTimeControl.practice,
-                      child: Text('Untimed Practice'),
+                      value: GameTimeControl.rapid,
+                      child: Text('15 min · Rapid'),
                     ),
                   ],
                   onChanged: (value) => update(() => nextTimeControl = value!),
@@ -1110,13 +1956,61 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       ),
     );
     if (!mounted || confirmed != true) return;
+    final nextClassicPieces = _classicPieces;
+    setState(() {
+      _savingForReset = true;
+      _gameEpoch++;
+      _computerReplyTimer?.cancel();
+      _turnAnimationTimer?.cancel();
+      _computerReplyDelay = false;
+      _turnAnimationDelay = false;
+      _liveMoveAnimationPending = false;
+      _autoPlay = false;
+      _autoRequest++;
+      _autoWaiting = false;
+      _cancelPreviewBattle();
+      _cancelMoveDelay();
+      _clearMovePreview();
+      _computerThinking = false;
+    });
+    unawaited(_moveCommentary.stop());
+    final archived = await _saveOpenGame(archiveUnfinished: true);
+    if (!mounted) return;
+    if (!archived) {
+      setState(() => _savingForReset = false);
+      unawaited(_maybePlayComputer());
+      return;
+    }
+    if (nextClassicPieces && !await restoreBuiltInChessSet(context)) {
+      if (mounted) {
+        setState(() => _savingForReset = false);
+        unawaited(_maybePlayComputer());
+      }
+      return;
+    }
+    if (!mounted) return;
     _battleTimer?.cancel();
     _computerReplyTimer?.cancel();
+    _turnAnimationTimer?.cancel();
     setState(() {
       _gameEpoch++;
+      _autoPlay = false;
+      _autoRequest++;
+      _autoWaiting = false;
+      _cancelPreviewBattle();
+      _cancelMoveDelay();
+      _clearMovePreview();
+      _commentaryText = null;
+      unawaited(_moveCommentary.stop());
+      _highlightMove = null;
       _progressGameId =
           'offline-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(this)}';
+      _historyGameId = _progressGameId;
+      _savingForReset = false;
       _game.reset();
+      _swipeHintDismissed = false;
+      _classicPieces = nextClassicPieces;
+      _clearLiveAction();
       _timeControl = nextTimeControl;
       _lastClockElapsedMs = _clockElapsed.elapsedMilliseconds;
       _game.humanSide = humanSide;
@@ -1124,6 +2018,8 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       _legalTargets = const {};
       _battle = null;
       _computerReplyDelay = false;
+      _turnAnimationDelay = false;
+      _liveMoveAnimationPending = false;
       _whiteTime = Duration(milliseconds: _timeControl.baseMs);
       _blackTime = Duration(milliseconds: _timeControl.baseMs);
       _flagged = null;
@@ -1135,6 +2031,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       _hintFrom = null;
       _hintTo = null;
       _resultShown = false;
+      _resigned = false;
     });
     await LastGameStorage.clear();
     if (mounted) await _maybePlayComputer();
@@ -1156,11 +2053,27 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   }
 
   void _undo() {
-    if (_computerThinking || _hintThinking || _battle != null || !_canUndo) {
+    if (_autoPlay ||
+        _autoWaiting ||
+        _previewMove != null ||
+        _computerThinking ||
+        _hintThinking ||
+        _battle != null ||
+        !_canUndo) {
       return;
     }
     _threats.stop();
+    if (_matchFinished) {
+      _historyGameId =
+          'continuation-${DateTime.now().microsecondsSinceEpoch}-${identityHashCode(this)}';
+    }
     setState(() {
+      _gameEpoch++;
+      _computerReplyTimer?.cancel();
+      _turnAnimationTimer?.cancel();
+      _computerReplyDelay = false;
+      _turnAnimationDelay = false;
+      _liveMoveAnimationPending = false;
       _undoMoveAndIncrement();
       if (widget.mode == PlayerMode.computer &&
           !_game.isHumanTurn &&
@@ -1173,6 +2086,8 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       _hintFrom = null;
       _hintTo = null;
       _flagged = null;
+      _resigned = false;
+      _resultShown = false;
     });
     unawaited(_saveOpenGame());
     unawaited(_maybePlayComputer());
@@ -1180,6 +2095,8 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
 
   // Undo revokes increments without refunding thinking time.
   void _undoMoveAndIncrement() {
+    _clearLiveAction();
+    _highlightMove = null;
     _game.undo();
     if (!_timeControl.timed) return;
     final increment = _timeControl.incrementMs;
@@ -1195,12 +2112,19 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
   }
 
   bool get _canUndo =>
+      !_savingForReset &&
       _game.canUndo &&
       !(widget.mode == PlayerMode.computer &&
           _game.humanSide == Side.black &&
           _game.uciMoves.length == 1);
 
   String get _status {
+    if (_previewMove != null) {
+      return '${_previewCommitted ? 'Move played' : 'Move preview'} · ${_previewMove!.from.name} → ${_previewMove!.to.name}';
+    }
+    if (_autoWaiting) {
+      return 'Auto-play · ${(2 / _autoSpeed).toStringAsFixed(1)} second gap · $_autoSpeedLabel×';
+    }
     if (_resigned) return 'Round resigned · retry from your tournament';
     if (_tournamentResult == TournamentRoundResult.draw) {
       return 'Round drawn · replay from your tournament';
@@ -1217,6 +2141,7 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
       return 'Draw · insufficient material';
     }
     if (_computerThinking) return 'Computer is thinking…';
+    if (_computerReplyDelay) return 'Computer replies in 2 seconds…';
     final side = _game.position.turn == Side.white ? 'White' : 'Black';
     return '$side to move${_game.position.isCheck ? ' · CHECK' : ''}';
   }
@@ -1243,6 +2168,15 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
           children: [
             ChessBoard(
               onSetSwipe: zoomed ? null : _swipeChessSet,
+              swipeHint: !_swipeHintDismissed && _game.uciMoves.isEmpty
+                  ? (_animatedArena
+                        ? 'Swipe left or right to toggle between classic and animated chess pieces'
+                        : 'Swipe left or right to change classic chess pieces')
+                  : null,
+              showCoordinates: usesAnimatedLiveArena(_displayAppearance),
+              animateMoves: usesAnimatedLiveArena(_displayAppearance),
+              animatedMove: _animatedBoardMove,
+              reducedMotion: MediaQuery.disableAnimationsOf(context),
               orientation: widget.mode == PlayerMode.computer
                   ? _game.humanSide
                   : Side.white,
@@ -1251,11 +2185,17 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
               selected: _selected,
               legalTargets: _legalTargets,
               accent: accent,
-              hiddenPieceSquare: _battle?.move.to,
+              hiddenPieceSquare: usesAnimatedLiveArena(_displayAppearance)
+                  ? null
+                  : _battle?.move.to,
               suggestedFrom: _hintFrom,
               suggestedTo: _hintTo,
-              lastMoveFrom: _lastOpponentMove?.from,
-              lastMoveTo: _lastOpponentMove?.to,
+              lastMoveFrom: _highlightMove?.from ?? _lastOpponentMove?.from,
+              previewFrom: _previewMove?.from,
+              previewTo: _previewMove?.to,
+              blinkingSquare: _blinkingSquare,
+              previewLit: _previewLit,
+              lastMoveTo: _highlightMove?.to ?? _lastOpponentMove?.to,
               threatFrom: _threats.current?.from,
               threatTarget: _threats.current?.targetSquare,
               threatLanding: _threats.current?.enPassant == true
@@ -1265,22 +2205,38 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
               onSquareTap: _tapSquare,
             ),
             if (_battle != null)
-              CaptureBattleOverlay(
-                appearance: _displayAppearance,
-                battle: _battle!,
-                accent: accent,
-                orientation: widget.mode == PlayerMode.computer
-                    ? _game.humanSide
-                    : Side.white,
-                reduced: MediaQuery.disableAnimationsOf(context),
-                fast: _fastBattles,
-                useCharacterAsset:
-                    !_classicPieces &&
-                    _appearance.white.id == PiecePackId.anime &&
-                    _appearance.black.id == PiecePackId.anime &&
-                    _battle!.attacker.role == Role.pawn &&
-                    _battle!.defender!.role == Role.pawn,
-                onSkip: _finishBattle,
+              Positioned.fill(
+                child: LayoutBuilder(
+                  builder: (context, box) => Padding(
+                    padding: EdgeInsets.all(
+                      usesAnimatedLiveArena(_displayAppearance)
+                          ? ChessBoard.coordinateInset(box.biggest.shortestSide)
+                          : 0,
+                    ),
+                    child: Stack(
+                      children: [
+                        CaptureBattleOverlay(
+                          liveArena: usesAnimatedLiveArena(_displayAppearance),
+                          appearance: _displayAppearance,
+                          battle: _battle!,
+                          accent: accent,
+                          orientation: widget.mode == PlayerMode.computer
+                              ? _game.humanSide
+                              : Side.white,
+                          reduced: MediaQuery.disableAnimationsOf(context),
+                          fast: _fastBattles,
+                          useCharacterAsset:
+                              !_classicPieces &&
+                              _appearance.white.id == PiecePackId.anime &&
+                              _appearance.black.id == PiecePackId.anime &&
+                              _battle!.attacker.role == Role.pawn &&
+                              _battle!.defender!.role == Role.pawn,
+                          onSkip: _finishBattle,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
           ],
         ),
@@ -1326,17 +2282,75 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
     );
   }
 
-  List<Widget> _buildMatchDetails(Color accent) => [
+  bool get _showTournamentOpponentPanel =>
+      widget.tournamentMatch != null && !widget.tournamentMatch!.cup.isConquest;
+
+  Widget _buildTournamentOpponentPanel() {
+    final match = widget.tournamentMatch!;
+    return KeyedSubtree(
+      key: const ValueKey('opponent-profile'),
+      child: MatchOpponentPanel(
+        key: const ValueKey('tournament-opponent'),
+        name: match.opponent.name,
+        details:
+            '${match.opponent.difficultyLabel} · Computer · You play ${_game.humanSide == Side.white ? 'White' : 'Black'}',
+        avatarBuilder: (size) =>
+            OnlineAvatarImage(avatarId: match.opponent.avatarId, size: size),
+      ),
+    );
+  }
+
+  Widget _quickPlayAssists() => IntrinsicHeight(
+    child: Row(
+      key: const ValueKey('quick-play-assists'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.mode == PlayerMode.computer) ...[
+          Expanded(
+            child: FilledButton.tonalIcon(
+              key: const ValueKey('use-computer-lifeline'),
+              style: playAssistButtonStyle.copyWith(
+                padding: const WidgetStatePropertyAll(
+                  EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+              ),
+              onPressed: !_inputLocked ? _useComputerLifeline : null,
+              icon: MoveSuggestionActionIcon(loading: _hintThinking),
+              label: MoveSuggestionLabel(
+                cost: _suggestionCreditCost,
+                priceKey: const ValueKey('computer-suggestion-credit-cost'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Expanded(
+          child: ThreatScanButton(
+            scan: _threats,
+            enabled: !_inputLocked && !_game.isRuleDraw,
+            onScan: _analyseThreats,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  List<Widget> _buildMatchDetails(
+    Color accent, {
+    bool includeAssists = true,
+    bool includeOpponent = true,
+  }) => [
     if (!_showTopBar)
       Align(
         alignment: Alignment.centerRight,
-        child: Wrap(
-          alignment: WrapAlignment.end,
-          children: [
+        child: GameHeaderWrap(
+          icons: [
             PieceStyleToggleButton(
               // Also available when the large toolbar is hidden.
               key: const ValueKey('quick-piece-style-toggle'),
               classic: _classicPieces,
+              cycleClassicSets: !_animatedArena && !_isClassicDefaultTournament,
+              classicStyle: _classicStyle,
               themedPack: _appearance.white,
               onPressed: _togglePieceStyle,
             ),
@@ -1358,12 +2372,13 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
                 color: Color(0xFF64D8CB),
               ),
             ),
-            const MusicButton(compact: true),
+            if (widget.mode == PlayerMode.computer) _autoPlayButton(),
+            if (_autoPlay) _commentaryButton(),
+            const MusicButton(),
             TopBarRestoreButton(
               accent: accent,
               onPressed: () => setState(() => _showTopBar = true),
             ),
-            const ArenaCreditHeader(compact: true),
           ],
         ),
       ),
@@ -1389,9 +2404,11 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
           : 'BLACK TO PLAY',
     ),
     const SizedBox(height: 12),
-    _buildOpponentProfile(),
-    const SizedBox(height: 8),
-    if (widget.mode == PlayerMode.computer)
+    if (includeOpponent) ...[
+      _buildOpponentProfile(),
+      const SizedBox(height: 8),
+    ],
+    if (includeAssists && widget.mode == PlayerMode.computer)
       Card(
         key: const ValueKey('computer-lifelines'),
         child: Padding(
@@ -1433,9 +2450,6 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
                             : const MoveSuggestionIcon(),
                         label: const Text(
                           'Suggest move',
-                          maxLines: 1,
-                          softWrap: false,
-                          overflow: TextOverflow.fade,
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -1473,7 +2487,16 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
         icon: const Icon(Icons.refresh),
         label: const Text('Retry computer move'),
       ),
-    if (widget.mode != PlayerMode.computer)
+    if (!includeAssists && _hintMessage != null)
+      Padding(
+        padding: const EdgeInsets.all(8),
+        child: Text(
+          _hintMessage!,
+          key: const ValueKey('computer-hint-message'),
+          style: TextStyle(color: accent, fontWeight: FontWeight.w800),
+        ),
+      ),
+    if (includeAssists && widget.mode != PlayerMode.computer)
       ThreatScanControls(
         scan: _threats,
         enabled: !_inputLocked && !_game.isRuleDraw,
@@ -1484,6 +2507,11 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
         pieces: _game.capturedPieces,
         appearance: _displayAppearance,
         playerSide: widget.mode == PlayerMode.computer ? _game.humanSide : null,
+      ),
+    if (_matchFinished && _canWatchCinematic)
+      CinematicSummaryButton(
+        key: const ValueKey('finished-match-cinematic'),
+        onPressed: _watchCinematic,
       ),
     if (widget.tournamentMatch case final tournament?) ...[
       if (_tournamentSaveError != null)
@@ -1531,6 +2559,8 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
         backgroundColor: _appearance.board.backdrop,
         appBar: _showTopBar
             ? AppBar(
+                titleSpacing: 12,
+                actionsPadding: const EdgeInsets.only(right: 12),
                 title: widget.mode == PlayerMode.computer
                     ? null
                     : Text(
@@ -1540,53 +2570,64 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
                                 : '${widget.pack.name} · Local Match'),
                       ),
                 actions: [
-                  PieceStyleToggleButton(
-                    key: const ValueKey('quick-piece-style-toggle'),
-                    classic: _classicPieces,
-                    themedPack: _appearance.white,
-                    compact: true,
-                    onPressed: _togglePieceStyle,
+                  GameHeaderRibbon(
+                    hasTitle: widget.mode != PlayerMode.computer,
+                    scrollKey: const ValueKey('game-header-icons'),
+                    icons: [
+                      if (widget.mode == PlayerMode.computer) _autoPlayButton(),
+                      if (_autoPlay) _commentaryButton(),
+                      PieceStyleToggleButton(
+                        key: const ValueKey('quick-piece-style-toggle'),
+                        classic: _classicPieces,
+                        cycleClassicSets:
+                            !_animatedArena && !_isClassicDefaultTournament,
+                        classicStyle: _classicStyle,
+                        themedPack: _appearance.white,
+                        onPressed: _togglePieceStyle,
+                      ),
+                      IconButton(
+                        key: const ValueKey('quick-board-color-toggle'),
+                        tooltip: _displaySettings.customBoardColorsEnabled
+                            ? 'Use chess set board colours'
+                            : 'Use saved board colours',
+                        onPressed: _toggleBoardColors,
+                        icon: ChessboardPaintIcon(
+                          active: _displaySettings.customBoardColorsEnabled,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Game settings',
+                        onPressed: _openSettings,
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: Color(0xFF64D8CB),
+                        ),
+                      ),
+                      const MusicButton(),
+                      if (widget.tournamentMatch == null)
+                        IconButton(
+                          tooltip: 'Undo',
+                          onPressed: _canUndo ? _undo : null,
+                          icon: const Icon(
+                            Icons.undo,
+                            color: Color(0xFFFFB74D),
+                          ),
+                        ),
+                      if (widget.tournamentMatch == null &&
+                          widget.mode != PlayerMode.computer)
+                        IconButton(
+                          tooltip: 'New game',
+                          onPressed: _reset,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                      if (widget.mode != PlayerMode.computer)
+                        IconButton(
+                          tooltip: 'Hide top bar',
+                          onPressed: () => setState(() => _showTopBar = false),
+                          icon: const Icon(Icons.keyboard_arrow_up),
+                        ),
+                    ],
                   ),
-                  IconButton(
-                    key: const ValueKey('quick-board-color-toggle'),
-                    tooltip: _displaySettings.customBoardColorsEnabled
-                        ? 'Use chess set board colours'
-                        : 'Use saved board colours',
-                    onPressed: _toggleBoardColors,
-                    visualDensity: VisualDensity.compact,
-                    icon: ChessboardPaintIcon(
-                      active: _displaySettings.customBoardColorsEnabled,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Game settings',
-                    onPressed: _openSettings,
-                    icon: const Icon(
-                      Icons.settings_outlined,
-                      color: Color(0xFF64D8CB),
-                    ),
-                  ),
-                  const MusicButton(compact: true),
-                  if (widget.tournamentMatch == null)
-                    IconButton(
-                      tooltip: 'Undo',
-                      onPressed: _canUndo ? _undo : null,
-                      icon: const Icon(Icons.undo, color: Color(0xFFFFB74D)),
-                    ),
-                  if (widget.tournamentMatch == null &&
-                      widget.mode != PlayerMode.computer)
-                    IconButton(
-                      tooltip: 'New game',
-                      onPressed: _reset,
-                      icon: const Icon(Icons.refresh),
-                    ),
-                  if (widget.mode != PlayerMode.computer)
-                    IconButton(
-                      tooltip: 'Hide top bar',
-                      onPressed: () => setState(() => _showTopBar = false),
-                      icon: const Icon(Icons.keyboard_arrow_up),
-                    ),
-                  const ArenaCreditHeader(compact: true),
                 ],
               )
             : null,
@@ -1595,81 +2636,222 @@ class _AnimationLabScreenState extends State<AnimationLabScreen>
           customSet: _displayAppearance.customSet,
           child: Stack(
             children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                child: AnimatedAcceptedCaptureCues(
+                  key: const ValueKey('tournament-accepted-capture-cues'),
+                  position: _game.position,
+                  action: _liveAction,
+                  enabled:
+                      _showTournamentOpponentPanel &&
+                      usesAnimatedLiveArena(_displayAppearance),
+                  reducedMotion: MediaQuery.disableAnimationsOf(context),
+                ),
+              ),
               Positioned.fill(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
+                    final tournamentOpponent = _showTournamentOpponentPanel;
+                    if (tournamentOpponent ||
+                        usesAnimatedLiveArena(_displayAppearance)) {
+                      return NeonLiveGameLayout(
+                        compactPortraitArena: tournamentOpponent,
+                        arena: tournamentOpponent
+                            ? _buildTournamentOpponentPanel()
+                            : NeonLiveArena(
+                                theme: animatedArmyThemeForAppearance(
+                                  _displayAppearance,
+                                )!,
+                                action: _liveAction,
+                                viewerSide: _liveViewerSide,
+                                position: _game.position,
+                                reducedMotion: MediaQuery.disableAnimationsOf(
+                                  context,
+                                ),
+                              ),
+                        board: _buildBoard(context, accent),
+                        quickActions: _quickPlayAssists(),
+                        header: NeonLiveStatusBar(
+                          status: _status,
+                          whiteTime: _whiteTime,
+                          blackTime: _blackTime,
+                          turn: _game.position.turn,
+                          timed: _timeControl.timed,
+                        ),
+                        details: _buildMatchDetails(
+                          accent,
+                          includeAssists: false,
+                          includeOpponent: !tournamentOpponent,
+                        ).where((item) => item is! MatchHeader).toList(),
+                        boardFooter: Column(
+                          children: [
+                            if (_autoPlay && !_matchFinished)
+                              _autoSpeedControl(accent),
+                            ThreatScanBanner(scan: _threats),
+                          ],
+                        ),
+                        scrollController: _boardScroll,
+                        portraitScrollKey: const ValueKey(
+                          'portrait-match-scroll',
+                        ),
+                        landscapeScrollKey: const ValueKey(
+                          'landscape-match-scroll',
+                        ),
+                      );
+                    }
                     final landscape =
                         constraints.maxWidth > constraints.maxHeight;
                     if (landscape) {
                       return Padding(
                         padding: EdgeInsets.all(_showTopBar ? 12 : 8),
-                        child: Row(
-                          key: const ValueKey('landscape-match-layout'),
+                        child: ListView(
+                          key: const ValueKey('landscape-board-scroll'),
+                          controller: _boardScroll,
                           children: [
-                            Expanded(
-                              child: Center(
-                                child: AspectRatio(
-                                  aspectRatio: 1,
-                                  child: _buildBoard(context, accent),
+                            Column(
+                              children: [
+                                SizedBox(
+                                  height: math.max(
+                                    1.0,
+                                    constraints.maxHeight -
+                                        (_showTopBar ? 24 : 16),
+                                  ),
+                                  child: Row(
+                                    key: const ValueKey(
+                                      'landscape-match-layout',
+                                    ),
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          children: [
+                                            Expanded(
+                                              child: Center(
+                                                child: AspectRatio(
+                                                  aspectRatio: 1,
+                                                  child: _buildBoard(
+                                                    context,
+                                                    accent,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              height:
+                                                  (MediaQuery.textScalerOf(
+                                                                context,
+                                                              ).scale(14) *
+                                                              2.6 +
+                                                          24)
+                                                      .clamp(60, 104)
+                                                      .toDouble(),
+                                              child: _quickPlayAssists(),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(width: _showTopBar ? 16 : 8),
+                                      SizedBox(
+                                        width: (constraints.maxWidth * .36)
+                                            .clamp(280.0, 420.0)
+                                            .toDouble(),
+                                        child: ListView(
+                                          key: const ValueKey(
+                                            'landscape-match-scroll',
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 4,
+                                          ),
+                                          children: _buildMatchDetails(
+                                            accent,
+                                            includeAssists: false,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                            SizedBox(width: _showTopBar ? 16 : 8),
-                            SizedBox(
-                              width: (constraints.maxWidth * .36)
-                                  .clamp(280.0, 420.0)
-                                  .toDouble(),
-                              child: ListView(
-                                key: const ValueKey('landscape-match-scroll'),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                ),
-                                children: _buildMatchDetails(accent),
-                              ),
+                                if (_autoPlay && !_matchFinished)
+                                  _autoSpeedControl(accent),
+                              ],
                             ),
                           ],
                         ),
                       );
                     }
-                    final topCount = 6 + (_showTopBar ? 0 : 2);
-                    return ListView(
-                      key: const ValueKey('portrait-match-scroll'),
-                      controller: _boardScroll,
-                      padding: EdgeInsets.fromLTRB(
-                        _showTopBar ? 16 : 8,
-                        _showTopBar ? 16 : 8,
-                        _showTopBar ? 16 : 8,
-                        0,
+                    final actionsHeight =
+                        (MediaQuery.textScalerOf(context).scale(14) * 2.6 + 24)
+                            .clamp(60, 104)
+                            .toDouble();
+                    return SafeArea(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 5, 10, 4),
+                            child: NeonLiveStatusBar(
+                              status: _status,
+                              whiteTime: _whiteTime,
+                              blackTime: _blackTime,
+                              turn: _game.position.turn,
+                              timed: _timeControl.timed,
+                            ),
+                          ),
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, pane) {
+                                final extent = math.max(
+                                  1.0,
+                                  math.min(
+                                    pane.maxWidth - 16,
+                                    pane.maxHeight - actionsHeight - 16,
+                                  ),
+                                );
+                                return ListView(
+                                  key: const ValueKey('portrait-match-scroll'),
+                                  controller: _boardScroll,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    8,
+                                    0,
+                                    8,
+                                    8,
+                                  ),
+                                  children: [
+                                    SizedBox(
+                                      height: extent,
+                                      child: Center(
+                                        child: SizedBox.square(
+                                          dimension: extent,
+                                          child: _buildBoard(context, accent),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      height: actionsHeight,
+                                      child: _quickPlayAssists(),
+                                    ),
+                                    if (_autoPlay && !_matchFinished)
+                                      _autoSpeedControl(accent),
+                                    ThreatScanBanner(scan: _threats),
+                                    const SizedBox(height: 8),
+                                    Column(
+                                      children:
+                                          _buildMatchDetails(
+                                                accent,
+                                                includeAssists: false,
+                                              )
+                                              .where(
+                                                (item) => item is! MatchHeader,
+                                              )
+                                              .toList(),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: _showTopBar ? 0 : 8,
-                          ),
-                          child: Column(
-                            children: _buildMatchDetails(
-                              accent,
-                            ).take(topCount).toList(),
-                          ),
-                        ),
-                        SizedBox(height: _showTopBar ? 2 : 0),
-                        AspectRatio(
-                          aspectRatio: 1,
-                          child: _buildBoard(context, accent),
-                        ),
-                        ThreatScanBanner(scan: _threats),
-                        SizedBox(height: _showTopBar ? 12 : 4),
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: _showTopBar ? 0 : 8,
-                          ),
-                          child: Column(
-                            children: _buildMatchDetails(
-                              accent,
-                            ).skip(topCount).toList(),
-                          ),
-                        ),
-                      ],
                     );
                   },
                 ),

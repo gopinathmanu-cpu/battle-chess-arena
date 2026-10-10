@@ -18,12 +18,12 @@ import '../../services/online_match_client.dart';
 import '../../services/mobile_notifications.dart';
 import '../../services/theme_music.dart';
 import '../../services/player_identity_controller.dart';
-import '../credits/credit_balance_chip.dart';
 import '../credits/gold_credit_coin.dart';
 import '../credits/credit_rules_sheet.dart';
 import '../play/board_appearance.dart';
 import '../play/play_assist_style.dart';
 import 'online_game_screen.dart';
+import 'invitation_waiting_screen.dart';
 import 'online_avatar_image.dart';
 
 class OnlineLobbyScreen extends StatefulWidget {
@@ -31,7 +31,8 @@ class OnlineLobbyScreen extends StatefulWidget {
     required this.pack,
     this.client,
     this.endpoint,
-    this.initialClassicPieces = false,
+    this.initialClassicPieces = true,
+    this.initialAnimatedArena,
     this.initialClassicStyle = ClassicPieceStyle.magneticTeaching,
     this.initialGameId,
     this.initialSharedInviteId,
@@ -43,6 +44,7 @@ class OnlineLobbyScreen extends StatefulWidget {
   final OnlineMatchClient? client;
   final Uri? endpoint;
   final bool initialClassicPieces;
+  final bool? initialAnimatedArena;
   final ClassicPieceStyle initialClassicStyle;
   final String? initialGameId;
   final String? initialSharedInviteId;
@@ -68,6 +70,9 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   var _loading = true;
   var _profileReady = false;
   String? _openedGameId;
+  String? _waitingInviteId;
+  String? _pendingWaitOpponent;
+  String? _acceptedInviteId;
   String? _savedProfileKey;
   final _shownReminders = <String>{};
   String? _presenceRequestKey;
@@ -207,6 +212,49 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       _savedProfileKey = profileKey;
       unawaited(OnlineGameHistory.saveProfile(profile!));
     }
+    if (profile?.playerToken == null &&
+        _client.error != null &&
+        !_client.connected) {
+      _profileReady = false;
+    }
+    if (_pendingWaitOpponent != null) {
+      final invitation = _client.invitations
+          .where(
+            (item) =>
+                item.senderName.toLowerCase() ==
+                    _client.profile?.name.toLowerCase() &&
+                item.recipientName.toLowerCase() ==
+                    _pendingWaitOpponent!.toLowerCase() &&
+                item.scheduledAt == null &&
+                item.status == 'pending' &&
+                !item.isExpired,
+          )
+          .firstOrNull;
+      if (invitation != null) {
+        _pendingWaitOpponent = null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _waitForInvitation(invitation);
+        });
+      } else if (_client.error != null) {
+        _pendingWaitOpponent = null;
+      }
+    }
+    if (_acceptedInviteId != null) {
+      final accepted = _client.invitations
+          .where(
+            (item) =>
+                item.inviteId == _acceptedInviteId &&
+                item.game != null &&
+                item.status == 'accepted',
+          )
+          .firstOrNull;
+      if (accepted != null) {
+        _acceptedInviteId = null;
+        unawaited(_openInvitation(accepted));
+      } else if (_client.error != null) {
+        _acceptedInviteId = null;
+      }
+    }
     final state = _client.state;
     _requestConnectionPresence();
     _tryJoinPendingInvite();
@@ -223,7 +271,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     if (_mobileNotificationsEnabled) {
       unawaited(_processInvitationNotifications());
     }
-    if (state != null &&
+    if (_waitingInviteId == null &&
+        state != null &&
         state.status != 'waiting' &&
         _client.connected &&
         _openedGameId != state.gameId) {
@@ -428,16 +477,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         await _notifications.cancel('scheduled-soon:${invitation.inviteId}');
         await _notifications.cancel('scheduled-start:${invitation.inviteId}');
       }
-      if (invitation.game case final game?) {
-        final startedKey = 'game-started:${game.gameId}';
-        if (_deliveredNotificationEvents.add(startedKey)) {
-          await _notifications.show(
-            id: startedKey,
-            title: 'Game started',
-            body: 'Your game with $opponent has started.',
-          );
-        }
-      }
     }
     final removedInvites = _scheduledNotificationSignatures.keys
         .where((id) => !currentScheduledInvites.contains(id))
@@ -636,6 +675,17 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     await _client.startAnotherGame();
   }
 
+  Future<void> _quickMatch() async {
+    if (!_client.connected || _client.busy) return;
+    if (_client.gameId != null) await _playAnother();
+    if (!mounted || !_client.connected || _client.busy) return;
+    _client.quickMatch(
+      baseMs: _timeControl.baseMs,
+      incrementMs: _timeControl.incrementMs,
+      tossForColors: _tossForColors,
+    );
+  }
+
   Future<void> _prepareWhatsAppInvite() async {
     if (_preparingWhatsAppInvite || _client.profile == null) return;
     final format = _client.supportsSharedInvites
@@ -725,6 +775,8 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   }
 
   Future<void> _chooseComputerOpponent() async {
+    final matchIdentity =
+        '${_client.gameId}:${_client.state?.round}:${_client.seat}:${_client.state?.status}';
     final opponent = await showDialog<BuiltInComputerOpponent>(
       context: context,
       builder: (context) => AlertDialog(
@@ -745,13 +797,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 ),
                 title: Text(candidate.name),
                 subtitle: Text('${candidate.difficultyLabel} · Computer'),
-                trailing: _client.supportsCredits
-                    ? CreditCostBadge(
-                        key: ValueKey('computer-opponent-cost-${candidate.id}'),
-                        cost: _client.creditPolicy.computerRoundCost,
-                        compact: true,
-                      )
-                    : null,
                 onTap: () => Navigator.pop(context, candidate),
               );
             },
@@ -765,10 +810,17 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         ],
       ),
     );
-    if (opponent == null || !mounted) return;
+    if (opponent == null ||
+        !mounted ||
+        matchIdentity !=
+            '${_client.gameId}:${_client.state?.round}:${_client.seat}:${_client.state?.status}') {
+      return;
+    }
+    if (!_client.connected || _client.busy) return;
     if (_client.gameId != null && !_client.searchingForOpponent) {
       await _playAnother();
     }
+    if (!mounted || !_client.connected || _client.busy) return;
     _client.startComputerGame(
       opponent.id,
       baseMs: _timeControl.baseMs,
@@ -785,15 +837,82 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   void _openGame() {
     Navigator.of(context).push(
       MaterialPageRoute(
+        settings: RouteSettings(name: '/online-game:${_client.gameId}'),
         builder: (_) => OnlineGameScreen(
           client: _client,
           pack: widget.pack,
           initialClassicPieces: widget.initialClassicPieces,
+          initialAnimatedArena:
+              widget.initialAnimatedArena ?? !widget.initialClassicPieces,
           initialClassicStyle: widget.initialClassicStyle,
         ),
       ),
     );
   }
+
+  Future<void> _waitForInvitation(
+    OnlineInvitation invitation, {
+    String? sharedInviteId,
+  }) async {
+    if (_waitingInviteId != null || !mounted) return;
+    _waitingInviteId = invitation.inviteId;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        settings: RouteSettings(
+          name: sharedInviteId == null
+              ? '/waiting-invite:${invitation.inviteId}'
+              : '/waiting-shared:$sharedInviteId',
+        ),
+        builder: (waitingContext) => InvitationWaitingScreen(
+          client: _client,
+          invitation: invitation,
+          sharedInviteId: sharedInviteId,
+          pack: widget.pack,
+          onReady: (game) async {
+            _openedGameId = game.gameId;
+            await _client.openSavedGame(
+              savedGameId: game.gameId,
+              savedSeat: game.seat,
+              savedSeatToken: game.seatToken,
+            );
+            if (!waitingContext.mounted) return;
+
+            Navigator.of(waitingContext).pushReplacement<void, void>(
+              MaterialPageRoute(
+                settings: RouteSettings(name: '/online-game:${game.gameId}'),
+                builder: (_) => OnlineGameScreen(
+                  client: _client,
+                  pack: widget.pack,
+                  initialClassicPieces: true,
+                  initialAnimatedArena: false,
+                  initialClassicStyle: widget.initialClassicStyle,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+    _waitingInviteId = null;
+  }
+
+  Future<void> _waitForSharedInvitation(SharedInvitation shared) =>
+      _waitForInvitation(
+        OnlineInvitation(
+          inviteId: shared.inviteId,
+          senderName: shared.avatarName,
+          senderAvatarId: _client.profile?.avatarId ?? 'crown',
+          recipientName: 'your friend',
+          recipientAvatarId: 'crown',
+          status: shared.status,
+          createdAt: DateTime.now(),
+          awaitingResponseFromName: 'your friend',
+          timed: true,
+          baseMs: 600000,
+          expiresAt: shared.expiresAt,
+        ),
+        sharedInviteId: shared.inviteId,
+      );
 
   Future<void> _openInvitation(OnlineInvitation invitation) async {
     final game = invitation.game;
@@ -871,6 +990,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
   Future<void> _inviteNow(String opponentName) async {
     final format = await _pickInviteFormat();
     if (format == null) return;
+    _pendingWaitOpponent = opponentName;
     _client.sendInvitation(
       opponentName,
       tossForColors: format.tossForColors,
@@ -962,28 +1082,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                     ? 'Each turn has a fresh 24 hours. You do not need to be online together. The clock continues while you are away.'
                     : 'A live game: both players should be online together.',
               ),
-              if (_client.supportsCredits) ...[
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${_client.creditPolicy.humanRoundCost(daily: selected.isDaily)} credits are charged only when the server creates the game.',
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    CreditCostBadge(
-                      key: const ValueKey('invite-format-credit-cost'),
-                      cost: _client.creditPolicy.humanRoundCost(
-                        daily: selected.isDaily,
-                      ),
-                      compact: true,
-                    ),
-                  ],
-                ),
-              ],
+              const SizedBox(height: 8),
+              const Text(
+                'All games are free. Only Suggest Move uses credits.',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
               if (selected.isDaily && !_client.supportsDailyGames)
                 const Text(
                   'Daily play needs the upcoming online service update. You can choose a live format now.',
@@ -1026,6 +1129,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     var avatarId = profile.avatarId;
     var level = profile.level;
     String? saveError;
+    var saving = false;
     await showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1081,31 +1185,41 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: saving ? null : () => Navigator.pop(context),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () {
-                final name = normalizedAvatarName(controller.text);
-                final validationError = avatarNameValidationError(name);
-                if (validationError != null) {
-                  setDialogState(() => saveError = validationError);
-                  return;
-                }
-                final accepted = _client.updateProfile(
-                  name: name,
-                  avatarId: avatarId,
-                  level: level,
-                );
-                if (!accepted) {
-                  setDialogState(
-                    () => saveError =
-                        'Another profile change is still saving. Please try again shortly.',
-                  );
-                  return;
-                }
-                Navigator.pop(context);
-              },
+              onPressed: saving
+                  ? null
+                  : () async {
+                      final name = normalizedAvatarName(controller.text);
+                      final validationError = avatarNameValidationError(name);
+                      if (validationError != null) {
+                        setDialogState(() => saveError = validationError);
+                        return;
+                      }
+                      setDialogState(() {
+                        saving = true;
+                        saveError = null;
+                      });
+                      try {
+                        await _client.updateProfileConfirmed(
+                          name: name,
+                          avatarId: avatarId,
+                          level: level,
+                        );
+                        if (context.mounted) Navigator.pop(context);
+                      } catch (error) {
+                        if (context.mounted) {
+                          setDialogState(() {
+                            saving = false;
+                            saveError = error is StateError
+                                ? error.message.toString()
+                                : 'Could not save your profile. Try again.';
+                          });
+                        }
+                      }
+                    },
               child: const Text('Save'),
             ),
           ],
@@ -1351,7 +1465,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
         subtitle: Text(
           account == null
               ? 'Your server balance will appear here.'
-              : 'Live match ${policy.liveHumanRoundCost} · Daily match ${policy.dailyHumanRoundCost} · Server computer ${policy.computerRoundCost}\n$rewards',
+              : 'Only Suggest Move uses credits.\n$rewards',
         ),
         isThreeLine: account != null,
         trailing: const Icon(Icons.info_outline),
@@ -1462,21 +1576,6 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                       ),
                     ),
                     _CreditExplanationTile(
-                      icon: Icons.people_alt_outlined,
-                      title: 'Live game with a real player',
-                      trailing: '${policy.liveHumanRoundCost}',
-                    ),
-                    _CreditExplanationTile(
-                      icon: Icons.calendar_today_outlined,
-                      title: 'Daily game with a real player',
-                      trailing: '${policy.dailyHumanRoundCost}',
-                    ),
-                    _CreditExplanationTile(
-                      icon: Icons.smart_toy_outlined,
-                      title: 'Server computer game',
-                      trailing: '${policy.computerRoundCost}',
-                    ),
-                    _CreditExplanationTile(
                       icon: Icons.lightbulb_rounded,
                       iconColor: moveSuggestionIconColor,
                       title: 'Online move suggestion',
@@ -1485,7 +1584,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                       trailing: '${policy.onlineMoveSuggestionCost}',
                     ),
                     const Text(
-                      'The server charges once when it creates a new round. Searching, invitations, reconnecting, and resuming a game are free.',
+                      'All games, rematches, auto-play and retries are free. Credits are used only for Suggest Move.',
                     ),
                     const SizedBox(height: 18),
                     const Text(
@@ -1643,7 +1742,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
             ),
             Text(
               _client.supportsCredits
-                  ? 'Matches your ${_client.profile?.level.label ?? 'player'} level first. A live round costs ${_client.creditPolicy.liveHumanRoundCost} credits only after a match is made.'
+                  ? 'Matches your ${_client.profile?.level.label ?? 'player'} level first. Games are free.'
                   : 'Matches your ${_client.profile?.level.label ?? 'player'} level first.',
             ),
             const SizedBox(height: 10),
@@ -1674,30 +1773,10 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                 FilledButton.icon(
                   key: const ValueKey('quick-match-button'),
                   onPressed: _client.connected && !_client.busy
-                      ? () async {
-                          if (_client.gameId != null) await _playAnother();
-                          _client.quickMatch(
-                            baseMs: _timeControl.baseMs,
-                            incrementMs: _timeControl.incrementMs,
-                            tossForColors: _tossForColors,
-                          );
-                        }
+                      ? _quickMatch
                       : null,
                   icon: const Icon(Icons.bolt),
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Play'),
-                      if (_client.supportsCredits) ...[
-                        const SizedBox(width: 6),
-                        CreditCostBadge(
-                          key: const ValueKey('quick-match-credit-cost'),
-                          cost: _client.creditPolicy.liveHumanRoundCost,
-                          compact: true,
-                        ),
-                      ],
-                    ],
-                  ),
+                  label: const Text('Play'),
                 ),
               ],
             ),
@@ -1760,10 +1839,10 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           ),
         ),
         if (_client.supportsCredits)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
             child: Text(
-              'A server computer round costs ${_client.creditPolicy.computerRoundCost} credits. Play Computer from the home screen remains free.',
+              'Computer games are free. Only Suggest Move uses credits.',
             ),
           ),
         const SizedBox(height: 10),
@@ -2048,7 +2127,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
       ),
       subtitle: Text(
         _notifications.isSupported
-            ? 'Notify me about new invites, 10-minute reminders, and game starts.'
+            ? 'Notify me about invites, reminders, opponents joining, and moves in other games.'
             : 'Available in the Android and iOS apps.',
       ),
       value: _mobileNotificationsEnabled,
@@ -2139,18 +2218,27 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           Card(
             key: ValueKey('shared-invite-${invitation.inviteId}'),
             child: ListTile(
+              onTap: !invitation.isExpired
+                  ? () => _waitForSharedInvitation(invitation)
+                  : null,
               leading: const WhatsAppInviteIcon(),
               title: const Text('WhatsApp invitation'),
               subtitle: Text(
                 invitation.isExpired
                     ? 'Expired · Create a new invitation'
                     : invitation.status == 'accepted'
-                    ? 'Friend joined · Open Active games to play'
+                    ? 'Friend joined · Tap to play'
                     : 'Waiting for a friend · ${invitation.avatarName}\n${invitation.expiresAt == null ? 'Expires after 24 hours' : 'Expires ${_formatSchedule(invitation.expiresAt!.toLocal())}'}',
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (!invitation.isExpired)
+                    IconButton(
+                      tooltip: 'Wait at the chessboard',
+                      onPressed: () => _waitForSharedInvitation(invitation),
+                      icon: const Icon(Icons.hourglass_top),
+                    ),
                   if (invitation.status == 'pending' && !invitation.isExpired)
                     IconButton(
                       tooltip: 'Share invitation again',
@@ -2193,6 +2281,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     final canRespond = invitation.canRespondBy(myName);
     final acceptedGame =
         invitation.status == 'accepted' && invitation.game != null;
+    final canWait =
+        !received &&
+        !invitation.isExpired &&
+        invitation.game == null &&
+        ['pending', 'accepted'].contains(invitation.status);
     final schedule = invitation.scheduledAt == null
         ? 'Play now'
         : _formatSchedule(invitation.scheduledAt!);
@@ -2213,7 +2306,11 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
     return Card(
       key: ValueKey('invite-${invitation.inviteId}'),
       child: ListTile(
-        onTap: acceptedGame ? () => _openInvitation(invitation) : null,
+        onTap: acceptedGame
+            ? () => _openInvitation(invitation)
+            : canWait
+            ? () => _waitForInvitation(invitation)
+            : null,
         leading: OnlineAvatarImage(avatarId: opponentAvatar),
         title: Text(opponentName),
         subtitle: Text(
@@ -2225,11 +2322,22 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (acceptedGame) const Icon(Icons.play_arrow),
+            if (canWait)
+              IconButton(
+                key: ValueKey('wait-at-board-${invitation.inviteId}'),
+                tooltip: 'Wait at the chessboard',
+                onPressed: () => _waitForInvitation(invitation),
+                icon: const Icon(Icons.hourglass_top),
+              ),
             if (canRespond)
               PopupMenuButton<String>(
                 tooltip: 'Respond to invitation',
                 onSelected: (action) {
                   if (action == 'accept') {
+                    if (invitation.scheduledAt == null ||
+                        !invitation.scheduledAt!.isAfter(DateTime.now())) {
+                      _acceptedInviteId = invitation.inviteId;
+                    }
                     _client.respondToInvitation(invitation.inviteId, true);
                   }
                   if (action == 'decline') {
@@ -2238,24 +2346,7 @@ class _OnlineLobbyScreenState extends State<OnlineLobbyScreen> {
                   if (action == 'counter') _counterInvitation(invitation);
                 },
                 itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'accept',
-                    child: Row(
-                      children: [
-                        const Expanded(child: Text('Accept')),
-                        if (_client.supportsCredits)
-                          CreditCostBadge(
-                            key: ValueKey(
-                              'accept-invite-credit-cost-${invitation.inviteId}',
-                            ),
-                            cost: _client.creditPolicy.humanRoundCost(
-                              daily: invitation.clockMode == 'daily',
-                            ),
-                            compact: true,
-                          ),
-                      ],
-                    ),
-                  ),
+                  const PopupMenuItem(value: 'accept', child: Text('Accept')),
                   const PopupMenuItem(
                     value: 'counter',
                     child: Text('Propose new date & time'),

@@ -6,6 +6,46 @@ import '../../services/player_identity_controller.dart';
 import '../../services/player_progress_controller.dart';
 import '../credits/gold_credit_coin.dart';
 
+/// Keep the full experience label when it fits the Home profile header.
+class HomeExperienceSummary extends StatelessWidget {
+  const HomeExperienceSummary({
+    required this.experience,
+    required this.trophies,
+    this.style,
+    super.key,
+  });
+
+  final int experience;
+  final int trophies;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final full = 'Experience $experience XP  ·  Trophies $trophies';
+      final effectiveStyle = DefaultTextStyle.of(context).style.merge(style);
+      final measurement = TextPainter(
+        text: TextSpan(text: full, style: effectiveStyle),
+        maxLines: 1,
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      )..layout();
+      final fits = measurement.width <= constraints.maxWidth;
+      measurement.dispose();
+      return Semantics(
+        label: full,
+        excludeSemantics: true,
+        child: Text(
+          fits ? full : 'Exp $experience XP  ·  Trophies $trophies',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: effectiveStyle,
+        ),
+      );
+    },
+  );
+}
+
 class ProgressBadgeSummary extends StatelessWidget {
   const ProgressBadgeSummary({this.showTitle = true, super.key});
 

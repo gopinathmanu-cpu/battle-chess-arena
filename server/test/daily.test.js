@@ -100,8 +100,8 @@ test('Daily named invitations, profiles, seats and deadlines survive server rest
   const id = update.game.gameId;
   const deadline = update.game.state.turnDeadlineEpochMs;
   assert.equal(deadline, wall + day);
-  assert.equal(app.profiles.get('alice').creditAccount.bonusBalance, 297);
-  assert.equal(app.profiles.get('bobby').creditAccount.bonusBalance, 297);
+  assert.equal(app.profiles.get('alice').creditAccount.bonusBalance, 300);
+  assert.equal(app.profiles.get('bobby').creditAccount.bonusBalance, 300);
   assert.ok(store.saved.games.some(game => game.id === id));
   await app.close();
   wall += day - 1000;
@@ -211,31 +211,31 @@ test('credit balances and ledger survive restart; resume is free and later login
   assert.equal(waiting.credits, 300);
   bob.send({ type: 'quick_match', commandId: 'wallet-pair' });
   const paired = await bob.next('match_found');
-  assert.equal(paired.credits, 298);
-  assert.equal(app.profiles.get('wallet alice').creditAccount.bonusBalance, 298);
-  assert.equal(app.profiles.get('wallet bobby').creditAccount.bonusBalance, 298);
+  assert.equal(paired.credits, 300);
+  assert.equal(app.profiles.get('wallet alice').creditAccount.bonusBalance, 300);
+  assert.equal(app.profiles.get('wallet bobby').creditAccount.bonusBalance, 300);
   assert.equal(store.saved.players.find(player => player.name === 'Wallet Alice')
-    .creditAccount.bonusBalance, 298);
+    .creditAccount.bonusBalance, 300);
 
   await app.close();
   app = await start();
   const returning = await client(app, 'Wallet Alice', alice.profile.playerToken);
-  assert.equal(returning.profile.credits, 298);
+  assert.equal(returning.profile.credits, 300);
   returning.send({ type: 'list_games' });
   const active = (await returning.next('active_games')).games[0];
   assert.equal(active.gameId, paired.gameId);
   returning.send({ type: 'resume_game', gameId: active.gameId, seatToken: active.seatToken });
   const resumed = await returning.next('seat_resumed');
-  assert.equal(resumed.credits, 298);
-  assert.equal(app.profiles.get('wallet alice').creditAccount.bonusBalance, 298);
+  assert.equal(resumed.credits, 300);
+  assert.equal(app.profiles.get('wallet alice').creditAccount.bonusBalance, 300);
 
   wall += day;
   const tomorrow = await client(app, 'Wallet Alice', alice.profile.playerToken);
   assert.equal(tomorrow.profile.credits, 300);
   const account = await tomorrow.next('credit_balance');
   assert.equal(account.account.bonusCredits, 300);
-  assert.equal(account.account.recentTransactions[0].type, 'daily_login');
-  assert.equal(account.account.recentTransactions[0].delta, 2);
+  assert.equal(account.account.recentTransactions[0].type, 'starter');
+  assert.equal(account.account.recentTransactions[0].delta, 300);
   assert.equal(store.saved.players.find(player => player.name === 'Wallet Alice')
     .creditAccount.bonusBalance, 300);
 });

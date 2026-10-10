@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -159,6 +160,8 @@ class CachedArenaCreditBalance {
 }
 
 class OnlineGameHistory {
+  static final profileChanges = ValueNotifier<OnlinePlayerProfile?>(null);
+  static final notificationChanges = ValueNotifier<bool?>(null);
   static const _profileKey = 'online_player_profile_v1';
   static const _gamesKey = 'online_game_history_v1';
   static const _favoritesKey = 'online_favorites_v1';
@@ -183,6 +186,7 @@ class OnlineGameHistory {
   static Future<void> saveProfile(OnlinePlayerProfile profile) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_profileKey, jsonEncode(profile.toJson()));
+    profileChanges.value = profile;
   }
 
   static Future<List<OnlineGameRecord>> loadGames() async {
@@ -305,6 +309,7 @@ class OnlineGameHistory {
   static Future<void> saveMobileNotificationsEnabled(bool enabled) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_notificationsKey, enabled);
+    notificationChanges.value = enabled;
   }
 
   static Future<CachedArenaCreditBalance?> loadCreditBalance(

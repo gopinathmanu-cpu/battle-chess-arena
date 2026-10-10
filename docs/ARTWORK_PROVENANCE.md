@@ -37,6 +37,10 @@ is eligible for copyright protection. Laws and other rights vary by jurisdiction
 | Bot portraits | [Bot portrait record](../assets/avatars/bot-personality-atlas.asset.md) |
 | Custom multiplayer portraits | Original vector drawing in `lib/src/features/online/custom_avatar_portrait.dart`; no external portrait API or stock-image pack |
 | App icon | [Icon record](../assets/branding/battle_chess_arena_icon.asset.md) |
+| Neon Dominion illustrated film | [Cinematic artwork record](NEON_CINEMATIC_ARTWORK.md); submitted prompts, input pose sheets, measured renderer crops and original score generator |
+| Neon Dominion live ready/attack poses | [Pose artwork record](NEON_LIVE_POSE_ARTWORK.md); two original built-in generation prompts, existing cast references, unchanged RGBA atlases and renderer-only crops |
+| Manga Vanguard, Epic Guardians and Olympian Legion live/film worlds | [Animated armies artwork record](ANIMATED_ARMIES_ARTWORK.md); six original built-in generation prompts, unchanged RGBA casts/worlds, renderer crops and three original score loops |
+| Beta 50 brighter Animated casts, Queen hair and upright Neon Rooks | [Selected cast artwork](BRIGHT_ANIMATED_CAST_ARTWORK.md) and [full submitted prompts](BRIGHT_ANIMATED_CAST_PROMPTS.json); nine intact runtime cast PNGs, Rook-only revised Neon pose routing, project cast references, preserved originals and renderer-only crop/body metrics |
 
 The kingdom expansion uses the built-in image generator. Current generation
 instructions require original designs and explicit copying exclusions; earlier

@@ -33,9 +33,12 @@ class SavedGame {
     required this.updatedAtEpochMs,
     this.lifelinesRemaining = 3,
     this.classicPieces = false,
+    this.animatedArena,
     this.classicStyle = ClassicPieceStyle.magneticTeaching,
     this.timeControl = GameTimeControl.legacy,
     this.progressGameId,
+    this.historyGameId,
+    this.historyResultTitle,
   });
 
   final PlayerMode mode;
@@ -52,11 +55,19 @@ class SavedGame {
   final int updatedAtEpochMs;
   final int lifelinesRemaining;
   final bool classicPieces;
+
+  /// Missing in older saves, whose existing army presentation is retained.
+  final bool? animatedArena;
   final ClassicPieceStyle classicStyle;
   final GameTimeControl timeControl;
   final String? progressGameId;
+  final String? historyGameId;
+
+  /// Retains a completed recording until the full history archive is durable.
+  final String? historyResultTitle;
 
   bool get canResume =>
+      historyResultTitle == null &&
       moves.isNotEmpty &&
       (!timeControl.timed || (whiteMilliseconds > 0 && blackMilliseconds > 0));
 
@@ -76,9 +87,12 @@ class SavedGame {
     'updatedAtEpochMs': updatedAtEpochMs,
     'lifelinesRemaining': lifelinesRemaining,
     'classicPieces': classicPieces,
+    if (animatedArena != null) 'animatedArena': animatedArena!,
     'classicStyle': classicStyle.name,
     'timeControl': timeControl.toJson(),
     if (progressGameId != null) 'progressGameId': progressGameId!,
+    if (historyGameId != null) 'historyGameId': historyGameId!,
+    if (historyResultTitle != null) 'historyResultTitle': historyResultTitle!,
   };
 
   factory SavedGame.fromJson(Map<String, Object?> json) {
@@ -108,11 +122,14 @@ class SavedGame {
       updatedAtEpochMs: json['updatedAtEpochMs'] as int,
       lifelinesRemaining: json['lifelinesRemaining'] as int? ?? 3,
       classicPieces: json['classicPieces'] as bool? ?? false,
+      animatedArena: json['animatedArena'] as bool?,
       classicStyle: ClassicPieceStyle.values.byName(
         json['classicStyle'] as String? ??
             ClassicPieceStyle.magneticTeaching.name,
       ),
       progressGameId: json['progressGameId'] as String?,
+      historyGameId: json['historyGameId'] as String?,
+      historyResultTitle: json['historyResultTitle'] as String?,
     );
   }
 }
@@ -123,22 +140,26 @@ class LastGameStorage {
   static SavedGame? _memory;
 
   static Future<SavedGame?> load() async {
+    final revision = _revision;
     try {
       if (_memory case final cached?) {
         if (!cached.canResume) {
-          await clear();
+          if (cached.historyResultTitle == null) await clear();
           return null;
         }
         return cached;
       }
       final preferences = await SharedPreferences.getInstance();
+      if (revision != _revision) {
+        return _memory?.canResume == true ? _memory : null;
+      }
       final encoded = preferences.getString(_key);
       if (encoded == null) return null;
       final saved = SavedGame.fromJson(
         (jsonDecode(encoded) as Map).cast<String, Object?>(),
       );
       if (!saved.canResume) {
-        await clear();
+        if (saved.historyResultTitle == null) await clear();
         return null;
       }
       GameSession.fromMoves(
@@ -149,6 +170,9 @@ class LastGameStorage {
       _memory = saved;
       return saved;
     } catch (_) {
+      if (revision != _revision) {
+        return _memory?.canResume == true ? _memory : null;
+      }
       await clear();
       return null;
     }
@@ -166,10 +190,36 @@ class LastGameStorage {
     if (revision == _revision) await preferences.setString(_key, encoded);
   }
 
-  static Future<void> clear() async {
-    ++_revision;
+  /// Stage a terminal game's source before archiving. The ticket prevents a
+  /// delayed archive from clearing a newer game's resume slot.
+  static Future<int> saveHistorySource(SavedGame game) async {
+    final revision = ++_revision;
+    final previous = _memory;
+    _memory = game;
+    SharedPreferences? preferences;
+    try {
+      preferences = await SharedPreferences.getInstance();
+      if (revision != _revision) return revision;
+      final encoded = jsonEncode(game.toJson());
+      if (!await preferences.setString(_key, encoded)) {
+        throw StateError('Completed game source could not be saved');
+      }
+      return revision;
+    } catch (_) {
+      if (revision == _revision) {
+        _memory = previous;
+        // Reload rolls back SharedPreferences' optimistic failed write.
+        if (preferences != null) await preferences.reload();
+      }
+      rethrow;
+    }
+  }
+
+  static Future<void> clear({int? expectedRevision}) async {
+    if (expectedRevision != null && expectedRevision != _revision) return;
+    final revision = ++_revision;
     _memory = null;
     final preferences = await SharedPreferences.getInstance();
-    await preferences.remove(_key);
+    if (revision == _revision) await preferences.remove(_key);
   }
 }
